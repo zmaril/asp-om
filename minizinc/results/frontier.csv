@@ -1,0 +1,17 @@
+instance,variant,engine,threads,status,objective,solve_s,flatten_s,wall_s,notes
+stabilized_water,free,gecode,1,SATISFIED,9,599.661,0.338816,600.09,"timeout 600s, best=9"
+sw_T10,free,gecode,1,SATISFIED,9,299.719,0.281178,300.10,"timeout 300s, best=9"
+sw_T14,free,gecode,1,SATISFIED,9,299.615,0.384683,300.13,"timeout 300s, best=9"
+sw_T10,free,chuffed,1,OPTIMAL,9,28.060,0.341391,28.56,
+sw_T14,free,chuffed,1,SATISFIED,9,299.543,0.456964,300.20,"timeout 300s, best=9"
+sw_T16,free,chuffed,1,SATISFIED,9,299.554,0.446211,300.24,"timeout 300s, best=9"
+sw_T20,free,chuffed,1,SATISFIED,9,299.468,0.530679,300.28,"timeout 300s, best=9"
+sw_r3,free,chuffed,1,SATISFIED,9,299.648,0.352516,300.18,"timeout 300s, best=9"
+sw_r3_T16,free,chuffed,1,SATISFIED,9,299.565,0.435318,300.21,"timeout 300s, best=9"
+sw_T10,free,cp-sat,1,OPTIMAL,9,10.9875,0.335216,11.44,
+sw_T14,free,cp-sat,1,UNKNOWN,,,0.388838,300.20,"timeout 300s, no solution"
+sw_T16,free,cp-sat,1,UNKNOWN,,,0.470498,300.21,"timeout 300s, no solution"
+sw_T20,free,cp-sat,1,UNKNOWN,,,0.539374,300.21,"timeout 300s, no solution"
+sw_r3,free,cp-sat,1,OPTIMAL,9,95.1297,0.38096,95.66,
+sw_r3_T16,free,cp-sat,1,UNKNOWN,,,0.426159,300.14,"timeout 300s, no solution"
+sw_T14,free,cp-sat,4,OPTIMAL,9,12.2132,0.426053,12.86,
