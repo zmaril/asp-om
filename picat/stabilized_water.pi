@@ -1,0 +1,193 @@
+% ===========================================================================
+% Opus Magnum -- Picat planner encoding: STABILIZED WATER (fixed layout)
+% ===========================================================================
+% Puzzle spec extracted from the real game data: omsim's test corpus,
+% test/puzzle/campaign/ch1-and-prologue/P007.puzzle (name "STABILIZED
+% WATER", format per omsim parse.c):
+%   * inputs : two reagents, each a single WATER atom
+%   * output : one product molecule, SALT@(0,0) -- WATER@(1,0), one
+%              normal bond
+%   * parts available: arms/piston/track, bonder, unbonder, multi-bonder,
+%     glyph of calcification
+%
+% Simplifications vs the real game (all deliberate, listed honestly):
+%   1. Discrete global timesteps, one arm, one action per timestep
+%      (real game: per-arm looping instruction tapes running in parallel,
+%      cycle count = tape period).
+%   2. Deliver ONE product molecule, not six; "output" is modeled as two
+%      goal hexes the finished molecule must rest on (unheld), not a
+%      consuming output part.
+%   3. Only the parts our engine models are used: 1 arm (length 1, fixed
+%      base), 1 bonder, 1 calcification glyph.  No piston/track/unbonder/
+%      multi-bonder, no arm2/3/6.
+%   4. The two water reagents are modeled as ONE respawning input site
+%      (matching asp/core2.lp's spawn semantics): a fresh water atom
+%      appears at the spawn hex as soon as it is vacated, bounded pool
+%      nreagent=2 (the product needs exactly 2 atoms; in-game reagents are
+%      unlimited).
+%   5. Board is a radius-2 hex (19 cells); the real game board is
+%      effectively unbounded.
+%   6. `wait` omitted (see case1/case3 headers): plan length = number of
+%      non-wait instructions, directly comparable to the clingo
+%      #minimize count.
+%
+% Layout (hand-fixed in this file; see stabilized_water_free.pi for the
+% variant where the solver chooses it):
+%   arm base (0,0) len 1 dir 0; spawn (1,0) water; calc glyph (0,1);
+%   bonder {(-1,1),(-1,0)}; product goal: salt@(0,-1) -- water@(1,-1),
+%   bonded, unheld.  All part footprints disjoint (as in the real game).
+%
+% Engine identical to case3_rigid.pi (rigid motion, calcification,
+% bonding, respawn); see that file for the state-term documentation.
+% ===========================================================================
+
+import planner.
+
+main =>
+    Arms  = [{m1, 0, 0, 1, 0, none}],
+    % no pre-placed atoms: the first water spawns via mk_next at t=0
+    mk_next(Arms, [], [], 0, calc_cells(), bonder_pairs(), [], S0),
+    print_layout(S0),
+    time(best_plan(S0, 20, Plan, Cost)),
+    println(plan_found),
+    foreach (A in Plan) printf("PLAN %w%n", A) end,
+    printf("cost (= plan length) = %d%n", Cost).
+
+final({Arms, Atoms, Bonds, _NSp, _Calc, _Bd, []}) =>
+    member({X, salt,  0, -1}, Atoms),
+    member({Y, water, 1, -1}, Atoms),
+    membchk(norm_pair(X,Y), Bonds),
+    foreach ({_,_,_,_,_,H} in Arms) H == none end.
+
+% -- instance parameters ------------------------------------------------------
+radius() = 2.
+spawn_pool() = 2.            % product needs exactly 2 atoms
+spawn_cell() = {1,0}.
+spawn_type() = water.
+calc_cells() = [{0,1}].
+bonder_pairs() = [{{-1,1},{-1,0}}].
+
+print_layout({Arms, Atoms, Bonds, _, Calc, Bd, _}) =>
+    printf("LAYOUT radius %d%n", radius()),
+    {SQ,SR} = spawn_cell(),
+    printf("LAYOUT spawn %d %d %w %d%n", SQ, SR, spawn_type(), spawn_pool()),
+    foreach ({M,BQ,BR,L,D,_} in Arms) printf("LAYOUT arm %w %d %d %d %d%n", M,BQ,BR,L,D) end,
+    foreach ({N,E,Q,R} in Atoms)      printf("LAYOUT atom %w %w %d %d%n", N,E,Q,R) end,
+    foreach ({X,Y} in Bonds)          printf("LAYOUT bond %w %w%n", X,Y) end,
+    foreach ({Q,R} in Calc)           printf("LAYOUT calc %d %d%n", Q,R) end,
+    foreach ({{Q1,R1},{Q2,R2}} in Bd) printf("LAYOUT bonder %d %d %d %d%n", Q1,R1,Q2,R2) end.
+
+% ===========================================================================
+% Engine (identical to case3_rigid.pi)
+% ===========================================================================
+
+% -- geometry -----------------------------------------------------------------
+dvec(0) = {1,0}.
+dvec(1) = {0,1}.
+dvec(2) = {-1,1}.
+dvec(3) = {-1,0}.
+dvec(4) = {0,-1}.
+dvec(5) = {1,-1}.
+
+on_board(Q,R) => abs(Q) =< radius(), abs(R) =< radius(), abs(Q+R) =< radius().
+
+% axial rotation about (BQ,BR); Delta 1 = cw, 5 = ccw (matches dir index math)
+rot_point(1, BQ, BR, Q, R) = {BQ - (R-BR), BR + (Q-BQ) + (R-BR)}.
+rot_point(5, BQ, BR, Q, R) = {BQ + (Q-BQ) + (R-BR), BR - (Q-BQ)}.
+
+% -- helpers ------------------------------------------------------------------
+norm_pair(X,Y) = cond(X @< Y, {X,Y}, {Y,X}).
+
+elemental(E) => membchk(E, [air, earth, fire, water]).
+
+cell_free(Atoms, Q, R) => not member({_,_,Q,R}, Atoms).
+
+% bond-connected component containing atom X
+component(X, Bonds) = fixcomp([X], Bonds).
+fixcomp(Comp, Bonds) = Comp1 =>
+    New = sort_remove_dups(
+            [B : {A,B} in Bonds, membchk(A,Comp), not membchk(B,Comp)] ++
+            [A : {A,B} in Bonds, membchk(B,Comp), not membchk(A,Comp)]),
+    (New == [] -> Comp1 = Comp ; Comp1 = fixcomp(sort(Comp ++ New), Bonds)).
+
+rotated({N,E,Q,R}, Comp, BQ, BR, Delta) = A1 =>
+    (membchk(N, Comp) ->
+        {Q1,R1} = rot_point(Delta, BQ, BR, Q, R),
+        A1 = {N,E,Q1,R1}
+    ;
+        A1 = {N,E,Q,R}
+    ).
+
+% every atom on the board, not on an arm base, no two atoms on one hex
+state_ok(Arms, Atoms) =>
+    foreach ({_,_,Q,R} in Atoms)
+        on_board(Q,R),
+        foreach ({_,BQ,BR,_,_,_} in Arms) {Q,R} != {BQ,BR} end
+    end,
+    Cells = sort([{Q,R} : {_,_,Q,R} in Atoms]),
+    Cells == sort_remove_dups(Cells).
+
+% -- post-state rules: spawn, calcification, bonding (clingo core2 parity) ----
+mk_next(Arms, Atoms, Bonds, NSp, Calc, Bd, Pending, S1) =>
+    ( NSp < spawn_pool(), {SQ,SR} = spawn_cell(), cell_free(Atoms, SQ, SR) ->
+        NSp1 = NSp + 1,
+        AtomsA = sort([{NSp1, spawn_type(), SQ, SR} | Atoms])
+    ;
+        NSp1 = NSp, AtomsA = Atoms
+    ),
+    AtomsB = apply_calc(AtomsA, Calc),
+    Bonds1 = apply_bonds(AtomsB, Bonds, Bd),
+    S1 = {Arms, AtomsB, Bonds1, NSp1, Calc, Bd, Pending}.
+
+apply_calc(Atoms, Calc) = sort([calc1(A, Calc) : A in Atoms]).
+calc1({N,E,Q,R}, Calc) = A1 =>
+    (membchk({Q,R}, Calc), elemental(E) -> A1 = {N,salt,Q,R} ; A1 = {N,E,Q,R}).
+
+apply_bonds(Atoms, Bonds, Bd) = Bonds1 =>
+    New = findall(P, (member({{QA,RA},{QB,RB}}, Bd),
+                      member({X,_,QA,RA}, Atoms),
+                      member({Y,_,QB,RB}, Atoms),
+                      X != Y, P = norm_pair(X,Y))),
+    Bonds1 = sort_remove_dups(Bonds ++ New).
+
+% -- actions ------------------------------------------------------------------
+% rotate: rigid rotation of the held component about the acting arm's base
+action({Arms, Atoms, Bonds, NSp, Calc, Bd, []}, S1, Action, Cost) ?=>
+    member({Act, Delta}, [{rot_cw,1}, {rot_ccw,5}]),
+    select({M,BQ,BR,L,D,Held}, Arms, Rest),
+    D1 = (D + Delta) mod 6,
+    {DQ,DR} = dvec(D1),
+    on_board(BQ + L*DQ, BR + L*DR),        % gripper stays on the board
+    Arms1 = sort([{M,BQ,BR,L,D1,Held} | Rest]),
+    (Held == none ->
+        Atoms1 = Atoms
+    ;
+        Comp = component(Held, Bonds),
+        % may not tear a component atom out of another arm's hand
+        foreach ({_,_,_,_,_,H2} in Rest) not membchk(H2, Comp) end,
+        Atoms1 = sort([rotated(A, Comp, BQ, BR, Delta) : A in Atoms]),
+        state_ok(Arms1, Atoms1)
+    ),
+    mk_next(Arms1, Atoms1, Bonds, NSp, Calc, Bd, [], S1),
+    Action = {M, Act},
+    Cost = 1.
+
+% grab: hand empty, an atom (not held by another arm) under the gripper
+action({Arms, Atoms, Bonds, NSp, Calc, Bd, []}, S1, Action, Cost) ?=>
+    select({M,BQ,BR,L,D,none}, Arms, Rest),
+    {DQ,DR} = dvec(D),
+    member({X,_,BQ+L*DQ,BR+L*DR}, Atoms),
+    foreach ({_,_,_,_,_,H2} in Rest) H2 != X end,
+    Arms1 = sort([{M,BQ,BR,L,D,X} | Rest]),
+    mk_next(Arms1, Atoms, Bonds, NSp, Calc, Bd, [], S1),
+    Action = {M, grab},
+    Cost = 1.
+
+% drop
+action({Arms, Atoms, Bonds, NSp, Calc, Bd, []}, S1, Action, Cost) =>
+    select({M,BQ,BR,L,D,Held}, Arms, Rest),
+    Held != none,
+    Arms1 = sort([{M,BQ,BR,L,D,none} | Rest]),
+    mk_next(Arms1, Atoms, Bonds, NSp, Calc, Bd, [], S1),
+    Action = {M, drop},
+    Cost = 1.
