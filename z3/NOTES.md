@@ -22,8 +22,124 @@ only becomes competitive when the model is written like a grounder
 would write it (the boolean one-hot encoding) — at which point you have
 re-implemented half of clingo's front end by hand.
 
+## Harness conformance (`adapter.py`) — canonical results
+
+Added after the common harness landed (branch `harness`:
+`harness/SPEC.md` + `harness/validate.py` + `harness/bench.py` +
+`harness/puzzles/*.json`).  The harness formats/semantics supersede the
+per-arm instances for cross-solver comparison; everything below this
+section reports the **pre-harness** encodings and instances and is now
+secondary.
+
+### Adapter
+
+```sh
+python3 z3/adapter.py <puzzle.json> [--out FILE]
+    [--strategy descend-cost|ramp-cost|oneshot] [--time-limit S]
+```
+
+Plan JSON on stdout, logs on stderr; exit 0 = solved, 1 = no plan,
+2 = malformed/unsupported puzzle.  `HARNESS_Z3_TIME_LIMIT` (default
+120 s) caps the solve; on expiry the best plan found so far is emitted
+(optimality then unproven — stderr says which).
+
+`adapter.py` is a fresh Int-BMC encoder rather than a wrapper around
+`om_solver.py`, because the harness semantics go beyond both
+pre-harness encoders in four ways: **(a)** inputs and outputs are
+placeable parts (the old encodings pinned spawn and product hexes —
+they "define the puzzle" no longer holds); **(b)** all part footprints
+(arm bases, input/output hexes, calcifier/bonder hexes) must be
+pairwise disjoint — in particular the old free-layout trick of putting
+glyphs under the reagent hexes is now illegal; **(c)** reagent pools
+respawn *mandatorily* (copy k+1 spawns at t+1 whenever copy k has
+spawned and the input hexes are free at t+1 — the old arm degenerated
+pools to pre-placed atoms); **(d)** the goal is a **latched, any-time,
+exact-molecule** completion: each product is complete at *some*
+t <= t_max with exact per-hex elements, unheld atoms and exact bond
+degree (the old goals were named-atom or anonymous-slot conditions at
+the final horizon only).  Strategy note: the plan called for "bool
+one-hot descend-cost, falling back to Int where features are missing";
+`om_bool.py` is fixed-layout-only and every harness puzzle ships with
+free layout, so the fallback (Int) applies to all of them.
+
+Solve pipeline (default `descend-cost`): (1) a ramp-horizon warm start
+over one unrolled encoding — assumption literal `goal-at-h` +
+"wait after h" for h = 1..t_max, first as a slice-sweep with growing
+per-horizon timeouts (skipping is sound: the completion latch is
+monotone, so SAT at h implies SAT at every h' > h), then grinding the
+unrefuted horizons to collect UNSAT lemmas; (2) plain cost descent
+(add `cost <= best-1` until UNSAT) to try to prove optimality within
+the remaining budget.  Symmetry cuts: identical unpinned reagents are
+lex-ordered by input position; when nothing at all is pinned the first
+arm base is confined to a fundamental domain of the board's C6
+rotation symmetry.
+
+### Canonical validation results (2026-07-07, this box)
+
+Every plan produced by the adapter was checked with the canonical
+validator; verdicts verbatim:
+
+```
+PASS  single_transport: plan length 3 (non-wait instructions), products complete: salt_out@t=3
+PASS  two_atom_bond: plan length 11 (non-wait instructions), products complete: salt_dimer@t=13
+PASS  stabilized_water: plan length 12 (non-wait instructions), products complete: stabilized_water@t=12
+```
+
+`harness/bench.py` (z3 = this adapter at the default 120 s limit,
+clingo = the reference adapter `harness/adapters/clingo/adapter.py` at
+its default 30 s limit):
+
+| puzzle | solver | solved | valid plan | wall time (s) | plan length |
+|---|---|---|---|---|---|
+| single_transport | z3 | yes | yes | 0.16 | 3 |
+| single_transport | clingo | yes | yes | 0.11 | 3 |
+| stabilized_water | z3 | yes | yes | 120.31 | 12 |
+| stabilized_water | clingo | yes | yes | 30.26 | 12 |
+| two_atom_bond | z3 | yes | yes | 120.23 | 11 |
+| two_atom_bond | clingo | yes | yes | 30.22 | 11 |
+
+Reading: identical plan lengths on all three puzzles.
+`single_transport` is solved to a *proven* optimum (3) in ~0.2 s.  On
+the two larger puzzles both arms return their best plan at the time
+limit without an optimality proof: z3 finds the cost-12
+`stabilized_water` plan after ~15–20 s and the cost-11 `two_atom_bond`
+plan within 60–120 s (first-SAT variance is high near the phase
+boundary), then burns the rest of the budget failing to refute cost-11
+/ cost-10.  Raising budgets moves nothing: z3 at 300 s still returns
+11 / 12, and clingo at 300 s also still reports `SAT cost=[11]` /
+`SAT cost=[12]` without an optimality proof — 11 and 12 are the
+best-known plan lengths for both arms.  The wall-time gap vs clingo is
+consistent with the pre-harness study (1–2 orders of magnitude at
+equal results).
+
+Extra coverage beyond the shipped puzzles (all validated with
+`harness/validate.py`): pinned arm/input/output placements (reproduces
+the legacy 5-instruction `trivial` optimum), a pre-bonded two-atom
+reagent (rigid transport, cost 3), a pinned bonder given in the flipped
+`(p+dir[k], k+3)` representation, and a deliberately infeasible pinned
+bonder (clingo proves UNSAT; the z3 adapter correctly exits 1, though
+it times out before *proving* UNSAT).
+
+### Discrepancies / harness bugs
+
+- **No harness bugs found.**  `harness/validate.py` matched SPEC.md on
+  everything the adapter exercised, and its own test suite passes
+  (27/27).
+- Semantics mapping corrections (adapter vs the pre-harness z3 arm)
+  are (a)–(d) above; two subtleties worth flagging for other arms:
+  calcification reads atom positions **at t** (pre-motion) and retypes
+  at t+1 (SPEC reconciliation decision 2 — an atom swung *off* the
+  glyph at step t is still calcified), and spawning is **not** a solver
+  choice: a vacated input hex refills at the next state, so plans must
+  route around the refilled hex (the validator enforces both; both are
+  encoded as exact equalities, not implications).
+
+---
+
 ## Files
 
+- `adapter.py` — **harness adapter** (see "Harness conformance" above);
+  canonical entry point for cross-solver comparison.
 - `om_solver.py` — primary **Int encoding** (coordinates/orientation/
   action as Z3 Ints, held/bond flags as Bools). Implements both clingo
   semantics: **v1** (`core.lp`: one arm, exactly one instruction per

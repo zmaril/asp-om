@@ -7,6 +7,46 @@ solver-independent plan validator, and a ground-truth check against
 [omsim](https://github.com/ianh/omsim).  Full report: `NOTES.md`;
 result tables: `results.md`, `results-frontier.md`.
 
+## Harness adapter (canonical entry point)
+
+`adapter.py` plugs this arm into the common harness (branch `harness`:
+`harness/SPEC.md` formats + semantics, `harness/validate.py` canonical
+validator, `harness/bench.py` runner).  It is a fresh Int-BMC encoder
+implementing the harness world semantics exactly — solver-placed
+input/output parts, part-footprint disjointness, mandatory pool
+respawn, latched any-time exact-molecule goal — because the pre-harness
+encoders below model the older per-arm semantics.
+
+```sh
+# adapter contract: plan JSON on stdout, logs on stderr,
+# exit 0 solved / 1 no plan / 2 bad puzzle
+python3 z3/adapter.py harness/puzzles/stabilized_water.json
+
+# knobs (defaults: descend-cost, 120 s)
+HARNESS_Z3_TIME_LIMIT=300 python3 z3/adapter.py <puzzle.json> \
+    [--strategy descend-cost|ramp-cost|oneshot] [--time-limit S] [--out FILE]
+
+# canonical validation / benchmark (from a checkout of branch harness)
+python3 harness/validate.py <puzzle.json> <plan.json> [--verbose]
+python3 harness/bench.py --adapter z3="python3 z3/adapter.py"
+```
+
+Canonical results (harness/validate.py PASS on all shipped puzzles;
+z3-solver 4.16.0, default 120 s limit; full details in `NOTES.md`
+"Harness conformance"):
+
+| puzzle | plan length | proven optimal? | wall time |
+|---|---|---|---|
+| `single_transport` | **3** | yes | 0.16 s |
+| `two_atom_bond` | **11** | no (best found; clingo matches, incl. at 300 s) | 120 s (limit) |
+| `stabilized_water` | **12** | no (best found; clingo matches, incl. at 300 s) | 120 s (limit) |
+
+The pre-harness runners below (`om_solver.py`, `om_bool.py`,
+`bench.py`, …) are kept as the historical study of encodings and solve
+strategies; their instances/semantics predate the harness
+reconciliation and their numbers are **secondary** to the canonical
+table above.
+
 ## Setup
 
 ```sh
@@ -44,6 +84,7 @@ omsim -p <path>/P007.puzzle z3/solutions/water-z3.solution
 
 | file | what |
 |---|---|
+| `adapter.py` | **harness adapter**: puzzle JSON -> Z3 (harness semantics) -> plan JSON; the canonical entry point |
 | `om_solver.py` | Int-based BMC encoding, v1+v2 semantics, fixed & free layout, 5 solve strategies |
 | `om_bool.py` | pure-boolean one-hot encoding (single-arm, fixed layout; the fast one) |
 | `bench.py` | timing matrix -> `results.md` / `results.json`, plan dumps -> `solutions/*.json` |
