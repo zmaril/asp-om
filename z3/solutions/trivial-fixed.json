@@ -1,0 +1,158 @@
+{
+ "meta": {
+  "instance": "trivial",
+  "mode": "fixed",
+  "strategy": "descend-cost",
+  "t_max": 10,
+  "solver": "z3-4.16.0",
+  "solve_time_s": 0.4565
+ },
+ "layout": {
+  "arms": [
+   {
+    "name": "m1",
+    "base": [
+     0,
+     0
+    ],
+    "length": 1,
+    "init_orient": 0
+   }
+  ],
+  "glyph_bonds": [],
+  "glyph_calcs": []
+ },
+ "horizon": 10,
+ "cost": 5,
+ "actions": [
+  {
+   "t": 0,
+   "action": "wait",
+   "arm": null
+  },
+  {
+   "t": 1,
+   "action": "grab",
+   "arm": "m1"
+  },
+  {
+   "t": 2,
+   "action": "rot_ccw",
+   "arm": "m1"
+  },
+  {
+   "t": 3,
+   "action": "rot_ccw",
+   "arm": "m1"
+  },
+  {
+   "t": 4,
+   "action": "rot_ccw",
+   "arm": "m1"
+  },
+  {
+   "t": 5,
+   "action": "drop",
+   "arm": "m1"
+  },
+  {
+   "t": 6,
+   "action": "wait",
+   "arm": null
+  },
+  {
+   "t": 7,
+   "action": "wait",
+   "arm": null
+  },
+  {
+   "t": 8,
+   "action": "wait",
+   "arm": null
+  },
+  {
+   "t": 9,
+   "action": "wait",
+   "arm": null
+  }
+ ],
+ "atom_trajectories": {
+  "a1": [
+   [
+    1,
+    0
+   ],
+   [
+    1,
+    0
+   ],
+   [
+    1,
+    0
+   ],
+   [
+    1,
+    -1
+   ],
+   [
+    0,
+    -1
+   ],
+   [
+    -1,
+    0
+   ],
+   [
+    -1,
+    0
+   ],
+   [
+    -1,
+    0
+   ],
+   [
+    -1,
+    0
+   ],
+   [
+    -1,
+    0
+   ],
+   [
+    -1,
+    0
+   ]
+  ]
+ },
+ "orientations": {
+  "m1": [
+   0,
+   0,
+   0,
+   5,
+   4,
+   3,
+   3,
+   3,
+   3,
+   3,
+   3
+  ]
+ },
+ "held": {
+  "a1": [
+   null,
+   null,
+   "m1",
+   "m1",
+   "m1",
+   "m1",
+   null,
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "bonds": []
+}
