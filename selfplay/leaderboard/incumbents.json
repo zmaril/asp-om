@@ -1,0 +1,3562 @@
+{
+  "format": 1,
+  "records": {
+    "single_transport": {
+      "area": {
+        "metrics": {
+          "area": 3,
+          "area_at_infinity": null,
+          "cost": 20,
+          "instructions": 3,
+          "looping": null,
+          "makespan": 6,
+          "overlap": false,
+          "product_ca": 18,
+          "product_ga": 60,
+          "product_gc": 120,
+          "product_gca": 360,
+          "rate": null,
+          "sum": 29,
+          "sum4": 32,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 5
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_in",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_out",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "single_transport",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 3,
+        "source": "solver:clingo",
+        "submission": 4
+      },
+      "cost": {
+        "metrics": {
+          "area": 5,
+          "area_at_infinity": null,
+          "cost": 20,
+          "instructions": 5,
+          "looping": null,
+          "makespan": 6,
+          "overlap": false,
+          "product_ca": 30,
+          "product_ga": 100,
+          "product_gc": 120,
+          "product_gca": 600,
+          "rate": null,
+          "sum": 31,
+          "sum4": 36,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 5
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "position": [
+                0,
+                0
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_in",
+              "position": [
+                1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_out",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "single_transport",
+          "solver": "hand-written reference plan"
+        },
+        "score": 20,
+        "source": "reference plan+wait-shift(1)",
+        "submission": 1
+      },
+      "instructions": {
+        "metrics": {
+          "area": 3,
+          "area_at_infinity": null,
+          "cost": 20,
+          "instructions": 3,
+          "looping": null,
+          "makespan": 6,
+          "overlap": false,
+          "product_ca": 18,
+          "product_ga": 60,
+          "product_gc": 120,
+          "product_gca": 360,
+          "rate": null,
+          "sum": 29,
+          "sum4": 32,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 5
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_in",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_out",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "single_transport",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 3,
+        "source": "solver:clingo",
+        "submission": 4
+      },
+      "makespan": {
+        "metrics": {
+          "area": 5,
+          "area_at_infinity": null,
+          "cost": 20,
+          "instructions": 6,
+          "looping": null,
+          "makespan": 5,
+          "overlap": false,
+          "product_ca": 25,
+          "product_ga": 100,
+          "product_gc": 100,
+          "product_gca": 500,
+          "rate": null,
+          "sum": 30,
+          "sum4": 36,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 5
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "position": [
+                0,
+                0
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_in",
+              "position": [
+                1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_out",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "single_transport",
+          "solver": "hand-written reference plan"
+        },
+        "score": 5,
+        "source": "reference plan+junk-rot(x1)",
+        "submission": 2
+      },
+      "product_ca": {
+        "metrics": {
+          "area": 3,
+          "area_at_infinity": null,
+          "cost": 20,
+          "instructions": 3,
+          "looping": null,
+          "makespan": 6,
+          "overlap": false,
+          "product_ca": 18,
+          "product_ga": 60,
+          "product_gc": 120,
+          "product_gca": 360,
+          "rate": null,
+          "sum": 29,
+          "sum4": 32,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 5
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_in",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_out",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "single_transport",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 18,
+        "source": "solver:clingo",
+        "submission": 4
+      },
+      "product_ga": {
+        "metrics": {
+          "area": 3,
+          "area_at_infinity": null,
+          "cost": 20,
+          "instructions": 3,
+          "looping": null,
+          "makespan": 6,
+          "overlap": false,
+          "product_ca": 18,
+          "product_ga": 60,
+          "product_gc": 120,
+          "product_gca": 360,
+          "rate": null,
+          "sum": 29,
+          "sum4": 32,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 5
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_in",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_out",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "single_transport",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 60,
+        "source": "solver:clingo",
+        "submission": 4
+      },
+      "product_gc": {
+        "metrics": {
+          "area": 5,
+          "area_at_infinity": null,
+          "cost": 20,
+          "instructions": 6,
+          "looping": null,
+          "makespan": 5,
+          "overlap": false,
+          "product_ca": 25,
+          "product_ga": 100,
+          "product_gc": 100,
+          "product_gca": 500,
+          "rate": null,
+          "sum": 30,
+          "sum4": 36,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 5
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "position": [
+                0,
+                0
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_in",
+              "position": [
+                1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_out",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "single_transport",
+          "solver": "hand-written reference plan"
+        },
+        "score": 100,
+        "source": "reference plan+junk-rot(x1)",
+        "submission": 2
+      },
+      "product_gca": {
+        "metrics": {
+          "area": 3,
+          "area_at_infinity": null,
+          "cost": 20,
+          "instructions": 3,
+          "looping": null,
+          "makespan": 6,
+          "overlap": false,
+          "product_ca": 18,
+          "product_ga": 60,
+          "product_gc": 120,
+          "product_gca": 360,
+          "rate": null,
+          "sum": 29,
+          "sum4": 32,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 5
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_in",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_out",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "single_transport",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 360,
+        "source": "solver:clingo",
+        "submission": 4
+      },
+      "sum": {
+        "metrics": {
+          "area": 3,
+          "area_at_infinity": null,
+          "cost": 20,
+          "instructions": 3,
+          "looping": null,
+          "makespan": 6,
+          "overlap": false,
+          "product_ca": 18,
+          "product_ga": 60,
+          "product_gc": 120,
+          "product_gca": 360,
+          "rate": null,
+          "sum": 29,
+          "sum4": 32,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 5
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_in",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_out",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "single_transport",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 29,
+        "source": "solver:clingo",
+        "submission": 4
+      },
+      "sum4": {
+        "metrics": {
+          "area": 3,
+          "area_at_infinity": null,
+          "cost": 20,
+          "instructions": 3,
+          "looping": null,
+          "makespan": 6,
+          "overlap": false,
+          "product_ca": 18,
+          "product_ga": 60,
+          "product_gc": 120,
+          "product_gca": 360,
+          "rate": null,
+          "sum": 29,
+          "sum4": 32,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 5
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_in",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_out",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "single_transport",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 32,
+        "source": "solver:clingo",
+        "submission": 4
+      }
+    },
+    "stabilized_water": {
+      "area": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 40,
+          "instructions": 13,
+          "looping": null,
+          "makespan": 14,
+          "overlap": false,
+          "product_ca": 98,
+          "product_ga": 280,
+          "product_gc": 560,
+          "product_gca": 3920,
+          "rate": null,
+          "sum": 61,
+          "sum4": 74,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 11
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 12
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 13
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "position": [
+                0,
+                0
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "water",
+              "position": [
+                1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "c1",
+              "position": [
+                0,
+                1
+              ],
+              "type": "calcifier"
+            },
+            {
+              "id": "b1",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 1,
+              "type": "bonder"
+            },
+            {
+              "id": "stabilized_water",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "stabilized_water",
+          "solver": "hand-written reference plan (13 instructions, the picat fixed-layout optimum, picat's layout)"
+        },
+        "score": 7,
+        "source": "reference plan+wait-shift(1)",
+        "submission": 5
+      },
+      "cost": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 40,
+          "instructions": 13,
+          "looping": null,
+          "makespan": 14,
+          "overlap": false,
+          "product_ca": 98,
+          "product_ga": 280,
+          "product_gc": 560,
+          "product_gca": 3920,
+          "rate": null,
+          "sum": 61,
+          "sum4": 74,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 11
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 12
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 13
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "position": [
+                0,
+                0
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "water",
+              "position": [
+                1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "c1",
+              "position": [
+                0,
+                1
+              ],
+              "type": "calcifier"
+            },
+            {
+              "id": "b1",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 1,
+              "type": "bonder"
+            },
+            {
+              "id": "stabilized_water",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "stabilized_water",
+          "solver": "hand-written reference plan (13 instructions, the picat fixed-layout optimum, picat's layout)"
+        },
+        "score": 40,
+        "source": "reference plan+wait-shift(1)",
+        "submission": 5
+      },
+      "instructions": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 40,
+          "instructions": 12,
+          "looping": null,
+          "makespan": 14,
+          "overlap": false,
+          "product_ca": 98,
+          "product_ga": 280,
+          "product_gc": 560,
+          "product_gca": 3920,
+          "rate": null,
+          "sum": 61,
+          "sum4": 73,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 11
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 12
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 13
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 2,
+              "type": "arm"
+            },
+            {
+              "id": "water",
+              "position": [
+                -2,
+                1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "stabilized_water",
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "output"
+            },
+            {
+              "id": "c1",
+              "position": [
+                -2,
+                0
+              ],
+              "type": "calcifier"
+            },
+            {
+              "id": "b1",
+              "position": [
+                0,
+                0
+              ],
+              "rotation": 2,
+              "type": "bonder"
+            }
+          ],
+          "puzzle": "stabilized_water",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 12,
+        "source": "solver:clingo+wait-shift(2)",
+        "submission": 8
+      },
+      "makespan": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 40,
+          "instructions": 14,
+          "looping": null,
+          "makespan": 12,
+          "overlap": false,
+          "product_ca": 84,
+          "product_ga": 280,
+          "product_gc": 480,
+          "product_gca": 3360,
+          "rate": null,
+          "sum": 59,
+          "sum4": 73,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 11
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 12
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 13
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 2,
+              "type": "arm"
+            },
+            {
+              "id": "water",
+              "position": [
+                -2,
+                1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "stabilized_water",
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "output"
+            },
+            {
+              "id": "c1",
+              "position": [
+                -2,
+                0
+              ],
+              "type": "calcifier"
+            },
+            {
+              "id": "b1",
+              "position": [
+                0,
+                0
+              ],
+              "rotation": 2,
+              "type": "bonder"
+            }
+          ],
+          "puzzle": "stabilized_water",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 12,
+        "source": "solver:clingo+junk-rot(x2)",
+        "submission": 9
+      },
+      "product_ca": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 40,
+          "instructions": 14,
+          "looping": null,
+          "makespan": 12,
+          "overlap": false,
+          "product_ca": 84,
+          "product_ga": 280,
+          "product_gc": 480,
+          "product_gca": 3360,
+          "rate": null,
+          "sum": 59,
+          "sum4": 73,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 11
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 12
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 13
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 2,
+              "type": "arm"
+            },
+            {
+              "id": "water",
+              "position": [
+                -2,
+                1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "stabilized_water",
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "output"
+            },
+            {
+              "id": "c1",
+              "position": [
+                -2,
+                0
+              ],
+              "type": "calcifier"
+            },
+            {
+              "id": "b1",
+              "position": [
+                0,
+                0
+              ],
+              "rotation": 2,
+              "type": "bonder"
+            }
+          ],
+          "puzzle": "stabilized_water",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 84,
+        "source": "solver:clingo+junk-rot(x2)",
+        "submission": 9
+      },
+      "product_ga": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 40,
+          "instructions": 13,
+          "looping": null,
+          "makespan": 14,
+          "overlap": false,
+          "product_ca": 98,
+          "product_ga": 280,
+          "product_gc": 560,
+          "product_gca": 3920,
+          "rate": null,
+          "sum": 61,
+          "sum4": 74,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 11
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 12
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 13
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "position": [
+                0,
+                0
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "water",
+              "position": [
+                1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "c1",
+              "position": [
+                0,
+                1
+              ],
+              "type": "calcifier"
+            },
+            {
+              "id": "b1",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 1,
+              "type": "bonder"
+            },
+            {
+              "id": "stabilized_water",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "stabilized_water",
+          "solver": "hand-written reference plan (13 instructions, the picat fixed-layout optimum, picat's layout)"
+        },
+        "score": 280,
+        "source": "reference plan+wait-shift(1)",
+        "submission": 5
+      },
+      "product_gc": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 40,
+          "instructions": 14,
+          "looping": null,
+          "makespan": 12,
+          "overlap": false,
+          "product_ca": 84,
+          "product_ga": 280,
+          "product_gc": 480,
+          "product_gca": 3360,
+          "rate": null,
+          "sum": 59,
+          "sum4": 73,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 11
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 12
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 13
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 2,
+              "type": "arm"
+            },
+            {
+              "id": "water",
+              "position": [
+                -2,
+                1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "stabilized_water",
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "output"
+            },
+            {
+              "id": "c1",
+              "position": [
+                -2,
+                0
+              ],
+              "type": "calcifier"
+            },
+            {
+              "id": "b1",
+              "position": [
+                0,
+                0
+              ],
+              "rotation": 2,
+              "type": "bonder"
+            }
+          ],
+          "puzzle": "stabilized_water",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 480,
+        "source": "solver:clingo+junk-rot(x2)",
+        "submission": 9
+      },
+      "product_gca": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 40,
+          "instructions": 14,
+          "looping": null,
+          "makespan": 12,
+          "overlap": false,
+          "product_ca": 84,
+          "product_ga": 280,
+          "product_gc": 480,
+          "product_gca": 3360,
+          "rate": null,
+          "sum": 59,
+          "sum4": 73,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 11
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 12
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 13
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 2,
+              "type": "arm"
+            },
+            {
+              "id": "water",
+              "position": [
+                -2,
+                1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "stabilized_water",
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "output"
+            },
+            {
+              "id": "c1",
+              "position": [
+                -2,
+                0
+              ],
+              "type": "calcifier"
+            },
+            {
+              "id": "b1",
+              "position": [
+                0,
+                0
+              ],
+              "rotation": 2,
+              "type": "bonder"
+            }
+          ],
+          "puzzle": "stabilized_water",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 3360,
+        "source": "solver:clingo+junk-rot(x2)",
+        "submission": 9
+      },
+      "sum": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 40,
+          "instructions": 14,
+          "looping": null,
+          "makespan": 12,
+          "overlap": false,
+          "product_ca": 84,
+          "product_ga": 280,
+          "product_gc": 480,
+          "product_gca": 3360,
+          "rate": null,
+          "sum": 59,
+          "sum4": 73,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 11
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 12
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 13
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 2,
+              "type": "arm"
+            },
+            {
+              "id": "water",
+              "position": [
+                -2,
+                1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "stabilized_water",
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "output"
+            },
+            {
+              "id": "c1",
+              "position": [
+                -2,
+                0
+              ],
+              "type": "calcifier"
+            },
+            {
+              "id": "b1",
+              "position": [
+                0,
+                0
+              ],
+              "rotation": 2,
+              "type": "bonder"
+            }
+          ],
+          "puzzle": "stabilized_water",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 59,
+        "source": "solver:clingo+junk-rot(x2)",
+        "submission": 9
+      },
+      "sum4": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 40,
+          "instructions": 12,
+          "looping": null,
+          "makespan": 12,
+          "overlap": false,
+          "product_ca": 84,
+          "product_ga": 280,
+          "product_gc": 480,
+          "product_gca": 3360,
+          "rate": null,
+          "sum": 59,
+          "sum4": 71,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 11
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 2,
+              "type": "arm"
+            },
+            {
+              "id": "water",
+              "position": [
+                -2,
+                1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "stabilized_water",
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "output"
+            },
+            {
+              "id": "c1",
+              "position": [
+                -2,
+                0
+              ],
+              "type": "calcifier"
+            },
+            {
+              "id": "b1",
+              "position": [
+                0,
+                0
+              ],
+              "rotation": 2,
+              "type": "bonder"
+            }
+          ],
+          "puzzle": "stabilized_water",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 71,
+        "source": "solver:clingo",
+        "submission": 12
+      }
+    },
+    "two_atom_bond": {
+      "area": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 30,
+          "instructions": 12,
+          "looping": null,
+          "makespan": 13,
+          "overlap": false,
+          "product_ca": 91,
+          "product_ga": 210,
+          "product_gc": 390,
+          "product_gca": 2730,
+          "rate": null,
+          "sum": 50,
+          "sum4": 62,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 11
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 12
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "position": [
+                0,
+                0
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_a",
+              "position": [
+                1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_b",
+              "position": [
+                0,
+                1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "b1",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 1,
+              "type": "bonder"
+            },
+            {
+              "id": "salt_dimer",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "two_atom_bond",
+          "solver": "hand-written reference plan (12 instructions, the clingo/picat fixed-layout optimum)"
+        },
+        "score": 7,
+        "source": "reference plan+wait-shift(1)",
+        "submission": 13
+      },
+      "cost": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 30,
+          "instructions": 12,
+          "looping": null,
+          "makespan": 13,
+          "overlap": false,
+          "product_ca": 91,
+          "product_ga": 210,
+          "product_gc": 390,
+          "product_gca": 2730,
+          "rate": null,
+          "sum": 50,
+          "sum4": 62,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 11
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 12
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "position": [
+                0,
+                0
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_a",
+              "position": [
+                1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_b",
+              "position": [
+                0,
+                1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "b1",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 1,
+              "type": "bonder"
+            },
+            {
+              "id": "salt_dimer",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "two_atom_bond",
+          "solver": "hand-written reference plan (12 instructions, the clingo/picat fixed-layout optimum)"
+        },
+        "score": 30,
+        "source": "reference plan+wait-shift(1)",
+        "submission": 13
+      },
+      "instructions": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 30,
+          "instructions": 11,
+          "looping": null,
+          "makespan": 13,
+          "overlap": false,
+          "product_ca": 91,
+          "product_ga": 210,
+          "product_gc": 390,
+          "product_gca": 2730,
+          "rate": null,
+          "sum": 50,
+          "sum4": 61,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 11
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 12
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 5,
+              "type": "arm"
+            },
+            {
+              "id": "salt_a",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_b",
+              "position": [
+                1,
+                -2
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_dimer",
+              "position": [
+                1,
+                -1
+              ],
+              "rotation": 2,
+              "type": "output"
+            },
+            {
+              "id": "b1",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 2,
+              "type": "bonder"
+            }
+          ],
+          "puzzle": "two_atom_bond",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 11,
+        "source": "solver:clingo",
+        "submission": 16
+      },
+      "makespan": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 30,
+          "instructions": 13,
+          "looping": null,
+          "makespan": 12,
+          "overlap": false,
+          "product_ca": 84,
+          "product_ga": 210,
+          "product_gc": 360,
+          "product_gca": 2520,
+          "rate": null,
+          "sum": 49,
+          "sum4": 62,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 11
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 12
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "position": [
+                0,
+                0
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_a",
+              "position": [
+                1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_b",
+              "position": [
+                0,
+                1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "b1",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 1,
+              "type": "bonder"
+            },
+            {
+              "id": "salt_dimer",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "two_atom_bond",
+          "solver": "hand-written reference plan (12 instructions, the clingo/picat fixed-layout optimum)"
+        },
+        "score": 12,
+        "source": "reference plan+junk-rot(x1)",
+        "submission": 14
+      },
+      "product_ca": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 30,
+          "instructions": 13,
+          "looping": null,
+          "makespan": 12,
+          "overlap": false,
+          "product_ca": 84,
+          "product_ga": 210,
+          "product_gc": 360,
+          "product_gca": 2520,
+          "rate": null,
+          "sum": 49,
+          "sum4": 62,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 11
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 12
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "position": [
+                0,
+                0
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_a",
+              "position": [
+                1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_b",
+              "position": [
+                0,
+                1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "b1",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 1,
+              "type": "bonder"
+            },
+            {
+              "id": "salt_dimer",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "two_atom_bond",
+          "solver": "hand-written reference plan (12 instructions, the clingo/picat fixed-layout optimum)"
+        },
+        "score": 84,
+        "source": "reference plan+junk-rot(x1)",
+        "submission": 14
+      },
+      "product_ga": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 30,
+          "instructions": 12,
+          "looping": null,
+          "makespan": 13,
+          "overlap": false,
+          "product_ca": 91,
+          "product_ga": 210,
+          "product_gc": 390,
+          "product_gca": 2730,
+          "rate": null,
+          "sum": 50,
+          "sum4": 62,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 11
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 12
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "position": [
+                0,
+                0
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_a",
+              "position": [
+                1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_b",
+              "position": [
+                0,
+                1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "b1",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 1,
+              "type": "bonder"
+            },
+            {
+              "id": "salt_dimer",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "two_atom_bond",
+          "solver": "hand-written reference plan (12 instructions, the clingo/picat fixed-layout optimum)"
+        },
+        "score": 210,
+        "source": "reference plan+wait-shift(1)",
+        "submission": 13
+      },
+      "product_gc": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 30,
+          "instructions": 13,
+          "looping": null,
+          "makespan": 12,
+          "overlap": false,
+          "product_ca": 84,
+          "product_ga": 210,
+          "product_gc": 360,
+          "product_gca": 2520,
+          "rate": null,
+          "sum": 49,
+          "sum4": 62,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 11
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 12
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "position": [
+                0,
+                0
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_a",
+              "position": [
+                1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_b",
+              "position": [
+                0,
+                1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "b1",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 1,
+              "type": "bonder"
+            },
+            {
+              "id": "salt_dimer",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "two_atom_bond",
+          "solver": "hand-written reference plan (12 instructions, the clingo/picat fixed-layout optimum)"
+        },
+        "score": 360,
+        "source": "reference plan+junk-rot(x1)",
+        "submission": 14
+      },
+      "product_gca": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 30,
+          "instructions": 13,
+          "looping": null,
+          "makespan": 12,
+          "overlap": false,
+          "product_ca": 84,
+          "product_ga": 210,
+          "product_gc": 360,
+          "product_gca": 2520,
+          "rate": null,
+          "sum": 49,
+          "sum4": 62,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 11
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 12
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "position": [
+                0,
+                0
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_a",
+              "position": [
+                1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_b",
+              "position": [
+                0,
+                1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "b1",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 1,
+              "type": "bonder"
+            },
+            {
+              "id": "salt_dimer",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "two_atom_bond",
+          "solver": "hand-written reference plan (12 instructions, the clingo/picat fixed-layout optimum)"
+        },
+        "score": 2520,
+        "source": "reference plan+junk-rot(x1)",
+        "submission": 14
+      },
+      "sum": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 30,
+          "instructions": 13,
+          "looping": null,
+          "makespan": 12,
+          "overlap": false,
+          "product_ca": 84,
+          "product_ga": 210,
+          "product_gc": 360,
+          "product_gca": 2520,
+          "rate": null,
+          "sum": 49,
+          "sum4": 62,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 11
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 12
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "position": [
+                0,
+                0
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_a",
+              "position": [
+                1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_b",
+              "position": [
+                0,
+                1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "b1",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 1,
+              "type": "bonder"
+            },
+            {
+              "id": "salt_dimer",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "two_atom_bond",
+          "solver": "hand-written reference plan (12 instructions, the clingo/picat fixed-layout optimum)"
+        },
+        "score": 49,
+        "source": "reference plan+junk-rot(x1)",
+        "submission": 14
+      },
+      "sum4": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 30,
+          "instructions": 12,
+          "looping": null,
+          "makespan": 12,
+          "overlap": false,
+          "product_ca": 84,
+          "product_ga": 210,
+          "product_gc": 360,
+          "product_gca": 2520,
+          "rate": null,
+          "sum": 49,
+          "sum4": 61,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 11
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "position": [
+                0,
+                0
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_a",
+              "position": [
+                1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_b",
+              "position": [
+                0,
+                1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "b1",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 1,
+              "type": "bonder"
+            },
+            {
+              "id": "salt_dimer",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "two_atom_bond",
+          "solver": "hand-written reference plan (12 instructions, the clingo/picat fixed-layout optimum)"
+        },
+        "score": 61,
+        "source": "reference plan",
+        "submission": 15
+      }
+    }
+  },
+  "submissions": 16
+}
