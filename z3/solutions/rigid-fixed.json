@@ -4,8 +4,9 @@
   "mode": "fixed",
   "strategy": "descend-cost",
   "t_max": 10,
+  "radius": 2,
   "solver": "z3-4.16.0",
-  "solve_time_s": 0.2866
+  "solve_time_s": 0.2882
  },
  "layout": {
   "arms": [
@@ -233,5 +234,6 @@
     true
    ]
   }
- ]
+ ],
+ "atom_types": null
 }

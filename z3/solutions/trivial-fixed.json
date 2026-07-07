@@ -4,8 +4,9 @@
   "mode": "fixed",
   "strategy": "descend-cost",
   "t_max": 10,
+  "radius": 2,
   "solver": "z3-4.16.0",
-  "solve_time_s": 0.4565
+  "solve_time_s": 0.4456
  },
  "layout": {
   "arms": [
@@ -154,5 +155,6 @@
    null
   ]
  },
- "bonds": []
+ "bonds": [],
+ "atom_types": null
 }

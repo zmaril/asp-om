@@ -94,6 +94,32 @@ INSTANCES = {
         forbid_rot_holding_bonded=False,  # v2 does rigid motion instead
         expected_opt=4,
     ),
+    # Stabilized Water (omsim P007), modelled in the simplified v2 semantics.
+    # Instance defined by us (no clingo instance exists); choices documented
+    # in NOTES.md.  Two 1-atom WATER reagents; the product is a 2-atom
+    # molecule salt--water on the two product slots, formed via the
+    # calcification glyph + bonding glyph.  Reagent pools: core2's spawn/
+    # nreagent machinery with nreagent=1 per spawn hex degenerates to a
+    # pre-placed atom (r(1) at t=0, no respawn since output_scale=1 needs
+    # only one product), so the two inputs are modelled as two init_at
+    # water atoms on the two spawn hexes.
+    "water": dict(
+        semantics="v2", t_max=12, radius=2,
+        arms=[dict(name="m1", base=(0, 0), length=1, init_orient=0)],
+        atoms=[dict(name="w1", pos=(1, 0), type="water"),
+               dict(name="w2", pos=(1, -1), type="water")],
+        init_bonds=[],
+        glyph_bonds=[((-1, 0), (0, -1))],
+        glyph_calcs=[(-1, 1)],
+        products=[],
+        # product molecule: salt on (-1,0) bonded to water on (0,-1);
+        # slots are anonymous (any atom may fill either slot).
+        product_slots=[((-1, 0), "salt"), ((0, -1), "water")],
+        require_end_bond=True,
+        forbid_rot_holding_bonded=False,
+        expected_opt=10,  # hand plan; see NOTES.md (solver confirms)
+        expected_opt_free=3,  # solver-found+proven: glyphs under reagents
+    ),
 }
 
 # Element enum for calcification support (core2's elemental()/salt).
@@ -113,9 +139,10 @@ def dir_component(o, table):
 class Encoder:
     """Builds the Int-based BMC encoding for one instance."""
 
-    def __init__(self, inst, t_max=None, free_layout=False):
+    def __init__(self, inst, t_max=None, free_layout=False, radius=None):
         self.inst = inst
         self.T = t_max if t_max is not None else inst["t_max"]
+        self.radius = radius if radius is not None else inst["radius"]
         self.free = free_layout
         self.cons = []          # all constraints except the goal
         self.n_arm = len(inst["arms"])
@@ -127,7 +154,7 @@ class Encoder:
 
     # -- small helpers -----------------------------------------------------
     def on_board(self, q, r):
-        rad = self.inst["radius"]
+        rad = self.radius
         return z3.And(q >= -rad, q <= rad, r >= -rad, r <= rad,
                       q + r >= -rad, q + r <= rad)
 
@@ -411,6 +438,24 @@ class Encoder:
         for (name, ty) in inst.get("product_types", []):
             i = name2idx[name]
             conj.append(self.typ[i][h] == ELEM_IDX[ty])
+        # anonymous product slots: some injective assignment of atoms to
+        # slots puts an atom of the right element, unheld, on each slot hex
+        # (the OM product is a molecule pattern, not named atoms)
+        slots = inst.get("product_slots", [])
+        if slots:
+            import itertools
+            assigns = []
+            for perm in itertools.permutations(range(self.n_atom),
+                                               len(slots)):
+                terms = []
+                for si, ((tq, tr), ty) in enumerate(slots):
+                    i = perm[si]
+                    terms += [self.q[i][h] == tq, self.r[i][h] == tr,
+                              z3.Not(self.held_any(i, h))]
+                    if self.typ is not None:
+                        terms.append(self.typ[i][h] == ELEM_IDX[ty])
+                assigns.append(z3.And(terms))
+            conj.append(z3.Or(assigns))
         return z3.And(conj)
 
 
@@ -575,9 +620,15 @@ def extract_solution(enc, result):
         bonds.append(dict(atoms=[enc.atom_names[i], enc.atom_names[j]],
                           bonded=[z3.is_true(ev(row[t]))
                                   for t in range(h + 1)]))
+    types = None
+    if enc.typ is not None:
+        types = {name: [ELEMENTS[ev(enc.typ[i][t]).as_long()]
+                        for t in range(h + 1)]
+                 for i, name in enumerate(enc.atom_names)}
     return dict(layout=layout, horizon=h, cost=result["cost"],
                 actions=actions, atom_trajectories=traj,
-                orientations=orient, held=held, bonds=bonds)
+                orientations=orient, held=held, bonds=bonds,
+                atom_types=types)
 
 
 def print_plan(sol, name=""):
@@ -618,13 +669,15 @@ def main():
     ap.add_argument("--strategy", choices=sorted(STRATEGIES),
                     default="optimize")
     ap.add_argument("--tmax", type=int, default=None)
+    ap.add_argument("--radius", type=int, default=None)
     ap.add_argument("--json", metavar="PATH", default=None,
                     help="dump solution JSON here")
     args = ap.parse_args()
 
     inst = INSTANCES[args.instance]
     t0 = time.perf_counter()
-    enc = Encoder(inst, t_max=args.tmax, free_layout=args.free)
+    enc = Encoder(inst, t_max=args.tmax, free_layout=args.free,
+                  radius=args.radius)
     build_time = time.perf_counter() - t0
     result = STRATEGIES[args.strategy](enc)
     print(f"instance={args.instance} mode={'free' if args.free else 'fixed'} "
@@ -640,6 +693,7 @@ def main():
             meta = dict(instance=args.instance,
                         mode="free" if args.free else "fixed",
                         strategy=args.strategy, t_max=enc.T,
+                        radius=enc.radius,
                         solver="z3-" + z3.get_version_string(),
                         solve_time_s=round(result["time"], 4))
             with open(args.json, "w") as f:

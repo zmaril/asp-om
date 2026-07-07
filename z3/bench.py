@@ -5,8 +5,13 @@ Runs every (instance, encoding, layout-mode, strategy) combination, writes a
 markdown table to z3/results.md and dumps optimal solutions (JSON) to
 z3/solutions/.  Fast runs (< 2 s) are repeated REPEATS times and the median
 is reported; slow runs are measured once.
+
+Results are cached in z3/results.json keyed by
+(instance, encoding, mode, strategy); pass --instances to re-run only a
+subset -- the table is regenerated from the merged cache.
 """
 
+import argparse
 import json
 import os
 import statistics
@@ -24,7 +29,11 @@ FAST_CUTOFF = 2.0  # seconds
 
 CLINGO_REFERENCE = {  # measured on this box, clingo 5.8.0, to optimality
     "trivial": 0.009, "bond": 0.148, "rigid": 0.004,
+    "water": 0.060,  # z3/stabilized_water.lp + asp/core2.lp, t_max=12
 }
+
+ALL_INSTANCES = ["trivial", "bond", "rigid", "water"]
+BOOL_INSTANCES = ["trivial", "bond", "water"]  # single-arm, fixed layout
 
 
 def run_int(name, mode, strategy):
@@ -63,49 +72,76 @@ def timed(run_fn, *args):
 
 
 def main():
-    rows = []
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--instances", nargs="+", choices=ALL_INSTANCES,
+                    default=ALL_INSTANCES)
+    args = ap.parse_args()
+
+    cache_path = os.path.join(HERE, "results.json")
+    cache = {}
+    if os.path.exists(cache_path):
+        with open(cache_path) as f:
+            cache = {tuple(k.split("|")): v for k, v in json.load(f).items()}
+
     sol_dir = os.path.join(HERE, "solutions")
     os.makedirs(sol_dir, exist_ok=True)
 
     int_strategies = ["optimize", "ramp-cost", "descend-cost", "oneshot",
                       "ramp-horizon"]
-    for name in ["trivial", "bond", "rigid"]:
+    for name in args.instances:
         for mode in ["fixed", "free"]:
             for strat in int_strategies:
                 r = timed(run_int, name, mode, strat)
-                opt = INSTANCES[name]["expected_opt"]
+                inst = INSTANCES[name]
+                opt = inst.get("expected_opt_free", inst["expected_opt"]) \
+                    if mode == "free" else inst["expected_opt"]
                 optimal = (r["cost"] == opt) if strat not in (
                     "oneshot", "ramp-horizon") else ""
-                rows.append(dict(instance=name, encoding="int", mode=mode,
-                                 strategy=strat, status=r["status"],
-                                 cost=r["cost"], horizon=r["horizon"],
-                                 build=r["build_med"], solve=r["time_med"],
-                                 n=r["n_runs"], optimal=optimal))
-                print(rows[-1])
+                row = dict(instance=name, encoding="int", mode=mode,
+                           strategy=strat, status=r["status"],
+                           cost=r["cost"], horizon=r["horizon"],
+                           build=r["build_med"], solve=r["time_med"],
+                           n=r["n_runs"], optimal=optimal)
+                cache[(name, "int", mode, strat)] = row
+                print(row)
                 # dump the canonical optimal solutions as JSON
                 if strat == "descend-cost" and r["status"] == "sat":
                     sol = extract_solution(r["enc"], r)
                     meta = dict(instance=name, mode=mode,
                                 strategy=strat, t_max=r["enc"].T,
+                                radius=r["enc"].radius,
                                 solver="z3-" + z3.get_version_string(),
                                 solve_time_s=round(r["time"], 4))
                     path = os.path.join(sol_dir, f"{name}-{mode}.json")
                     with open(path, "w") as f:
                         json.dump(dict(meta=meta, **sol), f, indent=1)
 
-    for name in ["trivial", "bond"]:
+    for name in args.instances:
+        if name not in BOOL_INSTANCES:
+            continue
         for strat in ["optimize", "descend-cost", "oneshot"]:
             r = timed(run_bool, name, "fixed", strat)
             opt = INSTANCES[name]["expected_opt"]
             optimal = (r["cost"] == opt) if strat != "oneshot" else ""
-            rows.append(dict(instance=name, encoding="bool", mode="fixed",
-                             strategy=strat, status=r["status"],
-                             cost=r["cost"], horizon=r["horizon"],
-                             build=r["build_med"], solve=r["time_med"],
-                             n=r["n_runs"], optimal=optimal))
-            print(rows[-1])
+            row = dict(instance=name, encoding="bool", mode="fixed",
+                       strategy=strat, status=r["status"],
+                       cost=r["cost"], horizon=r["horizon"],
+                       build=r["build_med"], solve=r["time_med"],
+                       n=r["n_runs"], optimal=optimal)
+            cache[(name, "bool", "fixed", strat)] = row
+            print(row)
 
-    # ---- write results.md ----
+    with open(cache_path, "w") as f:
+        json.dump({"|".join(k): v for k, v in cache.items()}, f, indent=1)
+
+    # ---- write results.md from the merged cache ----
+    def order(key):
+        name, encoding, mode, strat = key
+        return (0 if encoding == "int" else 1,
+                ALL_INSTANCES.index(name),
+                0 if mode == "fixed" else 1,
+                (int_strategies + ["descend-cost"]).index(strat))
+
     lines = [
         "# Z3 arm benchmark results",
         "",
@@ -124,11 +160,16 @@ def main():
         "optimality, fixed layout): "
         + ", ".join(f"{k} {v}s" for k, v in CLINGO_REFERENCE.items()) + ".",
         "",
+        "`water` = Stabilized Water (omsim P007) in the simplified v2 "
+        "semantics; fixed-layout optimum is 10, free layout finds a "
+        "3-instruction layout (glyphs under the reagent hexes).",
+        "",
         "| instance | encoding | layout | strategy | status | cost | "
         "horizon | build s | solve s | runs | proven optimal |",
         "|---|---|---|---|---|---|---|---|---|---|---|",
     ]
-    for r in rows:
+    for key in sorted(cache, key=order):
+        r = cache[key]
         lines.append(
             f"| {r['instance']} | {r['encoding']} | {r['mode']} | "
             f"{r['strategy']} | {r['status']} | {r['cost']} | "

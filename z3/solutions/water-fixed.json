@@ -1,12 +1,12 @@
 {
  "meta": {
-  "instance": "bond",
+  "instance": "water",
   "mode": "fixed",
   "strategy": "descend-cost",
-  "t_max": 16,
+  "t_max": 12,
   "radius": 2,
   "solver": "z3-4.16.0",
-  "solve_time_s": 6.2023
+  "solve_time_s": 1.8438
  },
  "layout": {
   "arms": [
@@ -28,94 +28,79 @@
     -1
    ]
   ],
-  "glyph_calcs": []
+  "glyph_calcs": [
+   [
+    -1,
+    1
+   ]
+  ]
  },
- "horizon": 16,
- "cost": 12,
+ "horizon": 12,
+ "cost": 10,
  "actions": [
   {
    "t": 0,
-   "action": "grab",
-   "arm": "m1"
+   "action": "wait",
+   "arm": null
   },
   {
    "t": 1,
-   "action": "rot_ccw",
+   "action": "grab",
    "arm": "m1"
   },
   {
    "t": 2,
-   "action": "rot_ccw",
+   "action": "rot_cw",
    "arm": "m1"
   },
   {
    "t": 3,
-   "action": "rot_ccw",
+   "action": "rot_cw",
    "arm": "m1"
   },
   {
    "t": 4,
-   "action": "drop",
+   "action": "rot_cw",
    "arm": "m1"
   },
   {
    "t": 5,
-   "action": "wait",
-   "arm": null
+   "action": "drop",
+   "arm": "m1"
   },
   {
    "t": 6,
-   "action": "wait",
-   "arm": null
+   "action": "rot_cw",
+   "arm": "m1"
   },
   {
    "t": 7,
-   "action": "rot_ccw",
+   "action": "rot_cw",
    "arm": "m1"
   },
   {
    "t": 8,
-   "action": "rot_ccw",
-   "arm": "m1"
-  },
-  {
-   "t": 9,
    "action": "grab",
    "arm": "m1"
   },
   {
-   "t": 10,
+   "t": 9,
    "action": "rot_ccw",
+   "arm": "m1"
+  },
+  {
+   "t": 10,
+   "action": "drop",
    "arm": "m1"
   },
   {
    "t": 11,
-   "action": "rot_ccw",
-   "arm": "m1"
-  },
-  {
-   "t": 12,
-   "action": "rot_ccw",
-   "arm": "m1"
-  },
-  {
-   "t": 13,
    "action": "wait",
    "arm": null
-  },
-  {
-   "t": 14,
-   "action": "wait",
-   "arm": null
-  },
-  {
-   "t": 15,
-   "action": "drop",
-   "arm": "m1"
   }
  ],
  "atom_trajectories": {
-  "a1": [
+  "w1": [
    [
     1,
     0
@@ -126,31 +111,15 @@
    ],
    [
     1,
-    -1
+    0
    ],
    [
     0,
-    -1
+    1
    ],
    [
     -1,
-    0
-   ],
-   [
-    -1,
-    0
-   ],
-   [
-    -1,
-    0
-   ],
-   [
-    -1,
-    0
-   ],
-   [
-    -1,
-    0
+    1
    ],
    [
     -1,
@@ -185,61 +154,45 @@
     0
    ]
   ],
-  "a2": [
-   [
-    0,
-    1
-   ],
-   [
-    0,
-    1
-   ],
-   [
-    0,
-    1
-   ],
-   [
-    0,
-    1
-   ],
-   [
-    0,
-    1
-   ],
-   [
-    0,
-    1
-   ],
-   [
-    0,
-    1
-   ],
-   [
-    0,
-    1
-   ],
-   [
-    0,
-    1
-   ],
-   [
-    0,
-    1
-   ],
-   [
-    0,
-    1
-   ],
+  "w2": [
    [
     1,
-    0
+    -1
    ],
    [
     1,
     -1
    ],
    [
-    0,
+    1,
+    -1
+   ],
+   [
+    1,
+    -1
+   ],
+   [
+    1,
+    -1
+   ],
+   [
+    1,
+    -1
+   ],
+   [
+    1,
+    -1
+   ],
+   [
+    1,
+    -1
+   ],
+   [
+    1,
+    -1
+   ],
+   [
+    1,
     -1
    ],
    [
@@ -260,35 +213,27 @@
   "m1": [
    0,
    0,
-   5,
-   4,
-   3,
-   3,
-   3,
-   3,
-   2,
-   1,
-   1,
    0,
-   5,
+   1,
+   2,
+   3,
+   3,
    4,
+   5,
+   5,
    4,
    4,
    4
   ]
  },
  "held": {
-  "a1": [
+  "w1": [
+   null,
    null,
    "m1",
    "m1",
    "m1",
    "m1",
-   null,
-   null,
-   null,
-   null,
-   null,
    null,
    null,
    null,
@@ -297,8 +242,7 @@
    null,
    null
   ],
-  "a2": [
-   null,
+  "w2": [
    null,
    null,
    null,
@@ -310,18 +254,15 @@
    null,
    "m1",
    "m1",
-   "m1",
-   "m1",
-   "m1",
-   "m1",
+   null,
    null
   ]
  },
  "bonds": [
   {
    "atoms": [
-    "a1",
-    "a2"
+    "w1",
+    "w2"
    ],
    "bonded": [
     false,
@@ -334,15 +275,42 @@
     false,
     false,
     false,
-    false,
-    false,
-    false,
-    true,
     true,
     true,
     true
    ]
   }
  ],
- "atom_types": null
+ "atom_types": {
+  "w1": [
+   "water",
+   "water",
+   "water",
+   "water",
+   "water",
+   "salt",
+   "salt",
+   "salt",
+   "salt",
+   "salt",
+   "salt",
+   "salt",
+   "salt"
+  ],
+  "w2": [
+   "water",
+   "water",
+   "water",
+   "water",
+   "water",
+   "water",
+   "water",
+   "water",
+   "water",
+   "water",
+   "water",
+   "water",
+   "water"
+  ]
+ }
 }

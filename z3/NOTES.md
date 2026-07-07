@@ -1,182 +1,280 @@
-# Z3 arm — notes in progress
+# Z3 arm — final report
 
 Z3 (Python API, z3-solver 4.16.0) bounded-model-checking arm of the
 multi-solver Opus Magnum comparison. Mirrors the clingo arm
-(`asp/core.lp`, `asp/core2.lp` + the three instances) exactly, so the
-numbers are apples-to-apples.
+(`asp/core.lp`, `asp/core2.lp` + the three instances) exactly, adds a
+Stabilized Water (omsim P007) instance, an independent plan validator,
+and ground-truth verification against omsim. All timings measured on
+this box; the clingo numbers were measured the same day with the same
+`run.py` harness (clingo 5.8.0).
+
+**TL;DR — does Z3 work for solving Opus Magnum problems?** Yes: it
+solves every instance to a *proven* optimum, its free-layout mode
+co-designs machine layout and program (finding the classic
+glyphs-under-the-inputs trick for Stabilized Water, cost 3 vs 10 for
+the hand layout), and its plans replay cleanly in an independent
+simulator and — for Stabilized Water — in omsim itself against the real
+puzzle file. But clingo solves the same models 1–2 orders of magnitude
+faster at every size we tried, and Z3's gap widens with scale. For this
+problem family (finite hex board, pure combinatorics, no arithmetic
+theories), a grounder + CDCL ASP system is simply the right tool; Z3
+only becomes competitive when the model is written like a grounder
+would write it (the boolean one-hot encoding) — at which point you have
+re-implemented half of clingo's front end by hand.
 
 ## Files
 
-- `om_solver.py` — primary **Int encoding** (coordinates/orientation/action
-  as Z3 Ints, held/bond flags as Bools). Implements both clingo semantics:
-  - **v1** (`core.lp`): one arm, exactly one instruction per step from
-    {rot_cw, rot_ccw, grab, drop, wait}; held atom rides the gripper; the
-    bond instance's phase-1 rule "no rotating while holding a bonded atom".
-  - **v2** (`core2.lp`): serialized multi-arm (≤1 non-wait action per step
-    globally — Int action code 0=wait, 1+4m+a=arm m action a), rigid
-    rotation of the held atom's bond-connected component about the arm base,
-    arm bases block hexes, calcification glyph (element enum Int per atom,
-    only materialized when a calc glyph is present).
-  Instances are Python dicts mirroring the .lp instance files verbatim
-  (same bases, orientations, atom positions, glyph hexes, goals, horizons
-  10/16/10).
-- `om_bool.py` — **pure-boolean one-hot variant** (v1 only, fixed layout):
-  Bool per (atom, hex, t), one-hot orientation and action rows,
-  pairwise-encoded exactly-one. Built for the requested int-vs-bool
-  comparison on tests 1 and 2.
-- `bench.py` — timing matrix; writes `results.md`, dumps optimal plans to
-  `solutions/*.json` (layout + per-step actions + atom trajectories +
-  held/bond timelines) for the later validation phase.
-- `om_solver.py` CLI doubles as the plan printer:
-  `python3 z3/om_solver.py bond --strategy descend-cost --json out.json`.
+- `om_solver.py` — primary **Int encoding** (coordinates/orientation/
+  action as Z3 Ints, held/bond flags as Bools). Implements both clingo
+  semantics: **v1** (`core.lp`: one arm, exactly one instruction per
+  step, held atom rides the gripper) and **v2** (`core2.lp`: serialized
+  multi-arm, rigid rotation of the held bond-component, base blocking,
+  calcification, element types). Both **fixed** and **free** layout.
+- `om_bool.py` — **pure-boolean one-hot encoding** (single-arm, fixed
+  layout, v1 + v2). Hex geometry is ground at encode time (rotation
+  about the fixed base = a precomputed hex permutation), so the solver
+  sees near-pure SAT.
+- `bench.py` — timing matrix → `results.md` (+ `results.json` cache),
+  optimal-plan dumps → `solutions/*.json`.
+- `frontier.py` — Stabilized Water radius/horizon scaling study →
+  `results-frontier.md`.
+- `validate.py` — independent plan replayer (no Z3; see Validation).
+- `emit_omsim.py` — emits a real `.solution` v7 file from the Stabilized
+  Water plan; `solutions/water-z3.solution` is the omsim-verified result.
+- `stabilized_water.lp` — the identical instance for clingo
+  (`asp/core2.lp`), used for the apples-to-apples reference timing.
 
-## Encoding design (Int variant)
+## Encoding design summary
 
-Per state t=0..T: `orient[m][t]` (Int 0..5), gripper position as *defined*
-aux Ints `gq/gr[m][t] = base + L*dir(orient)` (dir table via nested If —
-exactly the clingo clockwise table; rot_cw maps dir d to d+1, verified),
-atom coords `q/r[i][t]`, `held[m][i][t]` Bool, bond Bool per unordered atom
-pair (only when the instance can bond), v2 rigid component `comp[m][i][t]`
-Bool defined by an (n_atoms−1)-step unrolled closure of bonds from the held
-atom. Per step t: one Int `act[t]` in 0..4·n_arms.
+Bounded model checking over states `t = 0..T`, steps `0..T-1`, exactly
+the clingo world model: axial hex board `|q|,|r|,|q+r| <= radius`
+(default 2), clockwise dir table 0..5, one serialized action per step,
+bonds form whenever both bonder hexes are occupied (at every state,
+even while held) and persist, calcification turns an elemental atom on
+the glyph to salt at the next state, arm bases block hexes (v2). Cost =
+number of non-wait steps over the whole horizon, identical to clingo's
+`#minimize`.
 
-Transitions are equalities (`x[t+1] == If(...)`), invariants (board bounds,
-one-atom-per-hex, gripper-on-board, v2 base-blocking) asserted at every
-state — the same legality conditions as the clingo cores, including bond
-formation firing at *every* state (even while atoms are held) and bonds
-persisting forever.
+Two encodings:
 
-`cost == Sum(If(act[t] != 0, 1, 0))` over the FULL horizon — identical to
-clingo's `#minimize { 1,T : do(A,T), A != wait }` (core2's minimize counts
-all actions, which is the same thing since wait is not an action there).
+- **Int**: `q/r/orient/act` are Ints, transitions are `x[t+1] == If(...)`
+  equalities, invariants asserted per state. Cheap to build (~0.1 s)
+  but every coordinate comparison is a linear-arithmetic theory atom.
+- **Bool one-hot**: `at[atom][hex][t]`, `orient[d][t]`, `act[a][t]`
+  Bools with pairwise exactly-one; geometry (gripper hexes, rigid-
+  rotation permutations, glyph hexes) precomputed in Python. Build time
+  ~0.6–0.7 s but the solve is nearly pure SAT.
 
-### Layout modes
+Layout modes: **fixed** pins base/orientation/glyph hexes to the
+instance values (what the clingo instances do — the comparable
+numbers); **free** (Int encoding only) lets the solver choose arm base,
+initial orientation, and glyph hexes, with reagent spawn hexes and
+product hexes fixed (they define the puzzle). Glyphs may overlap spawn
+and product hexes — just like the real game.
 
-- **fixed**: base/init_orient/glyph hexes pinned to the instance values.
-  This matches the clingo instances (they fix layout entirely via facts),
-  so fixed-mode numbers are the comparable ones.
-- **free** (Z3 extra): base hex, initial orientation, glyph hexes are
-  solver-chosen. Sanity constraints: base on board (and pairwise-distinct
-  bases), glyph_bond hexes on board and adjacent to each other. Reagent
-  (initial atom) positions and product/goal hexes stay fixed — they define
-  the puzzle. v1 free mode keeps core.lp's "base does not block" semantics;
-  v2 keeps core2's base-blocking (which in free mode also stops the solver
-  from putting a base on a reagent hex). Glyphs may overlap product hexes
-  (they do in test 2 by design).
+Optimality strategies: `optimize` (z3.Optimize), `ramp-cost`
+(cost ≤ k for k = 0,1,…), `descend-cost` (SAT then tighten until UNSAT;
+one hard UNSAT proof), `oneshot` (SAT at T, no optimality),
+`ramp-horizon` (goal-at-h assumption literals over one unrolled
+encoding, h = 1..T; truly incremental, no cost-optimality guarantee).
 
-### Optimality strategies
+## Results (full matrices in `results.md` and `results-frontier.md`)
 
-- `optimize` — z3.Optimize, minimize(cost). Matches clingo's semantics
-  directly.
-- `ramp-cost` — incremental Solver, assumption-guarded `cost<=k` for
-  k=0,1,…; first SAT k is a proven optimum (all smaller k UNSAT).
-- `descend-cost` — plain SAT first, then monotonically add
-  `cost <= best-1` until UNSAT. Also a proven optimum but with only ONE
-  hard UNSAT proof (at opt−1) instead of opt-many. **Fastest optimality
-  strategy here** (bond, Int, fixed: 6.3s vs 16.0s Optimize vs 54.6s
-  ramp-cost).
-- `oneshot` — single SAT check at t_max, no optimality (baseline for the
-  incremental comparison).
-- `ramp-horizon` — ONE unrolled encoding to t_max, goal asserted at state h
-  via assumption literals, h=1..T, stop at first SAT. Truly incremental
-  (learned clauses shared across horizons).
+All four instances solve to proven optima; the three shared tests match
+clingo (trivial = 5, bond = 12, rigid = 4) and Stabilized Water's
+fixed-layout optimum 10 is cross-checked by running clingo on the
+identical instance (`z3/stabilized_water.lp` + `asp/core2.lp`: cost 10,
+0.060 s).
 
-**"Optimal" here** = minimum number of non-wait instructions over the fixed
-t_max horizon, exactly clingo's objective. Note min-horizon-first (as in
-`ramp-horizon`) is not in general min-instructions — we report its cost
-unminimized. (In this particular fragment waits are pure no-ops — free
-atoms are inert, bond formation is state-based and persistent — so min
-feasible horizon equals min instruction count and `ramp-horizon`
-incidentally returned the optimum on all three tests; but that's a domain
-accident, not a guarantee, and would break e.g. with core2's respawn
-timing.)
+Seconds to a PROVEN optimum, fixed layout (Z3 numbers are the best
+strategy, descend-cost; medians of 5 where < 2 s):
 
-## Results (see results.md for the full matrix; medians of 5 where fast)
+| instance | clingo | Z3 bool (solve) | Z3 int (solve) | best-Z3 / clingo |
+|---|---|---|---|---|
+| trivial (v1) | 0.009 | 0.075 | 0.52 | 8× slower |
+| bond (v1) | 0.148 | 0.57 | 6.3 | 4× slower |
+| rigid (v2) | 0.004 | — (int only) | 0.29 | 72× slower |
+| water (v2) | 0.060 | 0.17 | 2.3 | 3× slower |
 
-All three tests SAT at the expected optima in BOTH layout modes:
-**trivial=5, bond=12, rigid=4** — matching clingo. Plans print sensibly
-(test 1: grab, 3×rot, drop; test 2: park one atom on a glyph hex, fetch
-the other; test 3: grab + 2×rot_cw swinging a2 through the distance-2 arc
-+ drop).
+(Bool adds ~0.6–0.7 s Python build time on top of solve; clingo's
+numbers include grounding. Counting build+solve, bool-Z3 is within
+4–15× of clingo on these sizes, and the gap grows with scale — see the
+frontier.)
 
-Headline timings, fixed layout, to PROVEN optimum:
+### Stabilized Water (omsim P007)
 
-| test | clingo | z3 int descend-cost | z3 int Optimize | z3 bool descend-cost | z3 bool Optimize |
-|---|---|---|---|---|---|
-| trivial | 0.009s | 0.52s | 0.64s | 0.075s | 0.040s |
-| bond    | 0.148s | 6.3s  | 16.0s | 0.57s  | 0.83s |
-| rigid   | 0.004s | 0.29s | 0.41s | (v2, not in bool variant) | |
+Modelling choices (no clingo instance existed, so this arm defined the
+instance and mirrored it into `stabilized_water.lp`):
 
-**clingo wins by 1–2 orders of magnitude on every test.** Z3's pain point
-is the UNSAT/optimality-proof side; plain satisfiability at t_max is fast
-(bond int oneshot 0.28s, bool 0.08s), and incremental horizon ramp-up is
-fast too (trivial 0.019s, bond 0.75s, rigid 0.022s — within ~5× of clingo
-without proving cost optimality).
+- Real puzzle (decoded from `P007.puzzle`): two 1-atom WATER reagent
+  inputs; product = SALT(0,0) bonded to WATER(1,0); parts available
+  include arms, glyph of calcification, glyph of bonding.
+- Simplified-semantics instance (v2/core2): board radius 2, horizon 12,
+  one arm (base (0,0), length 1, orient 0), water atoms at (1,0) and
+  (1,-1), calcifier at (-1,1), bonder on ((-1,0),(0,-1)) = the product
+  hexes. Product goal: *anonymous slots* — some unheld salt atom on
+  (-1,0) bonded to some unheld water atom on (0,-1) (an OM product is a
+  molecule pattern, not named atoms; the goal is a disjunction over
+  atom-to-slot assignments).
+- Reagent pools: core2's `spawn/nreagent` respawn machinery with a
+  1-atom pool per spawn hex degenerates to a pre-placed atom (`r(1)` at
+  t=0; no respawn can trigger since each input is consumed exactly once
+  at output_scale 1), so the two inputs are two `init_at` water atoms.
+  No respawn encoding was needed.
 
-### Int vs Bool verdict (so far)
+Results (solve seconds, proven optimum unless noted):
 
-The one-hot boolean encoding is **~10× faster than the Int encoding** at
-solve time on the v1 tests — bond to proven optimum: 0.57s bool vs 6.3s
-int (descend-cost); 0.83s vs 16.0s (Optimize); trivial 0.04–0.08s vs
-0.5–0.6s. The Int encoding drags in linear arithmetic (every coordinate
-comparison is a theory atom); the bool variant is nearly pure SAT and
-grounds the hex geometry at encode time, much like clingo's grounder —
-which also explains why clingo is fast here. Bool Python-side build time
-is higher (~0.7s for bond vs ~0.08s int) but total time still favors bool
-decisively. Lesson for the next phase: prefer the grounded/boolean style
-(or a Bool-heavy hybrid) for Stabilized Water.
+| variant | cost | bool descend | int descend | int optimize | int ramp-cost | int ramp-horizon* |
+|---|---|---|---|---|---|---|
+| fixed layout | **10** | 0.17 | 2.3 | 7.8 | 7.7 | 0.38 (cost 10 @ h=10) |
+| free layout | **3** | n/a | 4.4 | 2.5 | 0.56 | 0.11 (cost 3 @ h=3) |
 
-### Incremental vs one-shot verdict (so far)
+\* heuristic, no optimality proof. clingo, fixed layout, same instance:
+**0.060 s**.
 
-- For pure satisfiability at t_max, one-shot is cheap (0.03–0.6s
-  everywhere) but returns sloppy plans (cost 8–14 vs optima 4–12).
-- Incremental horizon ramp-up (goal-at-h assumptions over one unrolled
-  encoding) beats one-shot-at-t_max *and* returned optimal-cost plans on
-  all three tests at a fraction of the optimality-proof cost (bond: 0.75s
-  vs 6.3s). In this fragment that's guaranteed-lucky: waits are pure
-  no-ops (free atoms inert, bonds persistent), so min feasible horizon =
-  min instruction count. That equivalence breaks under core2's respawn
-  timing, so it stays a heuristic.
-- For proven optimality, incremental descend-cost (one hard UNSAT proof)
-  < Optimize < ramp-cost (opt-many UNSAT proofs): bond int 6.3s / 16.0s /
-  54.6s.
+- **Fixed layout, optimum 10**: grab water₁, three cw rotations carrying
+  it across the calcifier (calcified in passing) onto the salt slot,
+  drop; two rotations back, grab water₂, one ccw rotation onto the
+  water slot, drop — the bond forms on the bonder under the product
+  hexes.
+- **Free layout, optimum 3**: the solver placed the bonder under the two
+  reagent hexes and the calcifier under one of them — bond and
+  calcification happen at t=0, then grab + one rigid rotation + drop
+  delivers the finished molecule. This is the classic OM
+  speedrun trick, discovered by the solver, and the one place in this
+  study where Z3 produced something qualitatively better than the hand
+  design. (On the three original tests free layout never beat fixed —
+  their geometry pins the layout — and cost 2–4× solve time.)
+- Strategy nuance: with a LOW optimum (3), `ramp-cost` (0.56 s) beats
+  `descend-cost` (4.4 s) — ramping up meets the optimum after 4 cheap
+  checks, while descending must first find some plan unguided. With a
+  HIGH optimum (10 of 12 steps), descend-cost wins (2.3 s vs 7.7 s).
 
-### Free layout findings
+### Tractability frontier (`results-frontier.md`)
 
-Free layout never beats fixed on these instances (5/12/4 again): the
-geometry pins the base — e.g. in test 1, (0,0) is the *only* hex adjacent
-to both the reagent (1,0) and product (−1,0) hexes, and orientation
-distance 3 is unavoidable; same story in tests 2 and 3. Free-mode solve
-times are ~2–4× slower than fixed for the same strategy (bond descend-cost
-21.8s vs 6.3s; ramp-cost 155s vs 55s) — the extra layout freedom widens
-the search without adding better solutions here.
+Stabilized Water, descend-cost to proven optimum, 120 s budget per
+configuration. Headlines (full table in `results-frontier.md`):
+
+- **bool/fixed, radius 2**: proven optimum at t_max = 12 (0.16 s) and
+  16 (4.4 s); at t_max = 20, 24, 30 the budget dies in the optimality
+  proof — the cost-10 plan is still found, but cost ≤ 9 cannot be
+  refuted in 120 s (`timeout(10)`).
+- **bool/fixed, radius 3** (37 hexes): 0.20 s at t_max = 12, 4.1 s at
+  16, and 105.7 s at 20 — curiously *proving* r3/T20 while r2/T20 timed
+  out; the UNSAT search is high-variance near the cliff.
+- **int/fixed, radius 2**: 2.6 s at t_max = 12, 118.2 s at 16 (barely),
+  `timeout(10)` at 20. The Int encoding hits the wall one horizon step
+  before bool.
+- **int/free**: everywhere *easier* than fixed — proven cost 3 at
+  radius 2 for t_max 12/16/20 (2.7 / 20.4 / 63.8 s) and at radius 3 for
+  t_max 12/16 (6.3 / 19.8 s). The free-layout optimum is so low that
+  the final UNSAT proof (cost ≤ 2 impossible) is shallow, while the
+  fixed layout must refute cost ≤ 9 across the whole horizon.
+
+So the practical frontier at a 120 s budget is the **optimality-proof
+(UNSAT) side, not plan finding**: fixed-layout proofs die at
+t_max ≈ 20 for both encodings (bool lasts a bit longer and even closed
+radius 3 at 105.7 s), while plans themselves keep arriving in seconds
+well past that. clingo grounds-and-solves the radius-2 fixed instance
+to proven optimality in 0.06 s.
+
+## Int vs Bool verdict
+
+The one-hot boolean encoding is **~10× faster to solve** than the Int
+encoding everywhere it applies (bond to optimum 0.57 s vs 6.3 s; water
+0.17 s vs 2.3 s) at ~0.6 s extra build time, and it scales further
+(frontier: bool handles radius-2 horizons the Int encoding times out
+on). The Int encoding drags every hex comparison through linear
+arithmetic; the bool variant grounds the geometry at encode time —
+doing manually what clingo's grounder does automatically. Clearest
+lesson of the study: on finite combinatorial boards, encode like a
+grounder, or use one.
+
+## Incremental vs one-shot verdict
+
+- To a proven optimum, incremental `descend-cost` (one UNSAT proof)
+  beats `optimize` and `ramp-cost` when the optimum is a large fraction
+  of the horizon (bond Int: 6.3 / 16.0 / 54.6 s); `ramp-cost` wins when
+  the optimum is small (water free: 0.56 s vs 4.4 s). Optimality
+  proving (UNSAT) is Z3's pain point; plain satisfiability is cheap
+  everywhere (oneshot 0.03–0.6 s, but sloppy plans: cost 8–14 vs
+  optima 3–12).
+- `ramp-horizon` (assumption literals over one unrolled encoding,
+  learned clauses shared across horizons) found optimal-cost plans on
+  all four instances at a fraction of the proof cost (bond 0.75 s,
+  water fixed 0.38 s / free 0.11 s) — but only because in this fragment
+  waits are pure no-ops, so min feasible horizon = min instruction
+  count. That equivalence breaks under core2's respawn timing; it stays
+  a heuristic, reported without optimality claims.
+
+## Validation
+
+Two independent levels, both passing:
+
+1. **`validate.py`** — a plain-Python replayer (no Z3, no reuse of the
+   encoders' transition code) re-implementing the semantics from
+   `asp/core.lp` / `asp/core2.lp`: per-step legality (grab/drop
+   preconditions, the bond-instance no-rotate rule, rigid-motion
+   tearing), per-state invariants (board bounds, collisions, base
+   blocking, gripper on board), glyph effects (bond formation at every
+   state, calcification on every step incl. waits), goal satisfaction,
+   and a full cross-check of the reported trajectory / orientation /
+   held / bond timelines and cost. **8/8 solutions PASS**
+   (trivial/bond/rigid/water × fixed/free). Mutation-tested: corrupting
+   an action, moving the calcifier, or misreporting cost are all
+   caught.
+2. **omsim ground truth** — `emit_omsim.py` converts the fixed-layout
+   Stabilized Water plan into a real `.solution` v7 file (single arm ⇒
+   plan steps map 1:1 onto cycles, waits = blank tape cells; omsim's
+   `'r'` letter = our `rot_cw` = dir d→d+1, decoded from a reference
+   solution; two rotations appended so the looping tape is a fixed
+   point; checked that no atom re-enters a vacated input hex, since
+   omsim inputs respawn instantly). omsim verifies it against the real
+   campaign `P007.puzzle`:
+
+   ```
+   $ omsim -p P007.puzzle z3/solutions/water-z3.solution
+   40g/12i@0 75c/7a@V        (exit 0)
+   ```
+
+   Cost 40, 12 instructions, victory at cycle 75, area 7 — a legal,
+   complete solution of the actual game puzzle derived from the Z3
+   plan, verified on the first attempt. (For scale: the community
+   record archive has a 6-instruction two-arm solution; ours is
+   single-arm and serialized by construction.)
 
 ## Gotchas discovered (semantics traps)
 
-- clingo's `holding(X,T+1) :- do(grab,T), at(X,Q,R,T), gripper(Q,R,T)` means
-  the held flag becomes true at T+1 but the atom does not move on the grab
-  step; position update keys off `holding(·,T+1)` and `gripper(·,T+1)`.
-  Getting the t vs t+1 indexing of held/gripper wrong silently costs an
-  extra instruction (caught against the expected optima).
-- Bond formation must fire at every STATE including t=0 and t_max (clingo's
-  rule is over `at/4`, not gated on steps), and even while atoms are held.
-- rot_ccw about base: `(q,r) -> (BQ+(q-BQ)+(r-BR), BR-(q-BQ))` — easy to
-  fat-finger; verified via dir-table round trips (cw maps dir d to d+1).
-- core.lp v1 does NOT make the arm base block its hex; core2 v2 does. The
-  two must not be mixed or test costs shift.
-- v2's objective counts all actions but has no wait action, so both cores'
-  objectives are "count non-wait steps" — one shared cost definition works.
+- clingo's `holding(X,T+1) :- do(grab,T), ...` means held becomes true
+  at T+1 but the atom does not move on the grab step; wrong t vs t+1
+  indexing silently costs an extra instruction.
+- Bond formation fires at every STATE including 0 and T, even while
+  held; calcification fires on every STEP including waits (it keys on
+  position, not action) — the validator briefly had exactly this bug.
+- rot_ccw about a base: `(q,r) → (BQ+(q-BQ)+(r-BR), BR-(q-BQ))`; verify
+  via dir-table round trips (cw maps dir d onto d+1).
+- core.lp v1 does NOT block the arm-base hex; core2 v2 does. Don't mix.
+- omsim's `.solution` letter `'r'` is *labelled* "rotate ccw" but is the
+  same axial map as this repo's clockwise-indexed `rot_cw` (d→d+1) —
+  the naming depends on how you draw the axes. Decoded from a reference
+  solution before trusting it.
+- omsim inputs respawn the moment their hex clears: a looping tape must
+  never steer an atom back over a vacated input hex and must return the
+  arm to its initial orientation (`emit_omsim.py` checks/handles both).
 
-## Left for the Stabilized Water phase
+## Honest bottom line
 
-- Real puzzle needs: TWO water inputs (respawning input hexes — core2's
-  `spawn/nreagent` bounded-pool trick is the template, not yet in the Z3
-  encoding), calcification (already implemented: element Int per atom +
-  glyph_calc list + `product_types` goal hook — smoke-tested: a scratch
-  v2 instance "grab water, rotate onto the calc glyph, drop" solves at
-  cost 3 with the atom's final type = salt),
-  bonder glyph (done), multi-arm (encoded, untested beyond n=1),
-  6-products victory / looping tapes if we go full-fidelity, and emitting a
-  real .solution file for omsim validation (see scout notes).
-- Boolean-variant support for v2 (rigid rotation) if performance demands.
-- Solution JSONs in `solutions/` are ready for the replay/validation phase.
+Z3-as-BMC is a *correct* and reasonably capable Opus Magnum solver at
+this scale: proven optima on all four instances, layout synthesis that
+found a real speedrun trick rather than being told it, and plans strong
+enough to survive an independent replayer and the actual game
+simulator. It is not the *right* solver for this fragment: clingo is
+1–2 orders of magnitude faster on every instance with a far shorter
+model description, and Z3's optimality-proof frontier (fixed layout
+beyond horizon ≈ 20) is territory clingo would not notice. The domain is finite and
+purely combinatorial, so SMT's theories buy nothing — the winning move
+inside Z3 was to hand-ground everything to booleans, i.e. to imitate
+clingo. Use ASP here; bring in Z3 when the problem genuinely needs
+arithmetic/theory reasoning (unbounded counters, real-valued timing,
+parametric geometry), which Opus Magnum at this abstraction level does
+not.
