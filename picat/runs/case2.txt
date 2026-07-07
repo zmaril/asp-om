@@ -1,0 +1,17 @@
+
+CPU time 0.001 seconds.
+
+plan_found
+  1. grab
+  2. rot_ccw
+  3. rot_ccw
+  4. rot_ccw
+  5. drop
+  6. rot_ccw
+  7. rot_ccw
+  8. grab
+  9. rot_ccw
+  10. rot_ccw
+  11. rot_ccw
+  12. drop
+cost (= plan length) = 12

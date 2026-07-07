@@ -1,0 +1,16 @@
+LAYOUT radius 2
+LAYOUT atom a1 salt 1 0
+LAYOUT atom a2 salt 0 1
+LAYOUT pending [arm,bonder]
+
+CPU time 0.164 seconds.
+
+plan_found
+PLAN {place_arm,m1,0,0,1,0}
+PLAN {place_bonder,1,0,0,1}
+PLAN {m1,grab}
+PLAN {m1,rot_cw}
+PLAN {m1,rot_cw}
+PLAN {m1,rot_cw}
+PLAN {m1,drop}
+cost = 7 (2 placements + 5 instructions)

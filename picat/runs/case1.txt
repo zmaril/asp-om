@@ -1,0 +1,10 @@
+
+CPU time 0.0 seconds.
+
+plan_found
+  1. grab
+  2. rot_cw
+  3. rot_cw
+  4. rot_cw
+  5. drop
+cost (= plan length) = 5

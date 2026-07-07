@@ -1,0 +1,25 @@
+mode: prune
+LAYOUT radius 2
+LAYOUT spawn 1 0 water 2
+LAYOUT atom 1 water 1 0
+
+CPU time 2.293 seconds.
+
+plan_found
+PLAN {place_arm,m1,0,0,1,0}
+PLAN {place_calc,0,1}
+PLAN {place_bonder,-1,0,-1,1}
+PLAN {m1,grab}
+PLAN {m1,rot_cw}
+PLAN {m1,rot_cw}
+PLAN {m1,drop}
+PLAN {m1,rot_ccw}
+PLAN {m1,rot_ccw}
+PLAN {m1,grab}
+PLAN {m1,rot_ccw}
+PLAN {m1,rot_ccw}
+PLAN {m1,rot_ccw}
+PLAN {m1,rot_cw}
+PLAN {m1,rot_cw}
+PLAN {m1,drop}
+cost = 16 (3 placements + 13 instructions)
