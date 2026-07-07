@@ -76,6 +76,67 @@ array[1..nProd] of int: prod_r;
 array[1..nProd] of 0..5: prod_type;  % 0 = don't care
 bool: require_any_bond;
 
+% ---- Respawning reagent inputs (matches asp/core2.lp spawn semantics) ----
+% Each spawn input s has a fixed hex and element type and an ordered POOL of
+% atoms (a bounded pool approximates the game's unlimited input): the rank-1
+% atom of each pool is present at t=0; the rank-(k+1) atom appears at t+1 as
+% soon as the rank-k atom exists at t and the spawn hex is NOT occupied at
+% t+1 by any atom that already existed at t (exactly core2.lp's occ_old rule).
+% Atoms with atom_spawn = 0 are ordinary initially-placed atoms
+% (nSpawn = 0 and all-zero atom_spawn turn the feature off entirely).
+int: nSpawn;
+set of int: SPAWN = 1..nSpawn;
+array[SPAWN] of int: spawn_q;
+array[SPAWN] of int: spawn_r;
+array[SPAWN] of 1..5: spawn_type;
+array[ATOM] of int: atom_spawn;    % 0 = not a pool atom
+array[ATOM] of int: atom_rank;     % order within its pool (1 for non-pool)
+
+% ---- Product molecule refinements ----
+% If free_prod_atoms, WHICH atom fills each product slot is a decision
+% (injective); otherwise slot k is filled by prod_atom[k].
+bool: free_prod_atoms;
+% Required bonds between product SLOTS (indices into 1..nProd) at time T.
+int: nProdBond;
+array[1..nProdBond, 1..2] of int: prod_bond;
+% If exact_molecule, the product atoms carry exactly the prod_bond bonds at
+% time T: no bond to a non-product atom and no unrequested slot-slot bond.
+bool: exact_molecule;
+
+bool: spawn_active = exists(a in ATOM)(atom_rank[a] > 1);
+% predecessor (rank k-1 atom of the same pool) for rank >= 2 atoms
+array[ATOM] of int: predA =
+    [ if atom_rank[a] <= 1 then 0
+      else sum(b in ATOM where atom_spawn[b] = atom_spawn[a]
+                            /\ atom_rank[b] = atom_rank[a] - 1)(b)
+      endif | a in ATOM ];
+
+constraint assert(
+    forall(a in ATOM)(atom_spawn[a] >= 0 /\ atom_spawn[a] <= nSpawn
+                      /\ atom_rank[a] >= 1),
+    "atom_spawn/atom_rank out of range");
+constraint assert(
+    forall(a in ATOM where atom_spawn[a] > 0)(
+        init_q[a] = spawn_q[atom_spawn[a]] /\
+        init_r[a] = spawn_r[atom_spawn[a]] /\
+        init_type[a] = spawn_type[atom_spawn[a]]),
+    "pool atoms must have init position/type equal to their spawn input");
+constraint assert(
+    forall(a in ATOM where atom_rank[a] > 1)(
+        atom_spawn[a] > 0 /\
+        sum(b in ATOM where atom_spawn[b] = atom_spawn[a]
+                         /\ atom_rank[b] = atom_rank[a] - 1)(1) = 1),
+    "pool ranks must be contiguous and unique per spawn input");
+constraint assert(
+    forall(s1, s2 in SPAWN where s1 < s2)(
+        spawn_q[s1] != spawn_q[s2] \/ spawn_r[s1] != spawn_r[s2]),
+    "spawn hexes must be distinct");
+constraint assert(
+    forall(j in 1..nProdBond)(
+        prod_bond[j,1] in 1..nProd /\ prod_bond[j,2] in 1..nProd /\
+        prod_bond[j,1] != prod_bond[j,2]),
+    "prod_bond entries index product slots");
+
 % clockwise direction table, dir 0 = (1,0)
 array[0..5] of int: DQ = array1d(0..5, [1, 0, -1, -1,  0,  1]);
 array[0..5] of int: DR = array1d(0..5, [0, 1,  1,  0, -1, -1]);
@@ -112,6 +173,16 @@ constraint alldifferent(
     [cell(bonder_q2[g], bonder_r2[g]) | g in BONDER] ++
     [cell(calc_q[g], calc_r[g]) | g in CALC]);
 
+% Parts may not sit on a reagent-input (spawn) hex: in the game the input is
+% itself a part occupying that hex. (Vacuous when nSpawn = 0; arm bases are
+% already excluded implicitly because the rank-1 pool atom sits there at t=0.)
+constraint forall(s in SPAWN)(
+    forall(m in ARM)(base_q[m] != spawn_q[s] \/ base_r[m] != spawn_r[s]) /\
+    forall(g in BONDER)(
+        (bonder_q1[g] != spawn_q[s] \/ bonder_r1[g] != spawn_r[s]) /\
+        (bonder_q2[g] != spawn_q[s] \/ bonder_r2[g] != spawn_r[s])) /\
+    forall(g in CALC)(calc_q[g] != spawn_q[s] \/ calc_r[g] != spawn_r[s]));
+
 % --------------------------------------------------------------------------
 % State variables
 % --------------------------------------------------------------------------
@@ -125,6 +196,30 @@ array[TIME, ARM]  of var 0..5:  ori  :: output;    % arm orientation
 array[TIME, ARM]  of var -radius..radius: gq :: output;   % gripper hex
 array[TIME, ARM]  of var -radius..radius: gr :: output;
 constraint forall(t in TIME, m in ARM)(abs(gq[t,m] + gr[t,m]) <= radius);
+
+% Existence: ex[t,a] = atom a has spawned by time t. Initially-placed atoms
+% and rank-1 pool atoms always exist. A not-yet-spawned atom is a GHOST: it
+% is parked (unheld, at spawn type) on its spawn hex, and is excluded from
+% occupancy, grabbing, bonding and calcification. Parking makes the position
+% transition seamless at the spawn instant (the atom is already in place).
+array[TIME, ATOM] of var bool: ex :: output;
+constraint forall(t in TIME, a in ATOM where atom_rank[a] = 1)(ex[t,a]);
+constraint forall(a in ATOM where atom_rank[a] > 1)(not ex[0,a]);
+
+% spawn hex s occupied at t+1 by an atom that already existed at t (core2's
+% occ_old); the successor pool atom appears exactly when this is false.
+array[STEP, SPAWN] of var bool: occSpawn;
+constraint forall(t in STEP, s in SPAWN)(
+    occSpawn[t,s] = exists(b in ATOM)(
+        ex[t,b] /\ aq[t+1,b] = spawn_q[s] /\ ar[t+1,b] = spawn_r[s]));
+constraint forall(t in STEP, a in ATOM where atom_rank[a] > 1)(
+    ex[t+1,a] = (ex[t,a] \/ (ex[t,predA[a]] /\ not occSpawn[t,atom_spawn[a]])));
+
+constraint forall(t in TIME, a in ATOM where atom_rank[a] > 1)(
+    (not ex[t,a]) -> (aq[t,a] = spawn_q[atom_spawn[a]] /\
+                      ar[t,a] = spawn_r[atom_spawn[a]] /\
+                      held[t,a] = 0 /\
+                      typ[t,a] = spawn_type[atom_spawn[a]]));
 
 % bonds: symmetric, only a<b stored; bonded[t,a,b] with a>=b is fixed false
 array[TIME, ATOM, ATOM] of var bool: bonded :: output;
@@ -180,6 +275,7 @@ constraint forall(t in STEP, m in ARM)(
 function var bool: on_hex(int: t, int: a, var int: q, var int: r) =
     aq[t,a] = q /\ ar[t,a] = r;
 function var bool: formed(int: t, int: a, int: b) =
+    ex[t,a] /\ ex[t,b] /\
     exists(g in BONDER)(
         (on_hex(t, a, bonder_q1[g], bonder_r1[g]) /\
          on_hex(t, b, bonder_q2[g], bonder_r2[g])) \/
@@ -216,7 +312,8 @@ constraint forall(t in STEP, m in ARM, a in ATOM)(
 % --------------------------------------------------------------------------
 array[STEP, ARM, ATOM] of var bool: grabA;   % arm m grabs atom a at step t
 constraint forall(t in STEP, m in ARM, a in ATOM)(
-    grabA[t,m,a] = (doGrab[t,m] /\ aq[t,a] = gq[t,m] /\ ar[t,a] = gr[t,m]));
+    grabA[t,m,a] = (doGrab[t,m] /\ ex[t,a] /\
+                    aq[t,a] = gq[t,m] /\ ar[t,a] = gr[t,m]));
 
 constraint forall(t in STEP, m in ARM)(
     doGrab[t,m] -> forall(a in ATOM)(held[t,a] != m));       % hand empty
@@ -263,8 +360,14 @@ constraint forall(t in STEP, a in ATOM)(
 % --------------------------------------------------------------------------
 % Occupancy: no two atoms on one hex; arm bases block hexes for atoms
 % --------------------------------------------------------------------------
+% Ghosts of the SAME pool all park on their spawn hex, so give each ghost a
+% unique off-board dummy cell id and keep a single alldifferent per time step
+% (when nothing spawns this reduces to the plain cell alldifferent).
+array[TIME, ATOM] of var 0..W*W + nA: colcell;
+constraint forall(t in TIME, a in ATOM)(
+    colcell[t,a] = if ex[t,a] then cell(aq[t,a], ar[t,a]) else W*W + a endif);
 constraint forall(t in TIME)(
-    alldifferent([cell(aq[t,a], ar[t,a]) | a in ATOM]));
+    alldifferent([colcell[t,a] | a in ATOM]));
 constraint forall(t in TIME, a in ATOM, m in ARM)(
     aq[t,a] != base_q[m] \/ ar[t,a] != base_r[m]);
 
@@ -273,7 +376,7 @@ constraint forall(t in TIME, a in ATOM, m in ARM)(
 % --------------------------------------------------------------------------
 array[STEP, ATOM] of var bool: calcifies;
 constraint forall(t in STEP, a in ATOM)(
-    calcifies[t,a] = (typ[t,a] >= 2 /\
+    calcifies[t,a] = (ex[t,a] /\ typ[t,a] >= 2 /\
         exists(g in CALC)(on_hex(t, a, calc_q[g], calc_r[g]))));
 constraint forall(t in STEP, a in ATOM)(
     typ[t+1,a] = if calcifies[t,a] then 1 else typ[t,a] endif);
@@ -281,13 +384,41 @@ constraint forall(t in STEP, a in ATOM)(
 % --------------------------------------------------------------------------
 % Goal at time T
 % --------------------------------------------------------------------------
+% prod_who[k] = the atom filling product slot k (fixed to prod_atom[k]
+% unless free_prod_atoms; the game accepts ANY atoms forming the molecule).
+array[1..nProd] of var ATOM: prod_who :: output;
+constraint if free_prod_atoms then alldifferent(prod_who)
+           else forall(k in 1..nProd)(prod_who[k] = prod_atom[k]) endif;
+
 constraint forall(k in 1..nProd)(
-    aq[T, prod_atom[k]] = prod_q[k] /\
-    ar[T, prod_atom[k]] = prod_r[k] /\
-    held[T, prod_atom[k]] = 0 /\
-    (prod_type[k] = 0 \/ typ[T, prod_atom[k]] = prod_type[k]));
+    ex[T, prod_who[k]] /\
+    aq[T, prod_who[k]] = prod_q[k] /\
+    ar[T, prod_who[k]] = prod_r[k] /\
+    held[T, prod_who[k]] = 0 /\
+    (prod_type[k] = 0 \/ typ[T, prod_who[k]] = prod_type[k]));
 constraint require_any_bond ->
     exists(a, b in ATOM where a < b)(bonded[T,a,b]);
+
+% full symmetric bond matrix at time T, for var-indexed slot lookups
+array[ATOM, ATOM] of var bool: bondT;
+constraint forall(a, b in ATOM)(bondT[a,b] = bnd(T,a,b));
+
+function bool: slot_bond_required(int: k1, int: k2) =
+    exists(j in 1..nProdBond)(
+        (prod_bond[j,1] = k1 /\ prod_bond[j,2] = k2) \/
+        (prod_bond[j,1] = k2 /\ prod_bond[j,2] = k1));
+
+constraint forall(j in 1..nProdBond)(
+    bondT[prod_who[prod_bond[j,1]], prod_who[prod_bond[j,2]]]);
+
+constraint if exact_molecule then
+    % no unrequested bond between product slots ...
+    forall(k1, k2 in 1..nProd where k1 < k2 /\ not slot_bond_required(k1,k2))(
+        not bondT[prod_who[k1], prod_who[k2]])
+    % ... and no bond from a product atom to a non-product atom
+    /\ forall(k in 1..nProd, b in ATOM)(
+        bondT[prod_who[k], b] -> exists(k2 in 1..nProd)(prod_who[k2] = b))
+endif;
 
 % --------------------------------------------------------------------------
 % Objective: minimize total number of actions (non-wait steps)
@@ -296,18 +427,21 @@ var 0..T: total_actions :: output;
 constraint total_actions =
     sum(t in STEP, m in ARM)(doCW[t,m] + doCCW[t,m] + doGrab[t,m] + doDrop[t,m]);
 
-% Dominance constraint (single-arm only): with one arm nothing in the world
-% changes during a wait (no spawning is modelled), so any legal plan can be
-% compacted so that all actions form a prefix and all waits come last,
-% preserving legality, bond/calcification effects and the action count.
-% Restricting the search to such compacted plans keeps the optimum identical
-% and collapses the search space (without it Gecode finds nothing on
-% t2_bond in minutes). NOT valid for nM > 1 (arms synchronise), so gated.
+% Dominance constraint (single arm, NO respawning): with one arm and no
+% spawn pools nothing in the world changes during a wait, so any legal plan
+% can be compacted so that all actions form a prefix and all waits come
+% last, preserving legality, bond/calcification effects and the action
+% count. Restricting the search to such compacted plans keeps the optimum
+% identical and collapses the search space (without it Gecode finds nothing
+% on t2_bond in minutes). NOT valid for nM > 1 (arms synchronise) and NOT
+% proven valid with active spawning (compaction shifts spawn instants:
+% an action moved earlier can re-block the spawn hex at the spawn step and
+% change the trajectory), so gated on both.
 array[STEP] of var bool: acted;
 constraint forall(t in STEP)(
     acted[t] = exists(m in ARM)(doCW[t,m] \/ doCCW[t,m] \/
                                 doGrab[t,m] \/ doDrop[t,m]));
-constraint if nM = 1 then
+constraint if nM = 1 /\ not spawn_active then
     forall(t in 1..T-1)(acted[t] -> acted[t-1]) endif;
 
 % Chronological search over the action program (then the layout vars),
@@ -321,7 +455,7 @@ array[int] of var bool: action_seq =
 solve :: seq_search([
         bool_search(action_seq, input_order, indomain_min),
         int_search(base_q ++ base_r ++ bonder_q1 ++ bonder_r1 ++
-                   bonder_q2 ++ bonder_r2 ++ calc_q ++ calc_r,
+                   bonder_q2 ++ bonder_r2 ++ calc_q ++ calc_r ++ prod_who,
                    first_fail, indomain_min)])
       minimize total_actions;
 
@@ -335,7 +469,8 @@ output [
     [ "t=\(t) " ++
       concat([" arm\(m) dir=\(ori[t,m]) grip=(\(gq[t,m]),\(gr[t,m]))" | m in ARM ]) ++
       concat([" a\(a)@(\(aq[t,a]),\(ar[t,a]))" ++
-              if fix(held[t,a]) > 0 then "[held:\(held[t,a])]" else "" endif
+              if fix(held[t,a]) > 0 then "[held:\(held[t,a])]" else "" endif ++
+              if not fix(ex[t,a]) then "[ghost]" else "" endif
              | a in ATOM ]) ++
       if t < T then
         concat([ if fix(doCW[t,m])   then "  action: arm\(m) rot_cw"

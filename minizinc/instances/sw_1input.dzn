@@ -1,0 +1,38 @@
+% Stabilized Water, 1-input cross-check variant: same layout as
+% stabilized_water.dzn but a SINGLE water input at (1,0) with a pool
+% of 2 (asp/core2.lp can express only one spawn hex, so this is the
+% instance used for the clingo cross-validation: clingo optimum 11,
+% via scratchpad run_clingo.py asp/core2.lp sw1input.lp t_max=12 nreagent=2).
+T = 12;
+radius = 2;
+nA = 2;
+nM = 1;
+arm_len = [1];
+init_ori = [0];
+given_base_q = [0];
+given_base_r = [0];
+init_q = [1, 1];
+init_r = [0, 0];
+init_type = [5, 5];
+nInitBond = 0;
+init_bond = array2d(1..0, 1..2, []);
+nBonder = 1;
+given_bonder = [| -1, 1, -1, 0 |];
+nCalc = 1;
+given_calc = [| 0, 1 |];
+nSpawn = 1;
+spawn_q = [1];
+spawn_r = [0];
+spawn_type = [5];
+atom_spawn = [1, 1];
+atom_rank  = [1, 2];
+nProd = 2;
+prod_atom = [1, 2];
+prod_q = [-1, -1];
+prod_r = [1, 0];
+prod_type = [1, 5];
+require_any_bond = false;
+nProdBond = 1;
+prod_bond = [| 1, 2 |];
+exact_molecule = false;
+free_prod_atoms = true;

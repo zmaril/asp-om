@@ -1,0 +1,72 @@
+% Stabilized Water (campaign puzzle P007) -- simplified one-copy version.
+%
+% Puzzle spec (from the .puzzle file, see phase-1 notes):
+%   - two reagent inputs, each a single WATER atom;
+%   - product = SALT at (0,0) bonded to WATER at (1,0) (one normal bond);
+%   - available parts: arms, glyph of bonding, glyph of calcification.
+%     There is no duplication glyph: the salt MUST come from calcifying a
+%     water atom. We build ONE copy of the product (the game wants 6; one
+%     copy already exercises every mechanic including input respawning).
+%
+% Modelling choices (documented for the benchmark write-up):
+%   - radius 2 (19 hexes): the same board the clingo tests use; big enough
+%     for a one-arm layout with both glyphs, small enough to stay honest
+%     about tractability. The real game board is effectively unbounded.
+%   - T = 12: a hand-crafted solution for the fixed layout below takes 9
+%     actions, so 12 leaves slack without being tuned to the plan; the
+%     1-input clingo cross-check needs 11 actions, which also fits.
+%   - Each input has a pool of 2 atoms (nA = 4): the second atom of each
+%     pool spawns (core2.lp semantics) as soon as the first is moved off
+%     the input hex, so respawning really happens during any solution.
+%   - Reagent-input hexes are fixed parameters in BOTH variants (free
+%     layout optimises arm base + bonder + calcifier placement only), and
+%     parts may not sit on input hexes.
+%   - free_prod_atoms: any water from either input may become the salt.
+%   - exact_molecule: the delivered pair carries exactly the one required
+%     bond -- no extra atoms bonded to it.
+%
+% Fixed layout (given_*): arm at (0,0) len 1 facing (1,0); inputs at (1,0)
+% and (0,-1); calcifier at (0,1); bonder on the product hexes (-1,1)-(-1,0).
+% Product: salt on (-1,1), water on (-1,0), bonded. Hand plan, 9 actions:
+%   grab a1, rot_cw (over calcifier), rot_cw, drop (salt on (-1,1)),
+%   rot_cw, rot_cw, grab a2, rot_ccw, drop (water on (-1,0), bond forms).
+T = 12;
+radius = 2;
+nA = 4;
+nM = 1;
+
+arm_len = [1];
+init_ori = [0];
+given_base_q = [0];
+given_base_r = [0];
+
+% atoms 1,3 = pool of input 1 at (1,0); atoms 2,4 = pool of input 2 at (0,-1)
+init_q = [1, 0, 1, 0];
+init_r = [0, -1, 0, -1];
+init_type = [5, 5, 5, 5];      % all water
+
+nInitBond = 0;
+init_bond = array2d(1..0, 1..2, []);
+
+nBonder = 1;
+given_bonder = [| -1, 1, -1, 0 |];
+nCalc = 1;
+given_calc = [| 0, 1 |];
+
+nSpawn = 2;
+spawn_q = [1, 0];
+spawn_r = [0, -1];
+spawn_type = [5, 5];           % water, water
+atom_spawn = [1, 2, 1, 2];
+atom_rank  = [1, 1, 2, 2];
+
+nProd = 2;
+prod_atom = [1, 2];            % ignored: free_prod_atoms = true
+prod_q = [-1, -1];
+prod_r = [1, 0];
+prod_type = [1, 5];            % slot 1 = salt, slot 2 = water
+require_any_bond = false;
+nProdBond = 1;
+prod_bond = [| 1, 2 |];        % the salt-water bond of the product molecule
+exact_molecule = true;
+free_prod_atoms = true;

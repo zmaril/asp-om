@@ -106,6 +106,8 @@ def print_trace(sol):
     nA = len(sol["aq"][0])
     nM = len(sol["ori"][0])
     print(f"total_actions = {sol['total_actions']}")
+    if "prod_who" in sol:
+        print(f"product slots filled by atoms: {sol['prod_who']}")
     for m in range(nM):
         print(f"arm{m+1}: base=({sol['base_q'][m]},{sol['base_r'][m]})")
     for g in range(len(sol.get("bonder_q1", []))):
@@ -122,6 +124,7 @@ def print_trace(sol):
             f"a{a+1}@({sol['aq'][t][a]},{sol['ar'][t][a]})"
             + (f"[held:{sol['held'][t][a]}]" if sol["held"][t][a] else "")
             + (f"[{TYPE_NAME[sol['typ'][t][a]]}]" if sol["typ"][t][a] != 1 else "")
+            + ("[ghost]" if "ex" in sol and not sol["ex"][t][a] else "")
             for a in range(nA))
         bonds = "".join(f"  bond(a{a+1},a{b+1})"
                         for a, b in bonded_pairs(sol, t, nA))
@@ -145,6 +148,24 @@ def check(sol, dzn=None):
                for g in range(len(sol.get("bonder_q1", [])))]
     calcs = [(sol["calc_q"][g], sol["calc_r"][g])
              for g in range(len(sol.get("calc_q", [])))]
+
+    # reagent-input (spawn) pools -- asp/core2.lp semantics
+    if dzn is not None:
+        n_spawn = dzn.get("nSpawn", 0)
+        spawn_hex = list(zip(dzn.get("spawn_q", []), dzn.get("spawn_r", [])))
+        spawn_typ = dzn.get("spawn_type", [])
+        atom_spawn = dzn.get("atom_spawn", [0] * nA)
+        atom_rank = dzn.get("atom_rank", [1] * nA)
+    else:
+        if "ex" in sol and any(not v for row in sol["ex"] for v in row):
+            sys.exit("error: solution uses spawning; pass --dzn to check it")
+        n_spawn, spawn_hex, spawn_typ = 0, [], []
+        atom_spawn, atom_rank = [0] * nA, [1] * nA
+    pred_of = [next((b for b in range(nA)
+                     if atom_spawn[b] == atom_spawn[a]
+                     and atom_rank[b] == atom_rank[a] - 1), None)
+               for a in range(nA)]
+    exist = [atom_rank[a] <= 1 for a in range(nA)]
 
     def on_board(q, r):
         return abs(q) <= radius and abs(r) <= radius and abs(q + r) <= radius
@@ -176,18 +197,18 @@ def check(sol, dzn=None):
         bonds = set(bonded_pairs(sol, 0, nA))
     assert all(h == 0 for h in held), "atoms must start unheld"
 
-    def formed(positions):
+    def formed(positions, existing):
         new = set()
         for (h1, h2) in bonders:
-            occ1 = [a for a in range(nA) if positions[a] == h1]
-            occ2 = [a for a in range(nA) if positions[a] == h2]
+            occ1 = [a for a in range(nA) if existing[a] and positions[a] == h1]
+            occ2 = [a for a in range(nA) if existing[a] and positions[a] == h2]
             for a in occ1:
                 for b in occ2:
                     if a != b:
                         new.add((min(a, b), max(a, b)))
         return new
 
-    bonds |= formed(pos)  # glyph bonds present already at t=0
+    bonds |= formed(pos, exist)  # glyph bonds present already at t=0
 
     for t in range(T + 1):
         # -- state at t must match the solution and be legal
@@ -205,12 +226,22 @@ def check(sol, dzn=None):
                 f"t={t}: position mismatch atom {a}: sim {pos[a]}"
             assert held[a] == sol["held"][t][a], f"t={t}: held mismatch atom {a}"
             assert typ[a] == sol["typ"][t][a], f"t={t}: type mismatch atom {a}"
+            if "ex" in sol:
+                assert exist[a] == bool(sol["ex"][t][a]), \
+                    f"t={t}: existence mismatch atom {a}"
+            if not exist[a]:  # ghost: parked on its spawn hex, inert
+                s = atom_spawn[a] - 1
+                assert pos[a] == spawn_hex[s], f"t={t}: ghost {a} off its spawn"
+                assert held[a] == 0, f"t={t}: ghost {a} held"
+                assert typ[a] == spawn_typ[s], f"t={t}: ghost {a} type"
+                continue
             assert on_board(*pos[a]), f"t={t}: atom {a} off board"
             assert pos[a] not in base, f"t={t}: atom {a} on an arm base"
             if held[a]:
                 assert pos[a] == grip[held[a] - 1], \
                     f"t={t}: held atom {a} not on gripper"
-        assert len(set(pos)) == nA, f"t={t}: atom collision"
+        live = [pos[a] for a in range(nA) if exist[a]]
+        assert len(set(live)) == len(live), f"t={t}: atom collision"
         assert bonds == set(bonded_pairs(sol, t, nA)), f"t={t}: bond mismatch"
 
         if t == T:
@@ -224,7 +255,7 @@ def check(sol, dzn=None):
             m, name = acts[0]
             if name == "grab":
                 assert all(h != m + 1 for h in held), f"t={t}: arm{m+1} hand full"
-                tgt = [a for a in range(nA) if pos[a] == grip[m]]
+                tgt = [a for a in range(nA) if exist[a] and pos[a] == grip[m]]
                 assert tgt, f"t={t}: grab on empty hex"
                 assert held[tgt[0]] == 0, f"t={t}: grabbing a held atom"
                 new_held[tgt[0]] = m + 1
@@ -249,23 +280,52 @@ def check(sol, dzn=None):
                 for a in comp:
                     new_pos[a] = fn(*pos[a], *base[m])
                 ori[m] = (ori[m] + (1 if name == "rot_cw" else -1)) % 6
-        # calcification uses positions at t
+        # calcification uses positions at t (existing atoms only)
         for a in range(nA):
-            if typ[a] >= 2 and pos[a] in calcs:
+            if exist[a] and typ[a] >= 2 and pos[a] in calcs:
                 new_typ[a] = 1
+        # spawning: the next pool atom appears at t+1 iff its predecessor
+        # exists at t and no atom existing at t sits on the spawn hex at t+1
+        occ_spawn = [any(exist[b] and new_pos[b] == spawn_hex[s]
+                         for b in range(nA)) for s in range(n_spawn)]
+        exist = [exist[a] or (atom_rank[a] > 1 and exist[pred_of[a]]
+                              and not occ_spawn[atom_spawn[a] - 1])
+                 for a in range(nA)]
         pos, held, typ = new_pos, new_held, new_typ
-        bonds |= formed(pos)  # bonds forming at t+1
+        bonds |= formed(pos, exist)  # bonds forming at t+1
 
     if dzn:
+        who = [w - 1 for w in sol.get("prod_who", dzn["prod_atom"])]
+        if dzn.get("free_prod_atoms"):
+            assert len(set(who)) == len(who), "goal: product slots not injective"
+        else:
+            assert who == [p - 1 for p in dzn["prod_atom"]], \
+                "goal: prod_who differs from prod_atom without free_prod_atoms"
         for k in range(dzn["nProd"]):
-            a = dzn["prod_atom"][k] - 1
+            a = who[k]
             want = (dzn["prod_q"][k], dzn["prod_r"][k])
+            assert exist[a], f"goal: atom {a+1} never spawned"
             assert pos[a] == want, f"goal: atom {a+1} at {pos[a]}, want {want}"
             assert held[a] == 0, f"goal: atom {a+1} still held"
             if dzn["prod_type"][k]:
                 assert typ[a] == dzn["prod_type"][k], f"goal: atom {a+1} type"
         if dzn.get("require_any_bond"):
             assert bonds, "goal: no bond at t_max"
+        raw = dzn.get("prod_bond", [])
+        slot_pairs = raw if not raw or isinstance(raw[0], list) else \
+            [raw[i:i + 2] for i in range(0, len(raw), 2)]
+        req = set()
+        for k1, k2 in slot_pairs:
+            a, b = who[k1 - 1], who[k2 - 1]
+            req.add((min(a, b), max(a, b)))
+            assert (min(a, b), max(a, b)) in bonds, \
+                f"goal: required product bond slot{k1}-slot{k2} missing"
+        if dzn.get("exact_molecule"):
+            prodset = set(who)
+            for (a, b) in bonds:
+                if a in prodset or b in prodset:
+                    assert (a, b) in req, \
+                        f"goal: extra bond (a{a+1},a{b+1}) on the product"
 
     n_acts = sum(len(actions_of(sol, t, nM)) for t in range(T))
     assert n_acts == sol["total_actions"], "objective != number of actions"

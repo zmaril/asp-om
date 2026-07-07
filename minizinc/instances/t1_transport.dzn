@@ -30,3 +30,15 @@ prod_q = [-1];
 prod_r = [0];
 prod_type = [0];
 require_any_bond = false;
+
+% no reagent spawning, plain product goal (parameters added in phase 3)
+nSpawn = 0;
+spawn_q = [];
+spawn_r = [];
+spawn_type = [];
+atom_spawn = [0];
+atom_rank  = [1];
+free_prod_atoms = false;
+nProdBond = 0;
+prod_bond = array2d(1..0, 1..2, []);
+exact_molecule = false;
