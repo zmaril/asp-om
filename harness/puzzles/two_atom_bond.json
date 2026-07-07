@@ -1,0 +1,34 @@
+{
+  "name": "two_atom_bond",
+  "description": "Shared test instance (b): bond two salt atoms on a glyph of bonding and deliver the dimer to the output. Descendant of asp/bond_instance.lp / picat/case2_bond.pi, with the two pre-placed atoms now two pool-1 inputs and the goal hexes a placeable output part.",
+  "board_radius": 2,
+  "t_max": 13,
+  "reagents": [
+    {
+      "id": "salt_a",
+      "pool": 1,
+      "atoms": [{"element": "salt", "pos": [0, 0]}],
+      "bonds": []
+    },
+    {
+      "id": "salt_b",
+      "pool": 1,
+      "atoms": [{"element": "salt", "pos": [0, 0]}],
+      "bonds": []
+    }
+  ],
+  "products": [
+    {
+      "id": "salt_dimer",
+      "atoms": [
+        {"element": "salt", "pos": [0, 0]},
+        {"element": "salt", "pos": [1, 0]}
+      ],
+      "bonds": [[0, 1]]
+    }
+  ],
+  "parts": [
+    {"type": "arm", "id": "m1", "length": 1},
+    {"type": "bonder", "id": "b1"}
+  ]
+}
