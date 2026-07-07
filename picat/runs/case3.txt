@@ -1,0 +1,14 @@
+LAYOUT radius 2
+LAYOUT arm m1 0 0 1 0
+LAYOUT atom a1 salt 1 0
+LAYOUT atom a2 salt 2 0
+LAYOUT bond a1 a2
+
+CPU time 0.0 seconds.
+
+plan_found
+PLAN {m1,grab}
+PLAN {m1,rot_cw}
+PLAN {m1,rot_cw}
+PLAN {m1,drop}
+cost (= plan length) = 4

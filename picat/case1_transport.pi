@@ -1,0 +1,100 @@
+% ===========================================================================
+% Opus Magnum (trivial fragment) -- Picat planner encoding, case 1
+% ===========================================================================
+% Mirrors asp/core.lp + asp/trivial_instance.lp from the clingo experiment:
+%   * Bounded hex grid, axial coordinates (Q,R), radius 2:
+%     |Q| <= 2, |R| <= 2, |Q+R| <= 2.
+%   * One arm: fixed base at the origin, length 1, orientation D in 0..5.
+%     Gripper hex = base + dvec(D). Same clockwise direction indexing as
+%     the clingo dir/3 facts.
+%   * Actions: rot_cw, rot_ccw, grab, drop. (The clingo encoding also has
+%     `wait` because it fills a fixed tape of t_max instructions and then
+%     minimizes non-wait ones; with the planner module a plan is just the
+%     action sequence, so `wait` is useless and omitted. Plan length here
+%     corresponds exactly to clingo's "number of non-wait instructions".)
+%   * A held atom rides on the gripper hex; free atoms are inert; no two
+%     atoms may share a hex; the gripper must stay on the board.
+%   * Goal: atom a1 delivered (unheld) from reagent hex (1,0) to product
+%     hex (-1,0). Optimal: grab, rot x3, drop = 5 actions (matches clingo).
+%
+% State term: {Dir, Held, Atoms}
+%   Dir   : arm orientation 0..5
+%   Held  : `none`, or the name of the held atom
+%   Atoms : sorted list of {Name,Q,R} (held atom included, at gripper hex).
+% Ground structured states like this are what the planner tables.
+%
+% Horizon bound: best_plan(S0, Limit, Plan) bounds total plan cost, playing
+% the role of clingo's t_max. best_plan does resource-bounded iterative
+% deepening, so the reported plan is length-optimal.
+%
+% CP alternative (not used here): a cp formulation would look like the
+% clingo one -- decision array Do[1..TMax] in 1..5, functional element
+% constraints Orient[T+1] = f(Orient[T],Do[T]), position/holding channeling,
+% and minimize sum(Do[T] != wait). The planner version is closer in spirit
+% to a PDDL model and needs no fixed horizon per solve.
+% ===========================================================================
+
+import planner.
+
+main =>
+    S0 = {0, none, [{a1,1,0}]},
+    time(best_plan(S0, 10, Plan, Cost)),
+    println(plan_found),
+    foreach ({I,A} in zip(1..len(Plan), Plan)) printf("  %d. %w%n", I, A) end,
+    printf("cost (= plan length) = %d%n", Cost).
+
+% -- goal: a1 unheld on the product hex (-1,0) ------------------------------
+final({_D, none, [{a1,-1,0}]}) => true.
+
+% -- geometry ---------------------------------------------------------------
+radius() = 2.
+
+% The 6 axial direction vectors, indexed 0..5 clockwise (same as clingo).
+dvec(0) = {1,0}.
+dvec(1) = {0,1}.
+dvec(2) = {-1,1}.
+dvec(3) = {-1,0}.
+dvec(4) = {0,-1}.
+dvec(5) = {1,-1}.
+
+on_board(Q,R) => abs(Q) =< radius(), abs(R) =< radius(), abs(Q+R) =< radius().
+
+% Arm base fixed at (0,0), length 1: gripper hex = dvec(D).
+gripper(D) = dvec(D).
+
+% Replace atom X's position, keeping the list sorted (canonical states
+% so the planner's tabling recognizes revisits).
+move_atom(Atoms, X, Q, R) = sort([{X,Q,R}] ++ [A : A in Atoms, A[1] != X]).
+
+occupied_by_other(Atoms, X, Q, R) =>
+    member({Y,Q,R}, Atoms), Y != X.
+
+% -- actions ------------------------------------------------------------------
+% NB: Picat pattern-matching heads never bind variables in the *call*, so
+% Action and Cost are assigned in the body, not in the head.
+
+% rotate (cw / ccw); a held atom is carried to the new gripper hex.
+action({D, Held, Atoms}, S1, Action, Cost) ?=>
+    member({Action, D1}, [{rot_cw, (D+1) mod 6}, {rot_ccw, (D+5) mod 6}]),
+    Cost = 1,
+    {GQ,GR} = gripper(D1),
+    on_board(GQ,GR),                       % gripper must stay on the board
+    (Held == none ->
+        S1 = {D1, Held, Atoms}
+    ;
+        not occupied_by_other(Atoms, Held, GQ, GR),   % no collisions
+        S1 = {D1, Held, move_atom(Atoms, Held, GQ, GR)}
+    ).
+
+% grab: hand empty, an atom sits under the gripper.
+action({D, none, Atoms}, S1, Action, Cost) ?=>
+    Action = grab, Cost = 1,
+    {GQ,GR} = gripper(D),
+    member({X,GQ,GR}, Atoms),
+    S1 = {D, X, Atoms}.
+
+% drop: hand full; the atom stays where it is (on the gripper hex).
+action({D, Held, Atoms}, S1, Action, Cost) =>
+    Held != none,
+    Action = drop, Cost = 1,
+    S1 = {D, none, Atoms}.
