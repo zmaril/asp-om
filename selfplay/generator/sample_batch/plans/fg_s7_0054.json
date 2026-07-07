@@ -1,0 +1,175 @@
+{
+ "puzzle": "fg_s7_0054",
+ "solver": "selfplay/generator forward-generation reference tape",
+ "placements": [
+  {
+   "type": "arm",
+   "id": "m1",
+   "position": [
+    2,
+    -2
+   ],
+   "rotation": 2
+  },
+  {
+   "type": "arm",
+   "id": "m2",
+   "position": [
+    0,
+    1
+   ],
+   "rotation": 1
+  },
+  {
+   "type": "input",
+   "id": "r1",
+   "position": [
+    0,
+    2
+   ],
+   "rotation": 0
+  },
+  {
+   "type": "input",
+   "id": "r2",
+   "position": [
+    0,
+    0
+   ],
+   "rotation": 0
+  },
+  {
+   "type": "input",
+   "id": "r3",
+   "position": [
+    -2,
+    2
+   ],
+   "rotation": 0
+  },
+  {
+   "type": "bonder",
+   "id": "b1",
+   "position": [
+    1,
+    1
+   ],
+   "rotation": 4
+  },
+  {
+   "type": "bonder",
+   "id": "b2",
+   "position": [
+    2,
+    -1
+   ],
+   "rotation": 3
+  },
+  {
+   "type": "output",
+   "id": "product",
+   "position": [
+    -1,
+    1
+   ],
+   "rotation": 0
+  }
+ ],
+ "instructions": [
+  {
+   "t": 0,
+   "arm": "m2",
+   "action": "grab"
+  },
+  {
+   "t": 1,
+   "arm": "m2",
+   "action": "rot_ccw"
+  },
+  {
+   "t": 2,
+   "arm": "m2",
+   "action": "drop"
+  },
+  {
+   "t": 3,
+   "arm": "m1",
+   "action": "rot_cw"
+  },
+  {
+   "t": 4,
+   "arm": "m2",
+   "action": "rot_cw"
+  },
+  {
+   "t": 5,
+   "arm": "m2",
+   "action": "rot_cw"
+  },
+  {
+   "t": 6,
+   "arm": "m2",
+   "action": "rot_cw"
+  },
+  {
+   "t": 7,
+   "arm": "m2",
+   "action": "rot_cw"
+  },
+  {
+   "t": 8,
+   "arm": "m2",
+   "action": "grab"
+  },
+  {
+   "t": 9,
+   "arm": "m2",
+   "action": "rot_cw"
+  },
+  {
+   "t": 10,
+   "arm": "m2",
+   "action": "drop"
+  },
+  {
+   "t": 11,
+   "arm": "m2",
+   "action": "grab"
+  },
+  {
+   "t": 12,
+   "arm": "m2",
+   "action": "rot_cw"
+  },
+  {
+   "t": 13,
+   "arm": "m2",
+   "action": "rot_cw"
+  },
+  {
+   "t": 14,
+   "arm": "m2",
+   "action": "rot_cw"
+  },
+  {
+   "t": 15,
+   "arm": "m2",
+   "action": "rot_ccw"
+  },
+  {
+   "t": 16,
+   "arm": "m1",
+   "action": "rot_ccw"
+  },
+  {
+   "t": 17,
+   "arm": "m2",
+   "action": "rot_cw"
+  },
+  {
+   "t": 18,
+   "arm": "m2",
+   "action": "drop"
+  }
+ ]
+}

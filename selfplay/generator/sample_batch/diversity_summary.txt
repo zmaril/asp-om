@@ -1,0 +1,11 @@
+pairs: 100  (attempts: 7430, yield: 0.0135)
+rejections: {'layout': 2497, 'no_product': 4775, 'duplicate': 58}
+unique products (canonical up to rotation+translation): 17
+product size dist:  {1: 27, 2: 72, 3: 1}
+product bond dist:  {0: 27, 1: 72, 2: 1}
+product atom mix:   {'salt': 62, 'fire': 32, 'air': 32, 'earth': 26, 'water': 22}
+reagent atom mix:   {'air': 62, 'fire': 61, 'earth': 60, 'water': 58, 'salt': 38}
+arm count dist:     {1: 15, 2: 41, 3: 44}
+plan length dist:   {6: 1, 7: 1, 8: 4, 9: 3, 10: 4, 11: 1, 12: 5, 13: 5, 14: 12, 15: 5, 16: 9, 17: 6, 18: 6, 19: 11, 20: 9, 21: 2, 22: 1, 23: 3, 24: 3, 25: 7, 28: 2}
+glyph totals:       {'calcifier': 47, 'bonder': 143}
+reagent count dist: {1: 12, 2: 23, 3: 39, 4: 26}
