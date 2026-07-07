@@ -1,0 +1,106 @@
+% ===========================================================================
+% Opus Magnum (trivial fragment) -- Picat planner encoding, case 2: bonding
+% ===========================================================================
+% Mirrors asp/core.lp + asp/bond_instance.lp from the clingo experiment:
+%   * Same world as case 1 (radius-2 axial hex grid, one length-1 arm with
+%     base at the origin, actions rot_cw / rot_ccw / grab / drop; `wait`
+%     omitted -- see case1_transport.pi header).
+%   * Two salt atoms: a1 at (1,0), a2 at (0,1).
+%   * A glyph of bonding occupies hexes (-1,0) and (0,-1). Whenever both
+%     glyph hexes are occupied (held atoms count -- they are on their hex),
+%     a bond forms between the occupants. Bonds persist forever.
+%   * Phase-1 simplification carried over from the clingo model: rotating
+%     while holding a bonded atom is forbidden (no rigid multi-atom motion
+%     yet).
+%   * Goal: a1 unheld on (-1,0), a2 unheld on (0,-1), and the bond exists.
+%     Optimal: 12 actions (matches clingo's 12 non-wait instructions).
+%
+% State term: {Dir, Held, Atoms, Bonds}
+%   Bonds : sorted list of {X,Y} pairs with X @< Y (canonical form).
+% Bond formation is applied as a post-condition of every action (and would
+% apply to the initial state too, but here the atoms start off-glyph).
+%
+% CP note: in a CP formulation bonds would be monotone boolean vars
+% Bond[X,Y,T] with Bond[T+1] >= Bond[T] and an "and both-on-glyph" trigger,
+% exactly like the clingo bond/3 rules; the planner version instead threads
+% the bond set through the state term.
+% ===========================================================================
+
+import planner.
+
+main =>
+    S0 = {0, none, [{a1,1,0},{a2,0,1}], []},
+    time(best_plan(S0, 16, Plan, Cost)),
+    println(plan_found),
+    foreach ({I,A} in zip(1..len(Plan), Plan)) printf("  %d. %w%n", I, A) end,
+    printf("cost (= plan length) = %d%n", Cost).
+
+% -- goal: both atoms delivered onto the glyph hexes, unheld, and bonded ----
+final({_D, none, Atoms, Bonds}) =>
+    Atoms == [{a1,-1,0},{a2,0,-1}],
+    Bonds != [].
+
+% -- geometry (identical to case 1) -----------------------------------------
+radius() = 2.
+
+dvec(0) = {1,0}.
+dvec(1) = {0,1}.
+dvec(2) = {-1,1}.
+dvec(3) = {-1,0}.
+dvec(4) = {0,-1}.
+dvec(5) = {1,-1}.
+
+on_board(Q,R) => abs(Q) =< radius(), abs(R) =< radius(), abs(Q+R) =< radius().
+
+gripper(D) = dvec(D).
+
+% -- glyph of bonding ---------------------------------------------------------
+glyph_bond() = {{-1,0},{0,-1}}.
+
+% Bonds that must exist given the atom positions: both glyph hexes occupied.
+% Returns the updated (still sorted, duplicate-free) bond list.
+apply_bonding(Atoms, Bonds) = Bonds1 =>
+    {{Q1,R1},{Q2,R2}} = glyph_bond(),
+    (member({X,Q1,R1}, Atoms), member({Y,Q2,R2}, Atoms), X != Y ->
+        Bonds1 = sort_remove_dups([norm_pair(X,Y)] ++ Bonds)
+    ;
+        Bonds1 = Bonds
+    ).
+
+norm_pair(X,Y) = cond(X @< Y, {X,Y}, {Y,X}).
+
+bonded(X, Bonds) => (member({X,_}, Bonds) ; member({_,X}, Bonds)).
+
+move_atom(Atoms, X, Q, R) = sort([{X,Q,R}] ++ [A : A in Atoms, A[1] != X]).
+
+occupied_by_other(Atoms, X, Q, R) =>
+    member({Y,Q,R}, Atoms), Y != X.
+
+% -- actions ------------------------------------------------------------------
+% rotate: forbidden while holding a bonded atom (phase-1 simplification).
+action({D, Held, Atoms, Bonds}, S1, Action, Cost) ?=>
+    member({Action, D1}, [{rot_cw, (D+1) mod 6}, {rot_ccw, (D+5) mod 6}]),
+    Cost = 1,
+    {GQ,GR} = gripper(D1),
+    on_board(GQ,GR),
+    (Held == none ->
+        S1 = {D1, Held, Atoms, Bonds}
+    ;
+        not bonded(Held, Bonds),
+        not occupied_by_other(Atoms, Held, GQ, GR),
+        Atoms1 = move_atom(Atoms, Held, GQ, GR),
+        S1 = {D1, Held, Atoms1, apply_bonding(Atoms1, Bonds)}
+    ).
+
+% grab
+action({D, none, Atoms, Bonds}, S1, Action, Cost) ?=>
+    Action = grab, Cost = 1,
+    {GQ,GR} = gripper(D),
+    member({X,GQ,GR}, Atoms),
+    S1 = {D, X, Atoms, Bonds}.
+
+% drop
+action({D, Held, Atoms, Bonds}, S1, Action, Cost) =>
+    Held != none,
+    Action = drop, Cost = 1,
+    S1 = {D, none, Atoms, Bonds}.
