@@ -1,0 +1,29 @@
+{
+  "name": "stabilized_water",
+  "description": "Shared test instance (c): the real Opus Magnum chapter-1 puzzle Stabilized Water (campaign P007). Reagent/product molecules byte-decoded from the game's P007.puzzle via omsim's parser (see NOTES.md and picat/NOTES.md): reagent = one water atom; product = salt@(0,0) normal-bonded to water@(1,0). Following the picat arm, the game's two single-water reagent sites are modeled as ONE respawning input with pool 2 (see harness/SPEC.md, reconciliation decision 5). Parts modeled: 1 arm (length 1), 1 glyph of calcification, 1 glyph of bonding.",
+  "board_radius": 2,
+  "t_max": 14,
+  "reagents": [
+    {
+      "id": "water",
+      "pool": 2,
+      "atoms": [{"element": "water", "pos": [0, 0]}],
+      "bonds": []
+    }
+  ],
+  "products": [
+    {
+      "id": "stabilized_water",
+      "atoms": [
+        {"element": "salt", "pos": [0, 0]},
+        {"element": "water", "pos": [1, 0]}
+      ],
+      "bonds": [[0, 1]]
+    }
+  ],
+  "parts": [
+    {"type": "arm", "id": "m1", "length": 1},
+    {"type": "calcifier", "id": "c1"},
+    {"type": "bonder", "id": "b1"}
+  ]
+}
