@@ -12,7 +12,10 @@ Usage:
 Exit status: 0 = PASS, 1 = FAIL (bad plan), 2 = malformed input.
 
 Importable API:
-    validate(puzzle: dict, plan: dict, log=None) -> None   (raises Invalid)
+    validate(puzzle: dict, plan: dict, log=None, on_state=None) -> dict
+        (raises Invalid; returns {product id: completion time};
+         on_state(t, snapshot) is called once per replay state t=0..t_max
+         with a copy of the world state -- see the docstring of validate)
     plan_length(plan) -> int                               (non-wait instructions)
 """
 import argparse
@@ -292,7 +295,18 @@ def plan_length(plan):
 # ---------------------------------------------------------------------------
 # Replay (semantics of SPEC.md section 5; descends from master validate.py)
 # ---------------------------------------------------------------------------
-def validate(puzzle, plan, log=None):
+def validate(puzzle, plan, log=None, on_state=None):
+    """Replay `plan` against `puzzle`; raise Invalid/Malformed on any
+    problem, return {product id: completion time} on success.
+
+    If `on_state` is given it is called once for every replay state
+    t = 0..t_max (after that state's legality checks) as
+    `on_state(t, snapshot)` where snapshot is a dict of copies:
+    {"pos": {atom: (q, r)}, "typ": {atom: element},
+     "orient": {arm: direction index}, "holds": {arm: atom or None}}.
+    This is the supported way for metric code (harness/metrics.py) to
+    observe the canonical replay without duplicating its semantics.
+    """
     log = log or (lambda *a: None)
     check_puzzle(puzzle)
     if plan.get("puzzle") not in (None, puzzle["name"]):
@@ -413,11 +427,17 @@ def validate(puzzle, plan, log=None):
                 complete_at[pid] = t
                 log(f"t={t}: product {pid} complete")
 
+    def notify(t):
+        if on_state is not None:
+            on_state(t, {"pos": dict(pos), "typ": dict(typ),
+                         "orient": dict(orient), "holds": dict(holds)})
+
     # ---- t = 0
     try_spawn()
     apply_bonders()
     static_checks(0)
     check_goals(0)
+    notify(0)
 
     for t in range(t_max):
         m, act = by_t.get(t, (None, "wait"))
@@ -468,6 +488,7 @@ def validate(puzzle, plan, log=None):
         apply_bonders()
         static_checks(t + 1)
         check_goals(t + 1)
+        notify(t + 1)
 
     missing = [pid for pid, t in complete_at.items() if t is None]
     if missing:
