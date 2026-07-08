@@ -45,7 +45,7 @@ root from the module's own location (`src/lib/repo.ts`). Building via
 `npm --prefix site run build` from the repo root works the same as
 `cd site && npm run build`.
 
-## Deploy to Cloudflare Pages (by hand)
+## Deploy to Cloudflare
 
 The site is **fully static** — every page is prerendered at build time and
 `dist/` is plain HTML/assets. **No deploy adapter is needed or wanted**; in
@@ -54,30 +54,50 @@ particular do not add `@astrojs/cloudflare`. The build fails on purpose
 contains a `_worker.js`, because server-rendering the pages in a worker
 breaks the build-time `node:fs` reads.
 
-Option A — Git integration (recommended):
+### Workers Builds (current setup)
 
-1. Cloudflare dashboard → Workers & Pages → Create → Pages →
-   "Connect to Git" and pick this repository.
-2. Settings:
-   - **Framework preset**: Astro (no adapter — the output is static files)
-   - **Build command**: `npm run build`
-   - **Build output directory**: `dist` (with **Root directory** set to
-     `site` this field is relative to `site/`, i.e. `site/dist` in repo
-     terms)
-   - **Root directory**: `site`
-   - **Environment variable**: `NODE_VERSION=22`
-3. Save and deploy. Every push to the production branch redeploys.
+The Cloudflare project is a **Workers** project built with Workers Builds.
+`wrangler.jsonc` declares an **assets-only Worker**: `assets.directory`
+points at `./dist` and there is **no `main`**, so `wrangler deploy`
+publishes plain static assets — no Worker script, no runtime code. Do not
+let the dashboard's Astro framework detection add `@astrojs/cloudflare`;
+the wrangler config is already the complete deploy story.
 
-Note: the build reads markdown/JSON/CSV from the repo root (one level above
-`site/`), so keep "Include files outside root directory" enabled (it is the
-default) if the UI asks.
+Dashboard → Workers & Pages → asp-om → Settings → Build:
 
-Option B — direct upload from your machine:
+- **Root directory**: `site`
+- **Build command**: `npm run build`
+- **Deploy command**: `npx wrangler deploy` (reads `site/wrangler.jsonc`
+  and uploads `dist/` as static assets)
+- **Environment variable**: `NODE_VERSION=22`
+- Keep access to files outside the root directory enabled if the UI asks —
+  the build reads markdown/JSON/CSV from the repo root (one level above
+  `site/`).
+
+To sanity-check the deploy config locally without credentials:
+
+```sh
+cd site && npx wrangler deploy --dry-run
+```
+
+### Classic Pages project (alternative)
+
+Also works; no wrangler config involved:
+
+- **Framework preset**: Astro (no adapter — the output is static files)
+- **Build command**: `npm run build`
+- **Build output directory**: `dist` (relative to the root directory)
+- **Root directory**: `site`
+- **Environment variable**: `NODE_VERSION=22`
+
+### Direct upload from your machine
 
 ```sh
 cd site
 npm install
 npm run build
+npx wrangler deploy          # Workers project (uses wrangler.jsonc)
+# or, for a classic Pages project:
 npx wrangler pages deploy dist --project-name=<your-pages-project>
 ```
 

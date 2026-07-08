@@ -1,0 +1,14 @@
+// Cloudflare Workers config: static-assets-only deployment.
+//
+// The site is fully prerendered (see astro.config.mjs); there is no Worker
+// script, only static assets from dist/. With this file present, Workers
+// Builds deploys via `npx wrangler deploy` as an assets-only Worker — no
+// _worker.js, no adapter, no runtime code.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "asp-om",
+  "compatibility_date": "2026-07-01",
+  "assets": {
+    "directory": "./dist"
+  }
+}
