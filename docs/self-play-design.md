@@ -1,5 +1,7 @@
 # Self-play training on Opus Magnum — design
 
+<!-- straitjacket-allow-file:duplication - design doc quotes the harness spec and READMEs verbatim -->
+
 Design document for a self-play training system built on this repo's
 solver arms and the common harness. The goal: a learned proposer that
 designs and programs Opus Magnum machines, trained entirely from its own
@@ -23,7 +25,7 @@ canonical validator; everything trains only on self-generated data.
 
 ---
 
-## ⚠️ The hard data constraint (read this first)
+## The hard data constraint (read this first)
 
 > **External puzzles: allowed. External solutions: never training data.**
 >
