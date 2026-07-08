@@ -1,4 +1,5 @@
 /* ── Opus Magnum solver bake-off — dark "alchemical codex" theme ───────── */
+/* straitjacket-allow-file:color - this file IS the central palette */
 
 :root {
   /* surfaces + ink (dark mode is the committed look) */
@@ -224,7 +225,7 @@ main {
 a.card {
   display: block;
   color: inherit;
-  transition: border-color 120ms ease;
+  transition: border-color 120ms ease; /* straitjacket-allow:motion */
 }
 a.card:hover {
   text-decoration: none;
