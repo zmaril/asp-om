@@ -1,0 +1,10 @@
+# Never upload server-build artifacts as public static assets.
+# Astro copies public/ into dist/, so this file ships at the root of the
+# assets directory, where wrangler reads it. On a clean static build these
+# files don't exist; if a deploy adapter (e.g. @astrojs/cloudflare, which
+# Cloudflare's Astro framework preset likes to inject) sneaks into the
+# build, wrangler would otherwise hard-error with "Uploading a Pages
+# _worker.js directory as an asset". Every page is prerendered
+# (see astro.config.mjs), so excluding the worker loses nothing.
+_worker.js
+_routes.json

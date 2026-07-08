@@ -49,10 +49,18 @@ root from the module's own location (`src/lib/repo.ts`). Building via
 
 The site is **fully static** — every page is prerendered at build time and
 `dist/` is plain HTML/assets. **No deploy adapter is needed or wanted**; in
-particular do not add `@astrojs/cloudflare`. The build fails on purpose
-(`scripts/assert-static.mjs`, run as `postbuild`) if the output ever
-contains a `_worker.js`, because server-rendering the pages in a worker
-breaks the build-time `node:fs` reads.
+particular there is no reason to add `@astrojs/cloudflare`. Two guards keep
+deploys static even if Cloudflare's Astro framework preset injects that
+adapter into the build anyway (it has been observed doing so):
+
+- `scripts/assert-static.mjs` (runs as `postbuild`) fails the build unless
+  every page's prerendered HTML is present in `dist/`. All pages set
+  `export const prerender = true`, so they prerender even under an
+  adapter's server output mode.
+- `public/.assetsignore` ships to `dist/.assetsignore` and excludes any
+  `_worker.js` / `_routes.json` from the asset upload — without it,
+  `wrangler deploy` hard-errors on an adapter-built `dist/`
+  ("Uploading a Pages _worker.js directory as an asset").
 
 ### Workers Builds (current setup)
 
