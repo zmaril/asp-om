@@ -1,0 +1,59 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection, render } from 'astro:content';
+import { SOLVERS } from '../../lib/solvers';
+
+export async function getStaticPaths() {
+  return SOLVERS.map((solver) => ({ params: { slug: solver.slug }, props: { solver } }));
+}
+
+const { solver } = Astro.props;
+
+const notes = await getCollection('notes');
+const noteEntry = notes.find((n) => n.id === solver.notesId);
+if (!noteEntry) {
+  throw new Error(
+    `NOTES.md for ${solver.slug} not found (expected collection id "${solver.notesId}", got: ${notes.map((n) => n.id).join(', ')})`,
+  );
+}
+const { Content: Notes } = await render(noteEntry);
+
+const allResults = await getCollection('results');
+const resultEntries = solver.resultIds
+  .map((id) => allResults.find((r) => r.id === id))
+  .filter((r) => r !== undefined);
+const renderedResults = await Promise.all(
+  resultEntries.map(async (entry) => ({
+    entry,
+    Content: (await render(entry)).Content,
+  })),
+);
+---
+
+<Base title={solver.name} description={solver.tagline}>
+  <div class="eyebrow">{solver.tech}</div>
+  <h1>{solver.name}</h1>
+  <p class="lede">{solver.tagline}</p>
+  <p class="source-link">
+    Rendered from <code>{solver.notesPath}</code>
+    {solver.resultIds.length > 0 && (
+      <span> plus {solver.resultIds.length} result file{solver.resultIds.length > 1 ? 's' : ''} below</span>
+    )}
+  </p>
+
+  <hr />
+
+  <article class="prose wide">
+    <Notes />
+  </article>
+
+  {renderedResults.length > 0 && <h2>Result files</h2>}
+  {renderedResults.map(({ entry, Content }) => (
+    <details>
+      <summary><code>{entry.filePath?.replace(/^\.\.\//, '') ?? entry.id}</code></summary>
+      <article class="prose wide">
+        <Content />
+      </article>
+    </details>
+  ))}
+</Base>

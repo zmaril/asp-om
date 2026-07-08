@@ -1,0 +1,111 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = 'Five solver families race to solve real Opus Magnum puzzles.' } = Astro.props;
+
+const nav = [
+  { href: '/comparison/', label: 'Solver bake-off' },
+  { href: '/solvers/', label: 'Solvers' },
+  { href: '/metrics/', label: 'Metrics' },
+  { href: '/selfplay/', label: 'Self-play' },
+  { href: '/puzzles/', label: 'Puzzles & spec' },
+];
+
+const path = Astro.url.pathname;
+const isCurrent = (href: string) =>
+  href === '/' ? path === '/' : path.startsWith(href.replace(/\/$/, ''));
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="description" content={description} />
+    <meta name="color-scheme" content="dark" />
+    <title>{title} · Opus Magnum solver bake-off</title>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="inner">
+        <a class="brand" href="/">
+          <svg width="18" height="18" viewBox="0 0 100 100" aria-hidden="true">
+            <polygon points="50,6 88,28 88,72 50,94 12,72 12,28" fill="none" stroke="#c98500" stroke-width="9"></polygon>
+            <circle cx="50" cy="50" r="14" fill="#c98500"></circle>
+          </svg>
+          asp-om
+        </a>
+        <nav aria-label="Main">
+          {nav.map((item) => (
+            <a href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined}>
+              {item.label}
+            </a>
+          ))}
+        </nav>
+      </div>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <div class="inner">
+        <span>
+          Built from the repo's own docs, notes and result files at build time.
+        </span>
+        <span>
+          <a href="https://github.com/zmaril/asp-om" rel="noopener">zmaril/asp-om</a>
+          · verified against <a href="https://github.com/ianh/omsim" rel="noopener">omsim</a>
+        </span>
+      </div>
+    </footer>
+    <script>
+      // Sortable-table enhancement: any table inside .prose or .table-wrap
+      // gets click-to-sort headers (numeric-aware, vanilla JS).
+      const numFrom = (s: string): number => {
+        const m = s.replace(/[,*†]/g, '').match(/-?\d+(?:\.\d+)?/);
+        return m ? parseFloat(m[0]) : NaN;
+      };
+      document.querySelectorAll<HTMLTableElement>('.prose table, .table-wrap table').forEach((table) => {
+        const thead = table.tHead ?? table.querySelector('thead');
+        if (!thead || table.tBodies.length === 0) return;
+        const body = table.tBodies[0]!;
+        if (body.rows.length < 2) return;
+        const headers = Array.from(thead.querySelectorAll('th'));
+        headers.forEach((th, col) => {
+          th.setAttribute('data-sortable', '');
+          th.setAttribute('tabindex', '0');
+          th.setAttribute('role', 'button');
+          th.title = 'Sort by this column';
+          const sort = () => {
+            const dir = th.getAttribute('aria-sort') === 'ascending' ? -1 : 1;
+            headers.forEach((h) => h.removeAttribute('aria-sort'));
+            th.setAttribute('aria-sort', dir === 1 ? 'ascending' : 'descending');
+            const rows = Array.from(body.rows);
+            rows.sort((a, b) => {
+              const av = a.cells[col]?.textContent?.trim() ?? '';
+              const bv = b.cells[col]?.textContent?.trim() ?? '';
+              const an = numFrom(av);
+              const bn = numFrom(bv);
+              if (!Number.isNaN(an) && !Number.isNaN(bn) && an !== bn) return (an - bn) * dir;
+              return av.localeCompare(bv) * dir;
+            });
+            rows.forEach((r) => body.appendChild(r));
+          };
+          th.addEventListener('click', sort);
+          th.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              sort();
+            }
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

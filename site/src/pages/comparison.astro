@@ -1,0 +1,56 @@
+---
+import Base from '../layouts/Base.astro';
+import { getEntry, render } from 'astro:content';
+
+const entry = await getEntry('docs', 'solver-comparison');
+if (!entry) throw new Error('docs/solver-comparison.md not found in the repo');
+const { Content } = await render(entry);
+---
+
+<Base
+  title="Solver bake-off"
+  description="Five solver families race on the same Opus Magnum instances: benchmark tables, optimality proofs, tractability cliffs."
+>
+  <div class="eyebrow">The centerpiece</div>
+  <h1>Solver bake-off: can computers solve Opus Magnum puzzles?</h1>
+  <p class="lede">
+    The full comparison document, rendered from
+    <code>docs/solver-comparison.md</code>. Canonical optima
+    <strong>3 / 11 / 12</strong> on the three shared puzzles, proved independently by
+    three different arms. Click any table header to sort.
+  </p>
+
+  <h2>Optimality-proof ranking</h2>
+  <p class="section-note">
+    Finding a plan is cheap for everyone; <em>proving</em> no shorter plan exists is
+    where the arms separate (§4 of the document below).
+  </p>
+  <ol class="ranking">
+    <li>
+      <span class="who">SAT (PySAT / CaDiCaL / kissat)</span> — proves all three
+      canonical optima in ≤9.6&nbsp;s; UNSAT certificates 10–14× faster than clingo on
+      the same questions.
+    </li>
+    <li>
+      <span class="who">Picat (planner, iterative deepening)</span> — proves all three
+      in ≤62.6&nbsp;s; proof is structural — <code>best_plan</code> has no
+      incumbent-at-timeout mode.
+    </li>
+    <li>
+      <span class="who">MiniZinc / OR-Tools CP-SAT (multi-core)</span> — proves all
+      three in ≤124.4&nbsp;s, and is the only MiniZinc engine that survives the
+      canonical instances.
+    </li>
+    <li>
+      <span class="who">clingo & Z3</span> — find the same optimal-length plans (clingo
+      in ~1&nbsp;s) but prove only <code>single_transport</code>, even at 300&nbsp;s
+      budgets.
+    </li>
+  </ol>
+
+  <hr />
+
+  <article class="prose wide">
+    <Content />
+  </article>
+</Base>

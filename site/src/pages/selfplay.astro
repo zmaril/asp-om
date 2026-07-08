@@ -1,0 +1,151 @@
+---
+import Base from '../layouts/Base.astro';
+import LearningCurve from '../components/LearningCurve.astro';
+import { loadLeaderboard, loadLearningCurves } from '../lib/selfplay';
+
+const boards = loadLeaderboard();
+const curves = loadLearningCurves();
+
+// headline numbers pulled from the actual run data
+const demoFinals = curves
+  .filter((s) => s.run === 'demo')
+  .map((s) => {
+    const tail = s.points.slice(-20);
+    return {
+      puzzle: s.puzzle,
+      final: tail[tail.length - 1]!.validity,
+      mean: tail.reduce((a, p) => a + p.validity, 0) / tail.length,
+    };
+  });
+const controlMax = Math.max(
+  ...curves.filter((s) => s.run === 'random-control').flatMap((s) => s.points.map((p) => p.validity)),
+);
+---
+
+<Base
+  title="Self-play"
+  description="Three interlocking self-play loops, the expert-iteration learning curve, and the self-competition leaderboard."
+>
+  <div class="eyebrow">Verifier-in-the-loop program synthesis</div>
+  <h1>Self-play</h1>
+  <p class="lede">
+    Opus Magnum has an exact, cheap simulator that says with certainty whether a
+    machine works and what it scores — which makes self-play viable with
+    <strong>zero external solution data</strong>. External puzzles are allowed;
+    external <em>solutions</em> are never training data. Everything below derives from
+    <code>docs/self-play-design.md</code>, the expert-iteration run logs, and the
+    incumbent store. <a href="/docs/self-play-design/">Read the full design →</a>
+  </p>
+
+  <h2>The three loops</h2>
+  <div class="card-grid">
+    <div class="card">
+      <h3>Loop 1 · Solver-as-teacher</h3>
+      <p>
+        <em>Expert iteration</em> (ExIt / AlphaZero / AlphaDev): a fast learned
+        proposer drafts a machine; the repo's exact solvers (clingo/SAT/Picat) improve
+        the draft; the improved plan — verified by the canonical validator — becomes
+        the training target. The solver is the bootstrap expert, with a known ceiling
+        around 2 arms / ~36 steps.
+      </p>
+    </div>
+    <div class="card">
+      <h3>Loop 2 · Forward-generation curriculum</h3>
+      <p>
+        Run random machines <em>forward</em> to manufacture guaranteed-solvable
+        puzzles with known reference solutions, from game rules alone. A generator
+        co-evolves POET/PAIRED-style to keep puzzles at the edge of current
+        competence, with coverage quotas and a fixed anchor set to prevent
+        distribution collapse.
+      </p>
+    </div>
+    <div class="card">
+      <h3>Loop 3 · Self-competition</h3>
+      <p>
+        A private leaderboard keyed by (puzzle, metric) where the system races its own
+        best verified solution — reward is beating your own record. External records
+        live in a read-only comparison column that no training code can read as a
+        target; the constraint is enforced by schema, not policy.
+      </p>
+    </div>
+  </div>
+
+  <h2>Learning curve — expert iteration vs random control</h2>
+  <p class="prose">
+    In the demo run the proposer's <strong>proposal validity</strong> (share of drafts
+    that pass the canonical validator, 10-iteration rolling window) climbs from 0 to
+    {demoFinals.map((d) => ` ${d.final.toFixed(2)} on ${d.puzzle} (last-20 mean ${d.mean.toFixed(2)})`).join(' and')}.
+    The random-control run never gets off the floor — its window validity peaks at
+    {controlMax.toFixed(2)} and ends at 0.00 on both puzzles.
+  </p>
+  <LearningCurve />
+  <details>
+    <summary>Table view of the same data</summary>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>run</th>
+            <th>puzzle</th>
+            <th>iterations</th>
+            <th>final window validity</th>
+            <th>peak window validity</th>
+          </tr>
+        </thead>
+        <tbody>
+          {curves.map((s) => (
+            <tr>
+              <td>{s.run}</td>
+              <td><code>{s.puzzle}</code></td>
+              <td>{s.points.length}</td>
+              <td>{s.points[s.points.length - 1]!.validity.toFixed(2)}</td>
+              <td>{Math.max(...s.points.map((p) => p.validity)).toFixed(2)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </details>
+
+  <h2>Self-competition leaderboard</h2>
+  <p class="prose">
+    Every incumbent below is one of the system's <strong>own</strong> solutions,
+    verified by <code>harness/validate.py</code> at submission time — loaded from
+    <code>selfplay/leaderboard/incumbents.json</code>. The external comparison column
+    is empty so far: no external records have been imported, and none would ever be a
+    training target.
+  </p>
+  {boards.map((board) => (
+    <section>
+      <h3><code>{board.puzzle}</code></h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>metric</th>
+              <th>our best</th>
+              <th>source</th>
+              <th>submission #</th>
+              <th>external best (read-only)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {board.cells.map((c) => (
+              <tr>
+                <td><code>{c.metric}</code></td>
+                <td>{c.score}</td>
+                <td>{c.source}</td>
+                <td>{c.submission}</td>
+                <td>—</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  ))}
+  <p class="section-note">
+    Stubbed metrics (not yet computed, not on the board): area_at_infinity, looping,
+    rate.
+  </p>
+</Base>
