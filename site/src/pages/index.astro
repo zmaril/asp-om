@@ -1,0 +1,115 @@
+---
+import Base from '../layouts/Base.astro';
+import { loadMetricCatalog } from '../lib/metrics';
+import { loadPuzzles } from '../lib/puzzles';
+import { loadLeaderboard } from '../lib/selfplay';
+
+const metricCount = loadMetricCatalog().length;
+const puzzles = loadPuzzles();
+const incumbentCells = loadLeaderboard().reduce((n, b) => n + b.cells.length, 0);
+---
+
+<Base title="Home">
+  <section class="hero">
+    <div class="eyebrow">An Opus Magnum solver bake-off</div>
+    <h1>
+      Computers solve real <span class="gold">Opus Magnum</span> —
+      five solver families, two omsim-verified
+    </h1>
+    <p class="lede">
+      Five independent solver arms — <strong>clingo</strong> (ASP), <strong>Picat</strong>
+      (tabled planner), <strong>Z3</strong> (SMT), <strong>raw SAT</strong> and
+      <strong>MiniZinc</strong> (CP/MIP, five engines) — each encoded the same simplified
+      Opus Magnum fragment and solved the same instances, including the real chapter-1
+      campaign puzzle <em>Stabilized Water</em>, byte-decoded from the game's own
+      <code>P007.puzzle</code>. Every plan passes one shared validator; the SAT and Z3
+      arms exported plans the actual game simulator
+      (<a href="https://github.com/ianh/omsim" rel="noopener">omsim</a>) accepts.
+    </p>
+  </section>
+
+  <div class="stat-row">
+    <div class="stat-tile">
+      <div class="value">5</div>
+      <div class="label">solver families raced on one shared harness</div>
+    </div>
+    <div class="stat-tile">
+      <div class="value">2</div>
+      <div class="label">arms verified against the real game via omsim</div>
+    </div>
+    <div class="stat-tile">
+      <div class="value">3 / 11 / 12</div>
+      <div class="label">proven canonical optima on the three shared puzzles</div>
+    </div>
+    <div class="stat-tile">
+      <div class="value">{metricCount}</div>
+      <div class="label">tournament & leaderboard metrics cataloged</div>
+    </div>
+    <div class="stat-tile">
+      <div class="value">{incumbentCells}</div>
+      <div class="label">self-play incumbents on {puzzles.length} puzzles</div>
+    </div>
+  </div>
+
+  <h2>Explore</h2>
+  <div class="card-grid">
+    <a class="card" href="/comparison/">
+      <div class="card-title">The five-way bake-off</div>
+      <p>
+        The centerpiece: harness-canonical benchmark tables, fixed vs free layout,
+        the per-engine MiniZinc breakdown, and where every solver falls off a cliff.
+        Tables are click-to-sort.
+      </p>
+    </a>
+    <a class="card" href="/solvers/">
+      <div class="card-title">Per-solver lab notes</div>
+      <p>
+        Each arm's own NOTES.md and result files, rendered straight from the repo:
+        clingo, Picat, Z3, SAT and MiniZinc.
+      </p>
+    </a>
+    <a class="card" href="/metrics/">
+      <div class="card-title">Metrics survey</div>
+      <p>
+        A searchable catalog of every metric used competitively for Opus Magnum —
+        the in-game trio, leaderboard manifolds, and {metricCount} tournament
+        metrics with rarity tiers.
+      </p>
+    </a>
+    <a class="card" href="/selfplay/">
+      <div class="card-title">Self-play</div>
+      <p>
+        Three interlocking training loops, a learning curve where proposal validity
+        climbs to ~0.9–1.0 (vs a flat random control), and the self-competition
+        leaderboard.
+      </p>
+    </a>
+    <a class="card" href="/puzzles/">
+      <div class="card-title">Puzzles & harness spec</div>
+      <p>
+        The canonical puzzle JSONs and the shared world semantics that made the five
+        arms comparable at all.
+      </p>
+    </a>
+    <a class="card" href="/docs/self-play-design/">
+      <div class="card-title">Design docs</div>
+      <p>
+        The long-form documents: the self-play design and the full metrics survey,
+        rendered from <code>docs/</code>.
+      </p>
+    </a>
+  </div>
+
+  <h2>The one-paragraph verdict</h2>
+  <p class="prose">
+    All five arms solve <em>Stabilized Water</em> end to end within the shared
+    simplified model. The interesting differences are not <em>whether</em> they solve
+    the shared instances but <strong>how fast they prove optimality</strong> and where
+    each falls off a tractability cliff. Finding a plan is cheap for everyone — clingo
+    finds the optimal-length plans in about a second. Proving no shorter plan exists is
+    where the arms separate: <strong>SAT</strong> proves every canonical optimum in
+    ≤10&nbsp;s, <strong>Picat</strong> in ≤62.6&nbsp;s, <strong>MiniZinc/CP-SAT</strong>
+    in ≤124.4&nbsp;s, while clingo and Z3 find the same plans but prove only the easiest
+    instance. <a href="/comparison/">Read the full comparison →</a>
+  </p>
+</Base>

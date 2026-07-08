@@ -1,0 +1,24 @@
+---
+import Base from '../../layouts/Base.astro';
+import { SOLVERS } from '../../lib/solvers';
+---
+
+<Base title="Solvers" description="The five solver arms: clingo, Picat, Z3, SAT and MiniZinc.">
+  <div class="eyebrow">Five arms, one harness</div>
+  <h1>The solver arms</h1>
+  <p class="lede">
+    Each arm independently encoded the same deliberately simplified Opus Magnum
+    fragment, then met the others on a common harness with one validator. These pages
+    render each arm's own <code>NOTES.md</code> and result files straight from the
+    repo.
+  </p>
+  <div class="card-grid">
+    {SOLVERS.map((s) => (
+      <a class="card" href={`/solvers/${s.slug}/`}>
+        <div class="card-title">{s.name}</div>
+        <p><em>{s.tech}</em></p>
+        <p>{s.tagline}</p>
+      </a>
+    ))}
+  </div>
+</Base>

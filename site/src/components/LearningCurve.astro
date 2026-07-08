@@ -1,0 +1,174 @@
+---
+import { loadLearningCurves } from '../lib/selfplay';
+
+// Server-rendered SVG line chart of proposal validity (10-iteration
+// rolling window) per run × puzzle, straight from
+// selfplay/expert_iteration/runs/*/curve.csv.
+const series = loadLearningCurves();
+
+const COLORS: Record<string, string> = {
+  'demo·single_transport': 'var(--series-1)',
+  'demo·two_atom_bond': 'var(--series-2)',
+  'random-control·single_transport': 'var(--series-3)',
+  'random-control·two_atom_bond': 'var(--series-4)',
+};
+const colorOf = (run: string, puzzle: string) =>
+  COLORS[`${run}·${puzzle}`] ?? 'var(--muted)';
+
+const W = 760;
+const H = 340;
+const M = { top: 16, right: 200, bottom: 34, left: 44 };
+const iw = W - M.left - M.right;
+const ih = H - M.top - M.bottom;
+
+const maxIter = Math.max(...series.flatMap((s) => s.points.map((p) => p.iteration)));
+const x = (i: number) => M.left + (i / maxIter) * iw;
+const y = (v: number) => M.top + (1 - v) * ih;
+
+const paths = series.map((s) => ({
+  ...s,
+  color: colorOf(s.run, s.puzzle),
+  d: s.points
+    .map((p, i) => `${i === 0 ? 'M' : 'L'}${x(p.iteration).toFixed(1)},${y(p.validity).toFixed(1)}`)
+    .join(''),
+  final: s.points[s.points.length - 1]!,
+}));
+
+// direct labels at the right edge, nudged apart so they never collide
+const labels = paths
+  .map((p) => ({ label: p.label, color: p.color, ly: y(p.final.validity) }))
+  .sort((a, b) => a.ly - b.ly);
+for (let i = 1; i < labels.length; i++) {
+  if (labels[i]!.ly - labels[i - 1]!.ly < 15) labels[i]!.ly = labels[i - 1]!.ly + 15;
+}
+
+const yTicks = [0, 0.25, 0.5, 0.75, 1];
+const xTicks = [0, 20, 40, 60, maxIter];
+
+// compact payload for the hover layer
+const hoverData = {
+  maxIter,
+  series: series.map((s) => ({
+    label: s.label,
+    color: colorOf(s.run, s.puzzle),
+    values: s.points.map((p) => p.validity),
+  })),
+};
+---
+
+<figure class="viz-root" id="learning-curve" data-hover={JSON.stringify(hoverData)}>
+  <h3>Proposal validity over expert-iteration training</h3>
+  <p class="sub">
+    Rolling 10-iteration share of proposer drafts that pass the canonical validator ·
+    source: <code>selfplay/expert_iteration/runs/*/curve.csv</code>
+  </p>
+  <svg
+    viewBox={`0 0 ${W} ${H}`}
+    width="100%"
+    role="img"
+    aria-label="Line chart: proposal validity climbs to 0.9–1.0 under expert iteration on both puzzles, while the random control stays near zero."
+  >
+    {yTicks.map((t) => (
+      <g>
+        <line x1={M.left} x2={W - M.right} y1={y(t)} y2={y(t)} stroke="var(--grid)" stroke-width="1" />
+        <text x={M.left - 8} y={y(t) + 4} text-anchor="end" font-size="11" fill="var(--muted)">
+          {t}
+        </text>
+      </g>
+    ))}
+    {xTicks.map((t) => (
+      <text x={x(t)} y={H - 18} text-anchor="middle" font-size="11" fill="var(--muted)">
+        {t}
+      </text>
+    ))}
+    <text x={M.left + iw / 2} y={H - 3} text-anchor="middle" font-size="11" fill="var(--muted)">
+      iteration
+    </text>
+    <line x1={M.left} x2={W - M.right} y1={y(0)} y2={y(0)} stroke="var(--baseline)" stroke-width="1" />
+    {paths.map((p) => (
+      <path d={p.d} fill="none" stroke={p.color} stroke-width="2" stroke-linejoin="round" />
+    ))}
+    {labels.map((l) => (
+      <text x={W - M.right + 10} y={l.ly + 4} font-size="11.5" fill={l.color}>
+        {l.label}
+      </text>
+    ))}
+    <line
+      id="lc-crosshair"
+      x1={M.left}
+      x2={M.left}
+      y1={M.top}
+      y2={M.top + ih}
+      stroke="var(--muted)"
+      stroke-width="1"
+      stroke-dasharray="3 3"
+      style="display:none"
+    />
+    <rect
+      id="lc-hit"
+      x={M.left}
+      y={M.top}
+      width={iw}
+      height={ih}
+      fill="transparent"
+      data-m={JSON.stringify(M)}
+      data-dims={JSON.stringify({ W, H, iw, ih })}
+    />
+  </svg>
+  <div class="viz-legend">
+    {paths.map((p) => (
+      <span class="key">
+        <span class="swatch" style={`background:${p.color}`}></span>
+        {p.label}
+      </span>
+    ))}
+  </div>
+  <div class="viz-tooltip" id="lc-tooltip" role="status"></div>
+</figure>
+
+<script>
+  const root = document.getElementById('learning-curve');
+  const hit = document.getElementById('lc-hit') as unknown as SVGRectElement | null;
+  const crosshair = document.getElementById('lc-crosshair');
+  const tooltip = document.getElementById('lc-tooltip');
+  if (root && hit && crosshair && tooltip) {
+    const data = JSON.parse(root.dataset.hover!) as {
+      maxIter: number;
+      series: { label: string; color: string; values: number[] }[];
+    };
+    const M = JSON.parse(hit.dataset.m!) as { left: number; right: number; top: number };
+    const dims = JSON.parse(hit.dataset.dims!) as { W: number; iw: number };
+    const svg = hit.ownerSVGElement!;
+    const show = (evt: MouseEvent) => {
+      const svgRect = svg.getBoundingClientRect();
+      const scale = svgRect.width / dims.W;
+      const px = (evt.clientX - svgRect.left) / scale;
+      const frac = Math.min(1, Math.max(0, (px - M.left) / dims.iw));
+      const iter = Math.round(frac * data.maxIter);
+      const cx = M.left + (iter / data.maxIter) * dims.iw;
+      crosshair.setAttribute('x1', String(cx));
+      crosshair.setAttribute('x2', String(cx));
+      crosshair.style.display = '';
+      tooltip.innerHTML =
+        `<strong>iteration ${iter}</strong><br>` +
+        data.series
+          .map(
+            (s) =>
+              `<span style="color:${s.color}">●</span> ${s.label}: ${(s.values[iter] ?? 0).toFixed(2)}`,
+          )
+          .join('<br>');
+      const rootRect = root.getBoundingClientRect();
+      tooltip.style.display = 'block';
+      const tw = tooltip.offsetWidth;
+      let left = evt.clientX - rootRect.left + 14;
+      if (left + tw > rootRect.width - 8) left = evt.clientX - rootRect.left - tw - 14;
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${evt.clientY - rootRect.top + 10}px`;
+    };
+    hit.addEventListener('mousemove', show);
+    hit.addEventListener('mouseleave', () => {
+      crosshair.style.display = 'none';
+      tooltip.style.display = 'none';
+    });
+  }
+</script>

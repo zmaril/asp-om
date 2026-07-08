@@ -1,0 +1,74 @@
+---
+import Base from '../layouts/Base.astro';
+import { getEntry, render } from 'astro:content';
+import { loadPuzzles } from '../lib/puzzles';
+
+const puzzles = loadPuzzles();
+const spec = await getEntry('harness', 'spec');
+if (!spec) throw new Error('harness/SPEC.md not found in the repo');
+const { Content: Spec } = await render(spec);
+---
+
+<Base
+  title="Puzzles & spec"
+  description="The canonical puzzle instances and the shared harness specification."
+>
+  <div class="eyebrow">The shared harness</div>
+  <h1>Puzzles & spec</h1>
+  <p class="lede">
+    Before the harness, the five arms reported optima of 3, 9, 9, 10 and 13 for the
+    <em>same puzzle</em> because layout legality, goal placement and reagent modeling
+    differed. The shared formats, footprint-disjointness rule and single validator
+    turned that into one number everyone can be scored against.
+  </p>
+
+  <h2>Canonical puzzle instances</h2>
+  <p class="section-note">
+    From <code>harness/puzzles/*.json</code> — proven optima 3 / 11 / 12
+    (non-wait instructions).
+  </p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>puzzle</th>
+          <th>board radius</th>
+          <th>t_max</th>
+          <th>reagents</th>
+          <th>products</th>
+          <th>parts</th>
+        </tr>
+      </thead>
+      <tbody>
+        {puzzles.map((p) => (
+          <tr>
+            <td><code>{p.name}</code></td>
+            <td>{p.boardRadius ?? '—'}</td>
+            <td>{p.tMax ?? '—'}</td>
+            <td>{p.reagents}</td>
+            <td>{p.products}</td>
+            <td>{p.parts.join(', ')}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  {puzzles.map((p) => (
+    <details>
+      <summary><code>harness/puzzles/{p.file}</code></summary>
+      {p.description && <p class="section-note">{p.description}</p>}
+      <pre><code>{p.raw}</code></pre>
+    </details>
+  ))}
+
+  <h2>World semantics — the harness spec</h2>
+  <p class="section-note">
+    Rendered from <code>harness/SPEC.md</code>. The canonical implementation of these
+    semantics is <code>harness/validate.py</code>; if the two ever disagree, the
+    validator wins.
+  </p>
+  <article class="prose wide">
+    <Spec />
+  </article>
+</Base>

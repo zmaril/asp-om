@@ -1,0 +1,26 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const docs = await getCollection('docs');
+  return docs.map((doc) => ({ params: { slug: doc.id }, props: { doc } }));
+}
+
+const { doc } = Astro.props;
+const { Content } = await render(doc);
+
+const titles: Record<string, string> = {
+  'solver-comparison': 'Solver bake-off (full document)',
+  'metrics-survey': 'Opus Magnum metrics survey (full document)',
+  'self-play-design': 'Self-play training design (full document)',
+};
+const title = titles[doc.id] ?? doc.id;
+---
+
+<Base title={title}>
+  <div class="eyebrow">From <code>docs/{doc.id}.md</code></div>
+  <article class="prose wide">
+    <Content />
+  </article>
+</Base>

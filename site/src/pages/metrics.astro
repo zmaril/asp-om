@@ -1,0 +1,125 @@
+---
+import Base from '../layouts/Base.astro';
+import { loadMetricCatalog } from '../lib/metrics';
+
+const metrics = loadMetricCatalog();
+const groups = [...new Set(metrics.map((m) => m.group))];
+const rarities = ['core', 'common', 'niche', 'one-off'] as const;
+const rarityCounts = Object.fromEntries(
+  rarities.map((r) => [r, metrics.filter((m) => m.rarity === r).length]),
+);
+---
+
+<Base
+  title="Metrics survey"
+  description="A searchable catalog of every metric used competitively for Opus Magnum."
+>
+  <div class="eyebrow">Tournament & leaderboard scoring</div>
+  <h1>The metric catalog</h1>
+  <p class="lede">
+    {metrics.length} metrics used competitively for Opus Magnum — in the official
+    game, on the community leaderboard, and across the tournament scene (2019–2026) —
+    parsed at build time from <code>docs/metrics-survey.md</code>. Ground-truth
+    definitions come from the community simulator
+    <a href="https://github.com/ianh/omsim" rel="noopener">omsim</a>.
+    <a href="/docs/metrics-survey/">Read the full survey →</a>
+  </p>
+
+  <div class="filter-bar" id="metric-filters">
+    <input
+      type="search"
+      id="metric-search"
+      placeholder={`Search ${metrics.length} metrics…`}
+      aria-label="Search metrics"
+    />
+    <div class="chip-row" role="group" aria-label="Filter by rarity">
+      <button class="chip" data-rarity="all" aria-pressed="true">
+        all ({metrics.length})
+      </button>
+      {rarities.map((r) => (
+        <button class="chip" data-rarity={r} aria-pressed="false">
+          {r} ({rarityCounts[r]})
+        </button>
+      ))}
+    </div>
+    <select id="metric-group" aria-label="Filter by catalog section">
+      <option value="all">all sections</option>
+      {groups.map((g) => (
+        <option value={g}>{g}</option>
+      ))}
+    </select>
+  </div>
+
+  <p class="section-note" id="metric-count" role="status">
+    Showing all {metrics.length} metrics.
+  </p>
+
+  <div id="metric-list">
+    {metrics.map((m) => (
+      <div
+        class="metric-card"
+        data-search={m.searchText}
+        data-rarity={m.rarity}
+        data-group={m.group}
+      >
+        <div class="head">
+          <span class="name" set:html={m.nameHtml} />
+          {m.letter && <span class="letter">{m.letter}</span>}
+          <span class={`pill ${m.rarity}`}>{m.rarity}</span>
+          <span class="pill">{m.group}</span>
+        </div>
+        <p class="definition" set:html={m.definitionHtml} />
+        {m.usedHtml && <p class="used">Used: <span set:html={m.usedHtml} /></p>}
+      </div>
+    ))}
+  </div>
+
+  <h2>Rarity tiers</h2>
+  <ul class="prose">
+    <li><strong>core</strong> — visible in the official game; the 2017-era leaderboard was built on these.</li>
+    <li><strong>common</strong> — long-standing community-standard metrics published by the leaderboard bot and/or recurring across many tournaments.</li>
+    <li><strong>niche</strong> — established on the leaderboard or recurring in events, but outside the headline set.</li>
+    <li><strong>one-off</strong> — appeared in a single tournament week / side event.</li>
+  </ul>
+
+  <script>
+    const search = document.getElementById('metric-search') as HTMLInputElement;
+    const groupSel = document.getElementById('metric-group') as HTMLSelectElement;
+    const chips = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('#metric-filters .chip'),
+    );
+    const cards = Array.from(
+      document.querySelectorAll<HTMLElement>('#metric-list .metric-card'),
+    );
+    const count = document.getElementById('metric-count')!;
+    let rarity = 'all';
+
+    const apply = () => {
+      const q = search.value.trim().toLowerCase();
+      const group = groupSel.value;
+      let shown = 0;
+      for (const card of cards) {
+        const ok =
+          (rarity === 'all' || card.dataset.rarity === rarity) &&
+          (group === 'all' || card.dataset.group === group) &&
+          (q === '' || (card.dataset.search ?? '').includes(q));
+        card.style.display = ok ? '' : 'none';
+        if (ok) shown++;
+      }
+      count.textContent =
+        shown === cards.length
+          ? `Showing all ${cards.length} metrics.`
+          : `Showing ${shown} of ${cards.length} metrics.`;
+    };
+
+    search.addEventListener('input', apply);
+    groupSel.addEventListener('change', apply);
+    for (const chip of chips) {
+      chip.addEventListener('click', () => {
+        rarity = chip.dataset.rarity ?? 'all';
+        chips.forEach((c) => c.setAttribute('aria-pressed', String(c === chip)));
+        apply();
+      });
+    }
+  </script>
+</Base>
