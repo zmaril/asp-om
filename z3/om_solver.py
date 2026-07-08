@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Z3 bounded-model-checking encoding of the asp-om Opus Magnum fragment.
 
-Mirrors the clingo encodings on branch clingo-encoding:
+Mirrors the clingo encodings in asp/ on the main branch:
   - asp/core.lp   (v1 semantics: one arm, exactly one instruction per step,
                    held atom rides the gripper, no rigid molecule motion)
   - asp/core2.lp  (v2 semantics: multi-arm serialized (<=1 action/step
