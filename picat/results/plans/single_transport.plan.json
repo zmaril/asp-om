@@ -1,0 +1,51 @@
+{
+  "puzzle": "single_transport",
+  "solver": "picat (planner; free-layout setup-phase encoding)",
+  "placements": [
+    {
+      "type": "arm",
+      "id": "m1",
+      "position": [
+        -2,
+        0
+      ],
+      "rotation": 0,
+      "length": 1
+    },
+    {
+      "type": "input",
+      "id": "salt_in",
+      "position": [
+        -1,
+        0
+      ],
+      "rotation": 0
+    },
+    {
+      "type": "output",
+      "id": "salt_out",
+      "position": [
+        -2,
+        1
+      ],
+      "rotation": 0
+    }
+  ],
+  "instructions": [
+    {
+      "t": 0,
+      "arm": "m1",
+      "action": "grab"
+    },
+    {
+      "t": 1,
+      "arm": "m1",
+      "action": "rot_cw"
+    },
+    {
+      "t": 2,
+      "arm": "m1",
+      "action": "drop"
+    }
+  ]
+}
