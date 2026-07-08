@@ -20,10 +20,15 @@ Environment: HARNESS_CLINGO_TIME_LIMIT overrides the default time limit.
 Limitations (of the wrapped encoding, not the formats): single-atom
 reagents only; elements air/earth/fire/water/salt.
 """
+
+# straitjacket-allow-file:duplication - the solver adapters (clingo/z3/picat) are
+# parallel arms of one experiment and repeat the contract helpers on purpose.
+
 import argparse
 import json
 import os
 import sys
+from typing import Any
 
 import clingo
 
@@ -54,12 +59,19 @@ def canonical_rotations(atoms, bonds):
     for d in range(6):
         cells = [rot_k(q, r, d) for _, (q, r) in atoms]
         anchor = min(cells)
-        norm = frozenset(((c[0] - anchor[0], c[1] - anchor[1]), el)
-                         for (el, _), c in zip(atoms, cells))
+        norm = frozenset(
+            ((c[0] - anchor[0], c[1] - anchor[1]), el)
+            for (el, _), c in zip(atoms, cells, strict=False)
+        )
         nbonds = frozenset(
-            frozenset(((cells[i][0] - anchor[0], cells[i][1] - anchor[1]),
-                       (cells[j][0] - anchor[0], cells[j][1] - anchor[1])))
-            for i, j in (sorted(b) for b in bonds))
+            frozenset(
+                (
+                    (cells[i][0] - anchor[0], cells[i][1] - anchor[1]),
+                    (cells[j][0] - anchor[0], cells[j][1] - anchor[1]),
+                )
+            )
+            for i, j in (sorted(b) for b in bonds)
+        )
         key = (norm, nbonds)
         if key not in seen:
             seen.add(key)
@@ -98,20 +110,18 @@ def generate_instance(puzzle):
     for i, m in enumerate(puzzle["reagents"], start=1):
         atoms, bonds = molecule(m)
         if len(atoms) != 1 or bonds:
-            die(f"reagent {m['id']}: the clingo core2 encoding supports "
-                f"single-atom reagents only")
+            die(f"reagent {m['id']}: the clingo core2 encoding supports single-atom reagents only")
         el = atoms[0][0]
         reagent_index[i] = m["id"]
         lines.append(f"place_input({i},{el},{m['pool']}).")
         if pin_note(m):
             rot = m.get("rotation", 0)
-            q, r = tuple(sum(x) for x in
-                         zip(m["position"], rot_k(*atoms[0][1], rot)))
+            aq, ar = atoms[0][1]
+            q, r = tuple(sum(x) for x in zip(m["position"], rot_k(aq, ar, rot), strict=False))
             lines.append(f"spawn({i},{q},{r}).")
 
     # --- glyphs ---------------------------------------------------------------
-    for i, p in enumerate(p for p in puzzle["parts"]
-                          if p["type"] == "calcifier"):
+    for i, p in enumerate(p for p in puzzle["parts"] if p["type"] == "calcifier"):
         const = f"c{i}"
         calc_ids[const] = p["id"]
         lines.append(f"place_calc({const}).")
@@ -131,8 +141,7 @@ def generate_instance(puzzle):
             lines.append(f"bond_at({const},{q},{r},{d}).")
 
     # --- outputs: placeable product parts + exact-molecule goals --------------
-    lines.append("deg(X,T,N) :- exists(X,T), time(T), "
-                 "N = #count { Y : bond(X,Y,T) }.")
+    lines.append("deg(X,T,N) :- exists(X,T), time(T), N = #count { Y : bond(X,Y,T) }.")
     product_index = {}
     for k, m in enumerate(puzzle["products"]):
         product_index[k] = m["id"]
@@ -141,50 +150,50 @@ def generate_instance(puzzle):
             for a, (_, (q, r)) in enumerate(atoms):
                 dq, dr = rot_k(q, r, d)
                 lines.append(f"prodoff({k},{d},{a},{dq},{dr}).")
-        lines.append(f"{{ out_at({k},Q,R,D) : hex(Q,R), prodoff({k},D,_,_,_) "
-                     f"}} = 1.")
-        lines.append(f"out_hex({k},A,Q+DQ,R+DR) :- out_at({k},Q,R,D), "
-                     f"prodoff({k},D,A,DQ,DR).")
-        lines.append(f":- out_at({k},Q,R,D), prodoff({k},D,A,DQ,DR), "
-                     f"not hex(Q+DQ,R+DR).")
+        lines.append(f"{{ out_at({k},Q,R,D) : hex(Q,R), prodoff({k},D,_,_,_) }} = 1.")
+        lines.append(f"out_hex({k},A,Q+DQ,R+DR) :- out_at({k},Q,R,D), prodoff({k},D,A,DQ,DR).")
+        lines.append(f":- out_at({k},Q,R,D), prodoff({k},D,A,DQ,DR), not hex(Q+DQ,R+DR).")
         lines.append(f"foot(out({k}),Q,R) :- out_hex({k},_,Q,R).")
         if pin_note(m):
             rot = m.get("rotation", 0) % 6
             q, r = m["position"]
             lines.append(f"out_at({k},{q},{r},{rot}).")
         # exact-molecule completion rule
-        pdeg = {i: 0 for i in range(len(atoms))}
+        pdeg = dict.fromkeys(range(len(atoms)), 0)
         for b in bonds:
             i, j = sorted(b)
             pdeg[i] += 1
             pdeg[j] += 1
         body = []
         for a, (el, _) in enumerate(atoms):
-            body += [f"out_hex({k},{a},Q{a},R{a})",
-                     f"at(X{a},Q{a},R{a},T)", f"type(X{a},{el},T)",
-                     f"deg(X{a},T,{pdeg[a]})", f"not held(X{a},T)"]
+            body += [
+                f"out_hex({k},{a},Q{a},R{a})",
+                f"at(X{a},Q{a},R{a},T)",
+                f"type(X{a},{el},T)",
+                f"deg(X{a},T,{pdeg[a]})",
+                f"not held(X{a},T)",
+            ]
         for b in bonds:
             i, j = sorted(b)
             body.append(f"bond(X{i},X{j},T)")
         lines.append(f"complete({k},T) :- " + ", ".join(body) + ".")
         lines.append(f"done({k}) :- complete({k},T).")
-    lines.append("goal_met :- " + ", ".join(f"done({k})"
-                                            for k in product_index) + ".")
-    return "\n".join(lines) + "\n", (arm_ids, reagent_index, calc_ids,
-                                     bond_ids, product_index)
+    lines.append("goal_met :- " + ", ".join(f"done({k})" for k in product_index) + ".")
+    return "\n".join(lines) + "\n", (arm_ids, reagent_index, calc_ids, bond_ids, product_index)
 
 
 # ---------------------------------------------------------------------------
 # Solve + extract
 # ---------------------------------------------------------------------------
 def solve(puzzle, instance_text, time_limit):
-    ctl = clingo.Control(["-c", f"t_max={puzzle['t_max']}",
-                          "-c", f"radius={puzzle['board_radius']}"])
+    ctl = clingo.Control(
+        ["-c", f"t_max={puzzle['t_max']}", "-c", f"radius={puzzle['board_radius']}"]
+    )
     ctl.load(os.path.join(ASP, "core2.lp"))
     ctl.load(os.path.join(ASP, "layout.lp"))
     ctl.add("base", [], instance_text)
     ctl.ground([("base", [])])
-    best = {"symbols": None, "cost": None}
+    best: dict[str, Any] = {"symbols": None, "cost": None}
 
     def on_model(model):
         best["symbols"] = model.symbols(atoms=True)
@@ -199,8 +208,7 @@ def solve(puzzle, instance_text, time_limit):
 
 def extract_plan(puzzle, symbols, maps):
     arm_ids, reagent_index, calc_ids, bond_ids, product_index = maps
-    lengths = {p["id"]: p["length"] for p in puzzle["parts"]
-               if p["type"] == "arm"}
+    lengths = {p["id"]: p["length"] for p in puzzle["parts"] if p["type"] == "arm"}
     placements, instructions = [], []
     bases, orients = {}, {}
     for s in symbols:
@@ -210,67 +218,94 @@ def extract_plan(puzzle, symbols, maps):
         elif n == "init_orient":
             orients[arm_ids[str(a[0])]] = a[1].number
         elif n == "spawn":
-            placements.append({"type": "input",
-                               "id": reagent_index[a[0].number],
-                               "position": [a[1].number, a[2].number],
-                               "rotation": 0})
+            placements.append(
+                {
+                    "type": "input",
+                    "id": reagent_index[a[0].number],
+                    "position": [a[1].number, a[2].number],
+                    "rotation": 0,
+                }
+            )
         elif n == "calc_at":
-            placements.append({"type": "calcifier", "id": calc_ids[str(a[0])],
-                               "position": [a[1].number, a[2].number]})
+            placements.append(
+                {
+                    "type": "calcifier",
+                    "id": calc_ids[str(a[0])],
+                    "position": [a[1].number, a[2].number],
+                }
+            )
         elif n == "bond_at":
-            placements.append({"type": "bonder", "id": bond_ids[str(a[0])],
-                               "position": [a[1].number, a[2].number],
-                               "rotation": a[3].number})
+            placements.append(
+                {
+                    "type": "bonder",
+                    "id": bond_ids[str(a[0])],
+                    "position": [a[1].number, a[2].number],
+                    "rotation": a[3].number,
+                }
+            )
         elif n == "out_at":
-            placements.append({"type": "output",
-                               "id": product_index[a[0].number],
-                               "position": [a[1].number, a[2].number],
-                               "rotation": a[3].number})
+            placements.append(
+                {
+                    "type": "output",
+                    "id": product_index[a[0].number],
+                    "position": [a[1].number, a[2].number],
+                    "rotation": a[3].number,
+                }
+            )
         elif n == "do" and len(a) == 3:
-            instructions.append({"t": a[2].number,
-                                 "arm": arm_ids[str(a[0])],
-                                 "action": a[1].name})
+            instructions.append({"t": a[2].number, "arm": arm_ids[str(a[0])], "action": a[1].name})
     for mid, pos in bases.items():
         if mid not in orients:
             die("model has base/3 but no init_orient/2 for an arm", 1)
-        placements.append({"type": "arm", "id": mid, "position": pos,
-                           "rotation": orients[mid], "length": lengths[mid]})
+        placements.append(
+            {
+                "type": "arm",
+                "id": mid,
+                "position": pos,
+                "rotation": orients[mid],
+                "length": lengths[mid],
+            }
+        )
     order = {"arm": 0, "input": 1, "output": 2, "calcifier": 3, "bonder": 4}
     placements.sort(key=lambda p: (order[p["type"]], p["id"]))
     instructions.sort(key=lambda i: i["t"])
-    return {"puzzle": puzzle["name"],
-            "solver": "clingo (asp/core2.lp + asp/layout.lp)",
-            "placements": placements,
-            "instructions": instructions}
+    return {
+        "puzzle": puzzle["name"],
+        "solver": "clingo (asp/core2.lp + asp/layout.lp)",
+        "placements": placements,
+        "instructions": instructions,
+    }
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("puzzle")
     ap.add_argument("--out", help="write the plan JSON here instead of stdout")
-    ap.add_argument("--time-limit", type=float,
-                    default=float(os.environ.get("HARNESS_CLINGO_TIME_LIMIT",
-                                                 30)))
+    ap.add_argument(
+        "--time-limit", type=float, default=float(os.environ.get("HARNESS_CLINGO_TIME_LIMIT", 30))
+    )
     args = ap.parse_args()
     try:
         with open(args.puzzle) as f:
             puzzle = json.load(f)
     except (OSError, json.JSONDecodeError) as e:
         die(str(e))
-    for key in ("name", "board_radius", "t_max", "reagents", "products",
-                "parts"):
+    for key in ("name", "board_radius", "t_max", "reagents", "products", "parts"):
         if key not in puzzle:
             die(f"puzzle: missing key {key!r}")
     instance_text, maps = generate_instance(puzzle)
     result, best = solve(puzzle, instance_text, args.time_limit)
     if best["symbols"] is None:
-        print(f"adapter: no model ({result}) within "
-              f"{args.time_limit}s at t_max={puzzle['t_max']}",
-              file=sys.stderr)
+        print(
+            f"adapter: no model ({result}) within {args.time_limit}s at t_max={puzzle['t_max']}",
+            file=sys.stderr,
+        )
         sys.exit(1)
     plan = extract_plan(puzzle, best["symbols"], maps)
-    print(f"adapter: {result} cost={best['cost']} "
-          f"({len(plan['instructions'])} instructions)", file=sys.stderr)
+    print(
+        f"adapter: {result} cost={best['cost']} ({len(plan['instructions'])} instructions)",
+        file=sys.stderr,
+    )
     text = json.dumps(plan, indent=2)
     if args.out:
         with open(args.out, "w") as f:

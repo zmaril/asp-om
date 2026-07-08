@@ -1,0 +1,11 @@
+# straitjacket configuration (https://github.com/zmaril/straitjacket)
+#
+# All rules stay enabled. The only tuning is the duplication threshold:
+# this repo is a set of deliberately parallel implementations of one
+# puzzle spec (sat/, z3/, minizinc/, picat/, harness/adapters/, plus
+# versioned encoders like encode.py -> encode2.py -> encode3.py), so
+# small near-identical constraint blocks between arms are expected and
+# reviewed, not copy-paste accidents. 200 tokens still catches real
+# wholesale cloning. A few files with large intentional clones carry
+# per-file straitjacket-allow-file:duplication markers instead.
+dup-min-tokens: 200

@@ -22,16 +22,16 @@ import os
 import sys
 import time
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from pysat.card import CardEnc, EncType
 from pysat.formula import CNF
 
-from instances import CASES
-from encode import Encoder
-from solvers import solve
-from decode import decode_model, format_plan
-from validate import validate_plan
+from sat.decode import decode_model, format_plan
+from sat.encode import Encoder
+from sat.instances import CASES
+from sat.solvers import solve
+from sat.validate import validate_plan
 
 BACKENDS = ["cadical195", "glucose42", "kissat"]
 MODES = ["fixed", "free"]
@@ -46,20 +46,30 @@ def horizon_iteration(case_key, mode, backend, log):
         enc = Encoder(inst, T)
         assumptions = enc.layout_assumptions() if mode == "fixed" else []
         sat, model, solve_t = solve(backend, enc.cnf, assumptions)
-        rows.append(dict(case=case_key, mode=mode, backend=backend,
-                         T=T, nvars=enc.nvars, nclauses=enc.nclauses,
-                         encode_t=enc.encode_time, solve_t=solve_t,
-                         result="SAT" if sat else "UNSAT"))
-        log(f"  {case_key}/{mode}/{backend} T={T}: "
+        rows.append(
+            {
+                "case": case_key,
+                "mode": mode,
+                "backend": backend,
+                "T": T,
+                "nvars": enc.nvars,
+                "nclauses": enc.nclauses,
+                "encode_t": enc.encode_time,
+                "solve_t": solve_t,
+                "result": "SAT" if sat else "UNSAT",
+            }
+        )
+        log(
+            f"  {case_key}/{mode}/{backend} T={T}: "
             f"{enc.nvars}v {enc.nclauses}c "
             f"enc {enc.encode_time:.3f}s solve {solve_t:.3f}s "
-            f"{'SAT' if sat else 'UNSAT'}")
+            f"{'SAT' if sat else 'UNSAT'}"
+        )
         if sat:
             plan = decode_model(enc, model)
             errs = validate_plan(inst, plan)
             if errs:
-                log(f"  VALIDATION FAILED for {case_key}/{mode}/{backend} "
-                    f"T={T}:")
+                log(f"  VALIDATION FAILED for {case_key}/{mode}/{backend} T={T}:")
                 for e in errs:
                     log(f"    - {e}")
                 raise SystemExit("validator rejected a SAT model; aborting")
@@ -80,23 +90,22 @@ def minimize_instructions(case_key, mode, backend, log):
     sat, model, _ = solve(backend, enc.cnf, assumptions)
     if not sat:
         raise SystemExit(f"{case_key}/{mode} UNSAT at t_max={T}?!")
-    true = set(l for l in model if l > 0)
-    cost = sum(1 for l in lits
-               if (l > 0 and l in true) or (l < 0 and -l not in true))
+    true = {lit for lit in model if lit > 0}
+    cost = sum(1 for lit in lits if (lit > 0 and lit in true) or (lit < 0 and -lit not in true))
     best_model, best_cost = model, cost
     k = cost - 1
     while k >= 0:
         bounded = CNF()
         bounded.extend(enc.cnf.clauses)
-        card = CardEnc.atmost(lits=lits, bound=k, top_id=enc.pool.top,
-                              encoding=EncType.seqcounter)
+        card = CardEnc.atmost(lits=lits, bound=k, top_id=enc.pool.top, encoding=EncType.seqcounter)
         bounded.extend(card.clauses)
         sat, model, _ = solve(backend, bounded, assumptions)
         if not sat:
             break
-        true = set(l for l in model if l > 0)
-        best_cost = sum(1 for l in lits
-                        if (l > 0 and l in true) or (l < 0 and -l not in true))
+        true = {lit for lit in model if lit > 0}
+        best_cost = sum(
+            1 for lit in lits if (lit > 0 and lit in true) or (lit < 0 and -lit not in true)
+        )
         best_model = model
         k = best_cost - 1
     total_t = time.perf_counter() - t_total0
@@ -107,11 +116,21 @@ def minimize_instructions(case_key, mode, backend, log):
         for e in errs:
             log(f"    - {e}")
         raise SystemExit("validator rejected an optimized model; aborting")
-    log(f"  {case_key}/{mode} optimize@t_max={T} [{backend}]: "
+    log(
+        f"  {case_key}/{mode} optimize@t_max={T} [{backend}]: "
         f"optimum {best_cost} non-wait instructions, "
-        f"proven in {total_t:.3f}s, validator OK")
-    return dict(case=case_key, mode=mode, backend=backend, t_max=T,
-                optimum=best_cost, total_t=total_t, plan=plan, enc=enc)
+        f"proven in {total_t:.3f}s, validator OK"
+    )
+    return {
+        "case": case_key,
+        "mode": mode,
+        "backend": backend,
+        "t_max": T,
+        "optimum": best_cost,
+        "total_t": total_t,
+        "plan": plan,
+        "enc": enc,
+    }
 
 
 def main():
@@ -126,22 +145,21 @@ def main():
         log_lines.append(msg)
 
     all_rows = []
-    makespans = {}   # (case, mode) -> min T
-    plans = {}       # (case, mode) -> (plan, inst) from cadical195
+    makespans: dict[tuple[str, str], int] = {}  # (case, mode) -> min T
+    plans = {}  # (case, mode) -> (plan, inst) from cadical195
 
     for case_key in ("a", "b"):
         for mode in MODES:
             for backend in BACKENDS:
-                rows, satT, plan, enc = horizon_iteration(
-                    case_key, mode, backend, log)
+                rows, satT, plan, _enc = horizon_iteration(case_key, mode, backend, log)
                 all_rows.extend(rows)
                 key = (case_key, mode)
                 if satT is not None:
                     prev = makespans.get(key)
                     if prev is not None and prev != satT:
                         raise SystemExit(
-                            f"backend disagreement on min makespan for {key}: "
-                            f"{prev} vs {satT}")
+                            f"backend disagreement on min makespan for {key}: {prev} vs {satT}"
+                        )
                     makespans[key] = satT
                     if backend == "cadical195":
                         plans[key] = plan
@@ -149,12 +167,10 @@ def main():
     opt_results = []
     for case_key in ("a", "b"):
         for mode in MODES:
-            opt_results.append(
-                minimize_instructions(case_key, mode, "cadical195", log))
+            opt_results.append(minimize_instructions(case_key, mode, "cadical195", log))
 
     md = render_markdown(all_rows, makespans, plans, opt_results)
-    out = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                       "results-trivial.md")
+    out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results-trivial.md")
     with open(out, "w") as f:
         f.write(md)
     print(f"\nwrote {out}")
@@ -167,11 +183,13 @@ def main():
 def render_markdown(rows, makespans, plans, opt_results):
     lines = []
     lines.append("# SAT arm — phase 1 results (trivial cases)\n")
-    lines.append("Generated by `python3 sat/bench.py`. "
-                 "Machine: this repo's dev container; "
-                 "python-sat 1.9.dev5 (Cadical195, Glucose42), "
-                 "kissat 4.0.4 (external binary, DIMACS dump; its solve "
-                 "time is subprocess wall clock incl. DIMACS parsing).\n")
+    lines.append(
+        "Generated by `python3 sat/bench.py`. "
+        "Machine: this repo's dev container; "
+        "python-sat 1.9.dev5 (Cadical195, Glucose42), "
+        "kissat 4.0.4 (external binary, DIMACS dump; its solve "
+        "time is subprocess wall clock incl. DIMACS parsing).\n"
+    )
     lines.append(
         "Modes: **fixed** pins the layout to the clingo arm's layout via "
         "unit assumptions on the layout variables (same CNF generator); "
@@ -180,17 +198,18 @@ def render_markdown(rows, makespans, plans, opt_results):
         "ball. Horizon T is iterated upward from 1 until SAT, so the first "
         "SAT row per series is the minimum makespan. Every SAT model was "
         "decoded and accepted by the independent forward simulator "
-        "(sat/validate.py).\n")
+        "(sat/validate.py).\n"
+    )
 
-    lines.append("## Horizon iteration (case × mode × backend × T)\n")
-    lines.append("| case | mode | backend | T | vars | clauses | "
-                 "encode s | solve s | result |")
+    lines.append("## Horizon iteration (case x mode x backend x T)\n")
+    lines.append("| case | mode | backend | T | vars | clauses | encode s | solve s | result |")
     lines.append("|---|---|---|---|---|---|---|---|---|")
     for r in rows:
         lines.append(
             f"| {r['case']} | {r['mode']} | {r['backend']} | {r['T']} "
             f"| {r['nvars']} | {r['nclauses']} | {r['encode_t']:.3f} "
-            f"| {r['solve_t']:.3f} | {r['result']} |")
+            f"| {r['solve_t']:.3f} | {r['result']} |"
+        )
     lines.append("")
 
     lines.append("## Minimum makespan (first SAT horizon)\n")
@@ -201,28 +220,30 @@ def render_markdown(rows, makespans, plans, opt_results):
     lines.append("")
 
     lines.append("## Instruction-count optimum at the clingo arm's t_max\n")
-    lines.append("Objective identical to clingo's `#minimize`: number of "
-                 "non-wait instructions at fixed t_max (10 for case a, 16 "
-                 "for case b), minimized by downward linear search over "
-                 "`CardEnc.atmost` bounds with Cadical195. Times are total "
-                 "wall clock over the whole search (all solves + encodes) "
-                 "to the PROVEN optimum.\n")
-    lines.append("| case | mode | t_max | optimum (non-wait instr) "
-                 "| total time s | clingo (fixed layout) |")
+    lines.append(
+        "Objective identical to clingo's `#minimize`: number of "
+        "non-wait instructions at fixed t_max (10 for case a, 16 "
+        "for case b), minimized by downward linear search over "
+        "`CardEnc.atmost` bounds with Cadical195. Times are total "
+        "wall clock over the whole search (all solves + encodes) "
+        "to the PROVEN optimum.\n"
+    )
+    lines.append(
+        "| case | mode | t_max | optimum (non-wait instr) | total time s | clingo (fixed layout) |"
+    )
     lines.append("|---|---|---|---|---|---|")
     clingo_ref = {"a": "5 in 0.007 s", "b": "12 in 0.120 s"}
     for o in opt_results:
         lines.append(
             f"| {o['case']} | {o['mode']} | {o['t_max']} | {o['optimum']} "
-            f"| {o['total_t']:.3f} | {clingo_ref[o['case']]} |")
+            f"| {o['total_t']:.3f} | {clingo_ref[o['case']]} |"
+        )
     lines.append("")
 
-    lines.append("## Decoded minimum-makespan plans (Cadical195 models, "
-                 "validator-approved)\n")
+    lines.append("## Decoded minimum-makespan plans (Cadical195 models, validator-approved)\n")
     for (c, m), plan in sorted(plans.items()):
         inst = CASES[c]
-        lines.append(f"### case {c}, {m} layout "
-                     f"(T={makespans[(c, m)]})\n")
+        lines.append(f"### case {c}, {m} layout (T={makespans[(c, m)]})\n")
         lines.append("```")
         lines.append(format_plan(plan, inst))
         lines.append("```\n")
@@ -240,7 +261,8 @@ def render_markdown(rows, makespans, plans, opt_results):
         "omsim is only useful for test case (c), Stabilized Water, which "
         "is out of scope for this phase). Rather than force a bogus "
         ".solution export we state this explicitly here; omsim validation "
-        "is deferred to the Stabilized Water phase.\n")
+        "is deferred to the Stabilized Water phase.\n"
+    )
     return "\n".join(lines)
 
 

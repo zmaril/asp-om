@@ -42,13 +42,13 @@ def string(s):
 
 def part(name, pos, rot, which=0, size=1, instrs=(), arm_number=0):
     out = string(name)
-    out += bytes([1])                        # magic
+    out += bytes([1])  # magic
     out += struct.pack("<ii", pos[0], pos[1])
     out += struct.pack("<I", size)
     out += struct.pack("<i", rot)
     out += struct.pack("<I", which)
     out += struct.pack("<I", len(instrs))
-    for (cycle, letter) in instrs:
+    for cycle, letter in instrs:
         out += struct.pack("<i", cycle) + letter
     out += struct.pack("<I", arm_number)
     return out
@@ -56,12 +56,8 @@ def part(name, pos, rot, which=0, size=1, instrs=(), arm_number=0):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--plan",
-                    default=os.path.join(HERE, "solutions",
-                                         "water-fixed.json"))
-    ap.add_argument("--out",
-                    default=os.path.join(HERE, "solutions",
-                                         "water-z3.solution"))
+    ap.add_argument("--plan", default=os.path.join(HERE, "solutions", "water-fixed.json"))
+    ap.add_argument("--out", default=os.path.join(HERE, "solutions", "water-z3.solution"))
     args = ap.parse_args()
 
     with open(args.plan) as f:
@@ -82,8 +78,9 @@ def main():
             if p != start:
                 away = True
                 if p in inputs:
-                    raise SystemExit(f"{name} enters input hex {p}; tape "
-                                     "would collide with a respawned input")
+                    raise SystemExit(
+                        f"{name} enters input hex {p}; tape would collide with a respawned input"
+                    )
             elif away:  # returned to its own (respawned) input hex
                 raise SystemExit(f"{name} re-enters its input hex {start}")
 
@@ -105,8 +102,7 @@ def main():
     parts = []
     for k, p in enumerate(inputs):
         parts.append(part("input", p, 0, which=k))
-    parts.append(part("arm1", base, arm["init_orient"], size=1,
-                      instrs=instrs, arm_number=0))
+    parts.append(part("arm1", base, arm["init_orient"], size=1, instrs=instrs, arm_number=0))
     for g in lay["glyph_calcs"]:
         parts.append(part("glyph-calcification", (g[0], g[1]), 0))
     for g in lay["glyph_bonds"]:
@@ -117,21 +113,19 @@ def main():
     # the Z3 product slots are salt@(-1,0), water@(0,-1) -> position at the
     # salt slot, rotated so local (1,0) lands on the water slot
     salt_slot, water_slot = (-1, 0), (0, -1)
-    rot = DIRS.index((water_slot[0] - salt_slot[0],
-                      water_slot[1] - salt_slot[1]))
+    rot = DIRS.index((water_slot[0] - salt_slot[0], water_slot[1] - salt_slot[1]))
     parts.append(part("out-std", salt_slot, rot, which=0))
 
-    blob = struct.pack("<I", 7)           # version
-    blob += string("P007")                # puzzle name
-    blob += string("Z3")                  # solution name
-    blob += struct.pack("<I", 0)          # unsolved (omsim computes metrics)
+    blob = struct.pack("<I", 7)  # version
+    blob += string("P007")  # puzzle name
+    blob += string("Z3")  # solution name
+    blob += struct.pack("<I", 0)  # unsolved (omsim computes metrics)
     blob += struct.pack("<I", len(parts))
     blob += b"".join(parts)
 
     with open(args.out, "wb") as f:
         f.write(blob)
-    print(f"wrote {args.out} ({len(blob)} bytes, "
-          f"{len(instrs)} arm instructions)")
+    print(f"wrote {args.out} ({len(blob)} bytes, {len(instrs)} arm instructions)")
 
 
 if __name__ == "__main__":

@@ -53,3 +53,23 @@ python3 validate.py asp/core2.lp asp/stabilized_water.lp --tmax 10
 # scaling table (slow)
 python3 experiments.py --time-limit 300
 ```
+
+## Development
+
+Linting (ruff), type checking (mypy), tests (pytest) and a
+[straitjacket](https://github.com/zmaril/straitjacket) scan run in CI on
+every push and pull request against `main`. To run them locally:
+
+```sh
+uv tool install ruff mypy pre-commit   # or: pip install ruff mypy pre-commit
+curl -fsSL https://raw.githubusercontent.com/zmaril/straitjacket/main/install.sh | sh
+
+pre-commit install     # run all checks on every commit
+
+# or run each check by hand
+ruff check .
+ruff format .
+scripts/typecheck.sh   # mypy, one top-level directory at a time
+straitjacket
+pytest harness/tests/
+```

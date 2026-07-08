@@ -70,6 +70,7 @@ Importable API:
 Usage:
     python3 harness/metrics.py <puzzle.json> <plan.json>
 """
+
 import argparse
 import json
 import os
@@ -77,15 +78,21 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from validate import (DIRS, Invalid, plan_length, resolve_layout,  # noqa: E402
-                      transform, validate)
+from validate import (  # noqa: E402  (import must follow the sys.path setup above)
+    DIRS,
+    Invalid,
+    plan_length,
+    resolve_layout,
+    transform,
+    validate,
+)
 
 # omsim's part price table (decode.c L1298-1349), restricted to the part
 # types the harness models. Inputs/outputs cost 0 there too.
 PART_PRICES = {
-    "arm": 20,          # 1-armed arm
-    "bonder": 10,       # glyph of bonding
-    "calcifier": 10,    # glyph of calcification
+    "arm": 20,  # 1-armed arm
+    "bonder": 10,  # glyph of bonding
+    "calcifier": 10,  # glyph of calcification
     "input": 0,
     "output": 0,
 }
@@ -101,8 +108,7 @@ class Metric:
         (numeric, not stubbed, not vacuous under the current model).
     """
 
-    def __init__(self, name, description, lower_is_better=True,
-                 stubbed=False, competed=True):
+    def __init__(self, name, description, lower_is_better=True, stubbed=False, competed=True):
         self.name = name
         self.description = description
         self.lower_is_better = lower_is_better
@@ -110,31 +116,46 @@ class Metric:
         self.competed = competed
 
 
-METRICS = {m.name: m for m in [
-    Metric("instructions", "non-wait instruction count (I)"),
-    Metric("makespan", "completion time of the last product "
-                       "(sequential-arm stand-in for cycles, C)"),
-    Metric("area", "used hexes, run-to-victory (A)"),
-    Metric("cost", "part-price sum (G)"),
-    Metric("sum", "G + C + A (leaderboard Sum)"),
-    Metric("sum4", "G + C + A + I (leaderboard Sum4)"),
-    Metric("product_gca", "G * C * A (leaderboard X)"),
-    Metric("product_gc", "G * C"),
-    Metric("product_ga", "G * A"),
-    Metric("product_ca", "C * A"),
-    Metric("trackless", "no track hexes -- vacuously True (track not "
-                        "modeled)", competed=False),
-    Metric("overlap", "parts share hexes -- vacuously False (validator "
-                      "forbids it)", competed=False),
-    Metric("rate", "steady-state cycles per output -- STUB, needs "
-                   "steady-state detection", stubbed=True, competed=False),
-    Metric("area_at_infinity", "asymptotic area -- STUB, needs "
-                               "steady-state detection", stubbed=True,
-           competed=False),
-    Metric("looping", "returns to an identical past state -- STUB, needs "
-                      "steady-state detection", stubbed=True,
-           competed=False),
-]}
+METRICS = {
+    m.name: m
+    for m in [
+        Metric("instructions", "non-wait instruction count (I)"),
+        Metric(
+            "makespan",
+            "completion time of the last product (sequential-arm stand-in for cycles, C)",
+        ),
+        Metric("area", "used hexes, run-to-victory (A)"),
+        Metric("cost", "part-price sum (G)"),
+        Metric("sum", "G + C + A (leaderboard Sum)"),
+        Metric("sum4", "G + C + A + I (leaderboard Sum4)"),
+        Metric("product_gca", "G * C * A (leaderboard X)"),
+        Metric("product_gc", "G * C"),
+        Metric("product_ga", "G * A"),
+        Metric("product_ca", "C * A"),
+        Metric("trackless", "no track hexes -- vacuously True (track not modeled)", competed=False),
+        Metric(
+            "overlap", "parts share hexes -- vacuously False (validator forbids it)", competed=False
+        ),
+        Metric(
+            "rate",
+            "steady-state cycles per output -- STUB, needs steady-state detection",
+            stubbed=True,
+            competed=False,
+        ),
+        Metric(
+            "area_at_infinity",
+            "asymptotic area -- STUB, needs steady-state detection",
+            stubbed=True,
+            competed=False,
+        ),
+        Metric(
+            "looping",
+            "returns to an identical past state -- STUB, needs steady-state detection",
+            stubbed=True,
+            competed=False,
+        ),
+    ]
+}
 
 
 def leaderboard_metrics():
@@ -153,8 +174,7 @@ def part_cost(puzzle, plan, prices=None):
     for pl in plan.get("placements", []):
         ptype = pl.get("type")
         if ptype not in prices:
-            raise Invalid(f"cost: no price for part type {ptype!r} "
-                          f"(pass it via `prices`)")
+            raise Invalid(f"cost: no price for part type {ptype!r} (pass it via `prices`)")
         total += prices[ptype]
     return total
 
@@ -168,12 +188,10 @@ def _footprint_hexes(puzzle, lay):
         hexes.add(a["base"])
     for rid, ipl in lay.inputs.items():
         for atom in reagents[rid]["atoms"]:
-            hexes.add(transform(ipl["position"], ipl["rotation"],
-                                tuple(atom["pos"])))
+            hexes.add(transform(ipl["position"], ipl["rotation"], tuple(atom["pos"])))
     for pid, opl in lay.outputs.items():
         for atom in products[pid]["atoms"]:
-            hexes.add(transform(opl["position"], opl["rotation"],
-                                tuple(atom["pos"])))
+            hexes.add(transform(opl["position"], opl["rotation"], tuple(atom["pos"])))
     hexes.update(lay.calcifiers.values())
     for h1, h2 in lay.bonders.values():
         hexes.add(h1)
@@ -188,9 +206,8 @@ def compute_metrics(puzzle, plan, prices=None):
     Returns {metric name: value}; stubbed metrics are None.
     """
     lay = resolve_layout(puzzle, plan)
-    states = []                     # (t, snapshot) straight from the replay
-    complete_at = validate(puzzle, plan,
-                           on_state=lambda t, s: states.append((t, s)))
+    states = []  # (t, snapshot) straight from the replay
+    complete_at = validate(puzzle, plan, on_state=lambda t, s: states.append((t, s)))
     makespan = max(complete_at.values())
 
     # area: used hexes over states t = 0..makespan (@V measure point)
@@ -201,7 +218,7 @@ def compute_metrics(puzzle, plan, prices=None):
         for mid, arm in lay.arms.items():
             d = DIRS[snap["orient"][mid]]
             bq, br = arm["base"]
-            for k in range(1, arm["length"] + 1):   # grabber axis hexes
+            for k in range(1, arm["length"] + 1):  # grabber axis hexes
                 used.add((bq + k * d[0], br + k * d[1]))
         used.update(snap["pos"].values())
 
@@ -220,18 +237,19 @@ def compute_metrics(puzzle, plan, prices=None):
         "product_gc": g * c,
         "product_ga": g * a,
         "product_ca": c * a,
-        "trackless": True,          # vacuous: track not modeled
-        "overlap": False,           # vacuous: validator forbids overlap
-        "rate": None,               # STUB: needs steady-state detection
-        "area_at_infinity": None,   # STUB: needs steady-state detection
-        "looping": None,            # STUB: needs steady-state detection
+        "trackless": True,  # vacuous: track not modeled
+        "overlap": False,  # vacuous: validator forbids overlap
+        "rate": None,  # STUB: needs steady-state detection
+        "area_at_infinity": None,  # STUB: needs steady-state detection
+        "looping": None,  # STUB: needs steady-state detection
     }
 
 
 def main():
     ap = argparse.ArgumentParser(
         description="Compute metrics for a plan JSON against a puzzle "
-                    "JSON (the plan must validate).")
+        "JSON (the plan must validate)."
+    )
     ap.add_argument("puzzle")
     ap.add_argument("plan")
     args = ap.parse_args()

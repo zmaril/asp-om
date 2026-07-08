@@ -27,14 +27,18 @@ optional cross-check) against the clingo-core2 semantics:
 Returns a list of error strings; empty = valid.
 """
 
+from typing import Any
+
 _DIRS = [(1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1), (1, -1)]
 
 
 def _board(radius):
-    return set((q, r)
-               for q in range(-radius, radius + 1)
-               for r in range(-radius, radius + 1)
-               if abs(q + r) <= radius)
+    return {
+        (q, r)
+        for q in range(-radius, radius + 1)
+        for r in range(-radius, radius + 1)
+        if abs(q + r) <= radius
+    }
 
 
 def _rot(base, h, cw):
@@ -56,25 +60,26 @@ def validate_plan2(inst, plan, cross_check_traj=True):
     T = len(instructions)
 
     # ---- layout sanity ----
-    for h, what in ([(base, "arm base"), (calc, "calcifier"),
-                     (g1, "bonder cell 1"), (g2, "bonder cell 2")]
-                    + [(s, f"input {i+1}") for i, s in enumerate(spawns)]):
+    for h, what in [
+        (base, "arm base"),
+        (calc, "calcifier"),
+        (g1, "bonder cell 1"),
+        (g2, "bonder cell 2"),
+    ] + [(s, f"input {i + 1}") for i, s in enumerate(spawns)]:
         if h not in board:
             errors.append(f"{what} {h} is off the board")
     d = (g2[0] - g1[0], g2[1] - g1[1])
     if d not in _DIRS[:3]:
         errors.append(f"bonder cells {g1},{g2} not adjacent with dir<3")
-    feet = [(base, "arm base"), (calc, "calcifier"), (g1, "bonder"),
-            (g2, "bonder")] + [(s, f"input{i+1}")
-                               for i, s in enumerate(spawns)]
+    feet = [(base, "arm base"), (calc, "calcifier"), (g1, "bonder"), (g2, "bonder")] + [
+        (s, f"input{i + 1}") for i, s in enumerate(spawns)
+    ]
     for i in range(len(feet)):
         for j in range(i + 1, len(feet)):
-            if feet[i][0] == feet[j][0] and not (
-                    feet[i][1] == feet[j][1] == "bonder"):
-                errors.append(f"parts overlap at {feet[i][0]}: "
-                              f"{feet[i][1]} and {feet[j][1]}")
+            if feet[i][0] == feet[j][0] and not (feet[i][1] == feet[j][1] == "bonder"):
+                errors.append(f"parts overlap at {feet[i][0]}: {feet[i][1]} and {feet[j][1]}")
     if inst.products:
-        prod = set(tuple(h) for h in inst.products.values())
+        prod = {tuple(h) for h in inst.products.values()}
         for h, what in feet:
             if h in prod:
                 errors.append(f"{what} overlaps product hex {h}")
@@ -90,7 +95,7 @@ def validate_plan2(inst, plan, cross_check_traj=True):
         pos[(i + 1, 1)] = s
         salt[(i + 1, 1)] = False
     held = None
-    bonds = set()
+    bonds: set[frozenset] = set()
 
     def gripper():
         return (base[0] + _DIRS[orient][0], base[1] + _DIRS[orient][1])
@@ -110,15 +115,14 @@ def validate_plan2(inst, plan, cross_check_traj=True):
     def state_checks(t):
         if gripper() not in board:
             errors.append(f"t={t}: gripper {gripper()} off the board")
-        seen = {}
+        seen: dict[tuple[int, int], Any] = {}
         for x, h in pos.items():
             if h not in board:
                 errors.append(f"t={t}: atom {x} off the board at {h}")
             if h == base:
                 errors.append(f"t={t}: atom {x} on the arm base {h}")
             if h in seen:
-                errors.append(f"t={t}: atoms {seen[h]} and {x} collide "
-                              f"at {h}")
+                errors.append(f"t={t}: atoms {seen[h]} and {x} collide at {h}")
             seen[h] = x
 
     def update_bonds(t):
@@ -152,9 +156,7 @@ def validate_plan2(inst, plan, cross_check_traj=True):
                 for x in component(held):
                     h2 = _rot(base, pos[x], cw)
                     if h2 not in board:
-                        errors.append(
-                            f"step {t}: rotation swings atom {x} off the "
-                            f"board to {h2}")
+                        errors.append(f"step {t}: rotation swings atom {x} off the board to {h2}")
                     pos[x] = h2
             orient = (orient + (1 if cw else 5)) % 6
         elif act == "wait":
@@ -166,13 +168,12 @@ def validate_plan2(inst, plan, cross_check_traj=True):
         # sits on the spawn hex at t+1
         old_atoms = set(pos)
         for i, s in enumerate(spawns):
-            if npool[i] < inst.pools[i]:
-                if not any(pos[x] == s for x in old_atoms):
-                    npool[i] += 1
-                    x = (i + 1, npool[i])
-                    pos[x] = s
-                    salt[x] = False
-                    sim_traj[x] = {}
+            if npool[i] < inst.pools[i] and not any(pos[x] == s for x in old_atoms):
+                npool[i] += 1
+                x = (i + 1, npool[i])
+                pos[x] = s
+                salt[x] = False
+                sim_traj[x] = {}
         for x in calcify:
             salt[x] = True
         for x in pos:
@@ -184,25 +185,32 @@ def validate_plan2(inst, plan, cross_check_traj=True):
     ok = False
     for b in bonds:
         x, y = tuple(b)
-        pair_ok = (salt[x] != salt[y]
-                   and held not in (x, y)
-                   and sum(1 for bb in bonds if x in bb) == 1
-                   and sum(1 for bb in bonds if y in bb) == 1)
+        pair_ok = (
+            salt[x] != salt[y]
+            and held not in (x, y)
+            and sum(1 for bb in bonds if x in bb) == 1
+            and sum(1 for bb in bonds if y in bb) == 1
+        )
         s_atom, w_atom = (x, y) if salt[x] else (y, x)
-        diff = (pos[s_atom][0] - pos[w_atom][0],
-                pos[s_atom][1] - pos[w_atom][1])
+        diff = (pos[s_atom][0] - pos[w_atom][0], pos[s_atom][1] - pos[w_atom][1])
         if diff not in _DIRS:
             pair_ok = False
-        if pair_ok and inst.products:
-            if (pos[s_atom] != tuple(inst.products["salt"])
-                    or pos[w_atom] != tuple(inst.products["water"])):
-                pair_ok = False
+        if (
+            pair_ok
+            and inst.products
+            and (
+                pos[s_atom] != tuple(inst.products["salt"])
+                or pos[w_atom] != tuple(inst.products["water"])
+            )
+        ):
+            pair_ok = False
         if pair_ok:
             ok = True
     if not ok:
-        errors.append("goal: no exact unheld salt--water dimer at the "
-                      "horizon" + (" on the product hexes"
-                                   if inst.products else ""))
+        errors.append(
+            "goal: no exact unheld salt--water dimer at the "
+            "horizon" + (" on the product hexes" if inst.products else "")
+        )
 
     # ---- optional cross-check against decoded state ----
     if cross_check_traj and "traj" in plan:
@@ -213,21 +221,15 @@ def validate_plan2(inst, plan, cross_check_traj=True):
                 sim_h = sim_traj.get(x, {}).get(t)
                 cl_h = tuple(claimed[t]) if claimed[t] is not None else None
                 if bool(claimed_ex[t]) != (sim_h is not None):
-                    errors.append(
-                        f"decoded existence of {x} at t={t} disagrees with "
-                        f"re-simulation")
+                    errors.append(f"decoded existence of {x} at t={t} disagrees with re-simulation")
                 elif sim_h is not None and cl_h != sim_h:
                     errors.append(
                         f"decoded position of {x} at t={t} ({cl_h}) "
-                        f"disagrees with re-simulation ({sim_h})")
-            if claimed_ex[T] and x in salt:
-                if bool(plan["salt"][x][T]) != salt[x]:
-                    errors.append(
-                        f"decoded final type of {x} disagrees with "
-                        f"re-simulation")
-        if plan.get("bonds") is not None:
-            if plan["bonds"][T] != bonds:
-                errors.append("decoded final bond set disagrees with "
-                              "re-simulation")
+                        f"disagrees with re-simulation ({sim_h})"
+                    )
+            if claimed_ex[T] and x in salt and bool(plan["salt"][x][T]) != salt[x]:
+                errors.append(f"decoded final type of {x} disagrees with re-simulation")
+        if plan.get("bonds") is not None and plan["bonds"][T] != bonds:
+            errors.append("decoded final bond set disagrees with re-simulation")
 
     return errors

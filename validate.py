@@ -32,9 +32,10 @@ Usage:
 
 Exit status 0 = PASS, 1 = FAIL / no model.
 """
+
 import argparse
-import sys
 import time as _time
+from typing import Any
 
 import clingo
 
@@ -51,8 +52,12 @@ def rot_ccw(q, r):
 
 
 def hexes(radius):
-    return {(q, r) for q in range(-radius, radius + 1)
-            for r in range(-radius, radius + 1) if abs(q + r) <= radius}
+    return {
+        (q, r)
+        for q in range(-radius, radius + 1)
+        for r in range(-radius, radius + 1)
+        if abs(q + r) <= radius
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -68,7 +73,7 @@ def solve(files, tmax, time_limit, consts):
     for f in files:
         ctl.load(f)
     ctl.ground([("base", [])])
-    best = {"symbols": None, "cost": None}
+    best: dict[str, Any] = {"symbols": None, "cost": None}
 
     def on_model(model):
         best["symbols"] = model.symbols(atoms=True)
@@ -87,27 +92,40 @@ def solve(files, tmax, time_limit, consts):
 
 def extract(symbols):
     """Pull plan + layout facts + claimed trajectory out of the answer set."""
-    F = {
-        "arm": [], "base": {}, "armlen": {}, "init_orient": {},
-        "init_at": {}, "init_type": {}, "init_bond": set(),
-        "spawn": {}, "spawn_type": {}, "pool": {},
-        "glyph_calc": set(), "glyph_bond": set(),
-        "product": {}, "plan": {},          # plan: t -> (arm, action)
-        "v1_base": None, "v1_orient": None,
+    F: dict[str, Any] = {
+        "arm": [],
+        "base": {},
+        "armlen": {},
+        "init_orient": {},
+        "init_at": {},
+        "init_type": {},
+        "init_bond": set(),
+        "spawn": {},
+        "spawn_type": {},
+        "pool": {},
+        "glyph_calc": set(),
+        "glyph_bond": set(),
+        "product": {},
+        "plan": {},  # plan: t -> (arm, action)
+        "v1_base": None,
+        "v1_orient": None,
         # claimed trajectory, for the state cross-check:
-        "claim_at": {}, "claim_type": {}, "claim_bond": {}, "claim_held": {},
+        "claim_at": {},
+        "claim_type": {},
+        "claim_bond": {},
+        "claim_held": {},
     }
     dup = None
     for s in symbols:
         a = s.arguments
         n = s.name
         if n == "do":
-            if len(a) == 2:                     # v1: do(action, t)
+            if len(a) == 2:  # v1: do(action, t)
                 t = a[1].number
                 if t in F["plan"]:
                     dup = t
                 F["plan"][t] = ("arm0", a[0].name)
-            else:                               # v2: do(arm, action, t)
+            else:  # v2: do(arm, action, t)
                 t = a[2].number
                 if t in F["plan"]:
                     dup = t
@@ -141,19 +159,16 @@ def extract(symbols):
         elif n == "glyph_calc":
             F["glyph_calc"].add((a[0].number, a[1].number))
         elif n == "glyph_bond":
-            F["glyph_bond"].add(((a[0].number, a[1].number),
-                                 (a[2].number, a[3].number)))
+            F["glyph_bond"].add(((a[0].number, a[1].number), (a[2].number, a[3].number)))
         elif n == "product":
             F["product"][str(a[0])] = (a[1].number, a[2].number)
         elif n == "at":
-            F["claim_at"].setdefault(a[3].number, {})[str(a[0])] = \
-                (a[1].number, a[2].number)
+            F["claim_at"].setdefault(a[3].number, {})[str(a[0])] = (a[1].number, a[2].number)
         elif n == "type" and len(a) == 3:
             F["claim_type"].setdefault(a[2].number, {})[str(a[0])] = a[1].name
         elif n == "bond":
             x, y = str(a[0]), str(a[1])
-            F["claim_bond"].setdefault(a[2].number, set()).add(
-                (min(x, y), max(x, y)))
+            F["claim_bond"].setdefault(a[2].number, set()).add((min(x, y), max(x, y)))
         elif n == "holding":
             t = a[-1].number
             F["claim_held"].setdefault(t, set()).add(str(a[-2]))
@@ -164,7 +179,7 @@ def extract(symbols):
 # Goal checkers (mirror the goal_met rules of the supported instances)
 # ---------------------------------------------------------------------------
 def _deg(bonds):
-    d = {}
+    d: dict[str, int] = {}
     for x, y in bonds:
         d[x] = d.get(x, 0) + 1
         d[y] = d.get(y, 0) + 1
@@ -174,15 +189,18 @@ def _deg(bonds):
 def goal_product(F, states):
     """v1 core: every product(X,Q,R) atom rests on its hex at t_max."""
     pos, held = states[-1]["pos"], states[-1]["held"]
-    return all(pos.get(x) == h and x not in held
-               for x, h in F["product"].items())
+    return all(pos.get(x) == h and x not in held for x, h in F["product"].items())
 
 
 def goal_rigid(F, states):
     """asp/rigid_instance.lp: a1@(-1,1), a2@(-2,2), unheld, at t_max."""
     pos, held = states[-1]["pos"], states[-1]["held"]
-    return (pos.get("a1") == (-1, 1) and pos.get("a2") == (-2, 2)
-            and "a1" not in held and "a2" not in held)
+    return (
+        pos.get("a1") == (-1, 1)
+        and pos.get("a2") == (-2, 2)
+        and "a1" not in held
+        and "a2" not in held
+    )
 
 
 def _dimer_at(st):
@@ -194,9 +212,13 @@ def _dimer_at(st):
             continue
         for dq, dr in DIRS:
             s = occ.get((q + dq, r + dr))
-            if (s is not None and st["typ"][s] == "salt"
-                    and s not in st["held"] and deg.get(s, 0) == 1
-                    and (min(w, s), max(w, s)) in st["bonds"]):
+            if (
+                s is not None
+                and st["typ"][s] == "salt"
+                and s not in st["held"]
+                and deg.get(s, 0) == 1
+                and (min(w, s), max(w, s)) in st["bonds"]
+            ):
                 return True
     return False
 
@@ -211,28 +233,32 @@ def _swsw_at(st, dpairs):
         for d1, d2 in dpairs:
             s1 = occ.get((q + DIRS[d1][0], r + DIRS[d1][1]))
             s2 = occ.get((q + DIRS[d2][0], r + DIRS[d2][1]))
-            if (s1 is not None and s2 is not None
-                    and st["typ"][s1] == "salt" and st["typ"][s2] == "salt"
-                    and s1 not in st["held"] and s2 not in st["held"]
-                    and deg.get(s1, 0) == 1 and deg.get(s2, 0) == 1
-                    and (min(w, s1), max(w, s1)) in st["bonds"]
-                    and (min(w, s2), max(w, s2)) in st["bonds"]):
+            if (
+                s1 is not None
+                and s2 is not None
+                and st["typ"][s1] == "salt"
+                and st["typ"][s2] == "salt"
+                and s1 not in st["held"]
+                and s2 not in st["held"]
+                and deg.get(s1, 0) == 1
+                and deg.get(s2, 0) == 1
+                and (min(w, s1), max(w, s1)) in st["bonds"]
+                and (min(w, s2), max(w, s2)) in st["bonds"]
+            ):
                 return True
     return False
 
 
 def goal_sw_dimer(F, states):
-    return any(_dimer_at(st) for st in states)          # complete(T), any T
+    return any(_dimer_at(st) for st in states)  # complete(T), any T
 
 
 def goal_swsw_bent(F, states):
-    return any(_swsw_at(st, [(d, (d + 2) % 6) for d in range(6)])
-               for st in states)
+    return any(_swsw_at(st, [(d, (d + 2) % 6) for d in range(6)]) for st in states)
 
 
 def goal_swsw_linear(F, states):
-    return any(_swsw_at(st, [(d, (d + 3) % 6) for d in range(3)])
-               for st in states)
+    return any(_swsw_at(st, [(d, (d + 3) % 6) for d in range(3)]) for st in states)
 
 
 GOALS = {
@@ -274,8 +300,7 @@ def replay_v1(F, tmax, radius, log):
             return None, f"t={t}: gripper {g} off the board"
         if len(set(pos.values())) != len(pos):
             return None, f"t={t}: atom collision"
-        states.append({"pos": dict(pos), "held": {held} - {None},
-                       "typ": {}, "bonds": set()})
+        states.append({"pos": dict(pos), "held": {held} - {None}, "typ": {}, "bonds": set()})
         if t == tmax:
             break
         act = F["plan"].get(t, ("arm0", "wait"))[1]
@@ -310,7 +335,7 @@ def replay_v2(F, tmax, radius, log):
     arms = sorted(F["arm"])
     bases = {F["base"][m] for m in arms}
     orient = {m: F["init_orient"][m] for m in arms}
-    holds = {m: None for m in arms}
+    holds = dict.fromkeys(arms)
 
     pos, typ = {}, {}
     bonds = set()
@@ -350,8 +375,12 @@ def replay_v2(F, tmax, radius, log):
                 bonds.add((min(x, y), max(x, y)))
 
     def snapshot():
-        return {"pos": dict(pos), "typ": dict(typ), "bonds": set(bonds),
-                "held": {x for x in holds.values() if x is not None}}
+        return {
+            "pos": dict(pos),
+            "typ": dict(typ),
+            "bonds": set(bonds),
+            "held": {x for x in holds.values() if x is not None},
+        }
 
     def static_checks(t):
         for m in arms:
@@ -365,7 +394,7 @@ def replay_v2(F, tmax, radius, log):
             return f"t={t}: atom on an arm base"
         return None
 
-    apply_bonders()                                  # bond/3 holds at t=0 too
+    apply_bonders()  # bond/3 holds at t=0 too
     states = []
     for t in range(tmax + 1):
         err = static_checks(t)
@@ -375,10 +404,13 @@ def replay_v2(F, tmax, radius, log):
         if t == tmax:
             break
         m, act = F["plan"].get(t, (None, "wait"))
-        log(f"t={t}: {m or '-'} {act}  " +
-            " ".join(f"{a}:d{orient[a]}" for a in arms) + "  " +
-            " ".join(f"{x}/{typ[x]}@{h}" for x, h in sorted(pos.items())))
-        oldpos = dict(pos)                           # calcify reads t, not t+1
+        log(
+            f"t={t}: {m or '-'} {act}  "
+            + " ".join(f"{a}:d{orient[a]}" for a in arms)
+            + "  "
+            + " ".join(f"{x}/{typ[x]}@{h}" for x, h in sorted(pos.items()))
+        )
+        oldpos = dict(pos)  # calcify reads t, not t+1
         if act == "grab":
             if holds[m] is not None:
                 return None, f"t={t}: {m} grabs with full hand"
@@ -401,10 +433,8 @@ def replay_v2(F, tmax, radius, log):
                 return None, f"t={t}: {m} rotates its gripper off the board"
             if holds[m] is not None:
                 comp = component(holds[m])
-                if any(holds[a] in comp for a in arms
-                       if a != m and holds[a] is not None):
-                    return None, (f"t={t}: {m} would tear a molecule held "
-                                  f"by another arm")
+                if any(holds[a] in comp for a in arms if a != m and holds[a] is not None):
+                    return None, (f"t={t}: {m} would tear a molecule held by another arm")
                 for x in comp:
                     dq, dr = rot(pos[x][0] - b[0], pos[x][1] - b[1])
                     pos[x] = (b[0] + dq, b[1] + dr)
@@ -423,7 +453,7 @@ def replay_v2(F, tmax, radius, log):
                 x = f"r({i},{spawned[i] + 1})"
                 pos[x], typ[x] = h, F["spawn_type"][i]
                 spawned[i] += 1
-        apply_bonders()                              # bonds at t+1, new pos
+        apply_bonders()  # bonds at t+1, new pos
     return states, None
 
 
@@ -431,38 +461,35 @@ def cross_check(F, states):
     """Replayed trajectory must equal the answer set's claimed trajectory."""
     for t, st in enumerate(states):
         if F["claim_at"].get(t, {}) != st["pos"]:
-            return (f"t={t}: positions diverge: clingo {F['claim_at'].get(t)}"
-                    f" vs replay {st['pos']}")
+            return f"t={t}: positions diverge: clingo {F['claim_at'].get(t)} vs replay {st['pos']}"
         ct = F["claim_type"].get(t, {})
         if ct and ct != st["typ"]:
             return f"t={t}: types diverge: clingo {ct} vs replay {st['typ']}"
         if F["claim_bond"].get(t, set()) != st["bonds"]:
-            return (f"t={t}: bonds diverge: clingo {F['claim_bond'].get(t)}"
-                    f" vs replay {st['bonds']}")
+            return f"t={t}: bonds diverge: clingo {F['claim_bond'].get(t)} vs replay {st['bonds']}"
         if F["claim_held"].get(t, set()) != st["held"]:
-            return (f"t={t}: held atoms diverge: clingo "
-                    f"{F['claim_held'].get(t)} vs replay {st['held']}")
+            return (
+                f"t={t}: held atoms diverge: clingo {F['claim_held'].get(t)} vs replay {st['held']}"
+            )
     return None
 
 
 def main():
-    ap = argparse.ArgumentParser(
-        description="Validate a clingo plan by independent replay.")
+    ap = argparse.ArgumentParser(description="Validate a clingo plan by independent replay.")
     ap.add_argument("files", nargs="+", help="ASP files (core + instance)")
     ap.add_argument("--tmax", type=int, default=None)
     ap.add_argument("--time-limit", type=float, default=None)
     ap.add_argument("-c", dest="consts", action="append", default=[])
-    ap.add_argument("--goal", choices=sorted(GOALS),
-                    help="goal checker (default: inferred from file names)")
-    ap.add_argument("--verbose", action="store_true",
-                    help="print the replay step by step")
+    ap.add_argument(
+        "--goal", choices=sorted(GOALS), help="goal checker (default: inferred from file names)"
+    )
+    ap.add_argument("--verbose", action="store_true", help="print the replay step by step")
     args = ap.parse_args()
     log = print if args.verbose else (lambda *a: None)
     name = " + ".join(args.files)
 
     t0 = _time.time()
-    result, best, consts = solve(args.files, args.tmax, args.time_limit,
-                                 args.consts)
+    result, best, consts = solve(args.files, args.tmax, args.time_limit, args.consts)
     if best["symbols"] is None:
         print(f"FAIL  {name}: no model ({result})")
         return 1
@@ -490,8 +517,10 @@ def main():
         print(f"      plan ({len(plan)} instructions): {' '.join(plan)}")
         return 1
     print(f"PASS  {name}")
-    print(f"      cost={best['cost']} t_max={tmax} radius={radius} "
-          f"goal={goal_name} wall={_time.time() - t0:.2f}s")
+    print(
+        f"      cost={best['cost']} t_max={tmax} radius={radius} "
+        f"goal={goal_name} wall={_time.time() - t0:.2f}s"
+    )
     print(f"      plan ({len(plan)} instructions): {' '.join(plan)}")
     return 0
 

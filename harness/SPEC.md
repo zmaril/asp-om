@@ -1,5 +1,7 @@
 # Harness spec: puzzle format, plan format, world semantics
 
+<!-- straitjacket-allow-file:duplication - the spec repeats its JSON examples on purpose -->
+
 This document defines the **common formats and semantics** shared by all
 solver arms (clingo, picat, minizinc, z3, sat, ...). The canonical
 implementation of these semantics is `harness/validate.py`; if this

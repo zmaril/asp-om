@@ -47,6 +47,9 @@ Variable families (pysat IDPool):
   sel(s,w)                                       goal dimer selector
 """
 
+# straitjacket-allow-file:duplication - encode3.py is this encoder's successor;
+# the blocks they share are deliberately kept lineage, not accidental clones.
+
 import argparse
 import sys
 import time
@@ -54,9 +57,9 @@ import time
 from pysat.formula import CNF, IDPool
 
 try:
-    from instances import SW_CASES, DIRS, hex_ball, sw_scaled
+    from instances import DIRS, SW_CASES, hex_ball, sw_scaled
 except ImportError:
-    from sat.instances import SW_CASES, DIRS, hex_ball, sw_scaled
+    from sat.instances import DIRS, SW_CASES, hex_ball, sw_scaled
 
 ACTIONS2 = ["rot_cw", "rot_ccw", "grab", "drop", "wait"]
 
@@ -123,18 +126,15 @@ class Encoder2:
                     self.add([-self.v("gpos", h1), -self.v("gdir", d)])
 
         # ---- OM part-non-overlap rule (asp/layout.lp foot/3) ----
-        single_parts = ([("base",)]
-                        + [("spawn", i) for i in range(1, ninputs + 1)]
-                        + [("cpos",)])
+        single_parts = [("base",)] + [("spawn", i) for i in range(1, ninputs + 1)] + [("cpos",)]
         for h in self.hexes:
             self.at_most_one([self.v(*p, h) for p in single_parts])
             # bonder cell 1 is gpos itself
             for p in single_parts:
                 self.add([-self.v("gpos", h), -self.v(*p, h)])
-        for (h1, d, h2) in self.placements:
+        for h1, d, h2 in self.placements:
             for p in single_parts:
-                self.add([-self.v("gpos", h1), -self.v("gdir", d),
-                          -self.v(*p, h2)])
+                self.add([-self.v("gpos", h1), -self.v("gdir", d), -self.v(*p, h2)])
         # fixed product hexes model a real output part: nothing overlaps it
         if inst.products:
             prod_hexes = set(inst.products.values())
@@ -142,7 +142,7 @@ class Encoder2:
                 for p in single_parts:
                     self.add([-self.v(*p, hp)])
                 self.add([-self.v("gpos", hp)])
-                for (h1, d, h2) in self.placements:
+                for h1, d, h2 in self.placements:
                     if h2 == hp:
                         self.add([-self.v("gpos", h1), -self.v("gdir", d)])
 
@@ -168,7 +168,7 @@ class Encoder2:
                     g = (b[0] + DIRS[d][0], b[1] + DIRS[d][1])
                     pre = [-self.v("base", b), -self.v("orient", d, t)]
                     if g in self.hexset:
-                        self.add(pre + [self.v("grip", g, t)])
+                        self.add([*pre, self.v("grip", g, t)])
                     else:
                         self.add(pre)
             self.at_most_one([self.v("grip", h, t) for h in self.hexes])
@@ -190,11 +190,10 @@ class Encoder2:
                     w = self.v("exw", x, h, t)
                     self.add([-w, self.v("ex", x, t - 1)])
                     self.add([-w, self.v("at", x, h, t)])
-                    self.add([w, -self.v("ex", x, t - 1),
-                              -self.v("at", x, h, t)])
+                    self.add([w, -self.v("ex", x, t - 1), -self.v("at", x, h, t)])
                     self.add([-w, eo])
                     wits.append(w)
-                self.add([-eo] + wits)
+                self.add([-eo, *wits])
         for x in X:
             i, n = x
             if n == 1:
@@ -223,7 +222,7 @@ class Encoder2:
             for x in X:
                 ats = [self.v("at", x, h, t) for h in self.hexes]
                 self.at_most_one(ats)
-                self.add([-self.v("ex", x, t)] + ats)  # exists -> somewhere
+                self.add([-self.v("ex", x, t), *ats])  # exists -> somewhere
                 for a in ats:  # not exists -> nowhere
                     self.add([self.v("ex", x, t), -a])
             for h in self.hexes:  # no two atoms share a hex
@@ -241,24 +240,20 @@ class Encoder2:
             for x in X:
                 hx, hx1 = self.v("hold", x, t), self.v("hold", x, t + 1)
                 for h in self.hexes:
-                    self.add([-grab, -self.v("grip", h, t),
-                              -self.v("at", x, h, t), hx1])
+                    self.add([-grab, -self.v("grip", h, t), -self.v("at", x, h, t), hx1])
                 self.add([-hx, drop, hx1])
                 self.add([-drop, -hx1])
                 self.add([-hx1, hx, grab])
                 for h in self.hexes:
-                    self.add([-hx1, hx, -self.v("grip", h, t),
-                              self.v("at", x, h, t)])
+                    self.add([-hx1, hx, -self.v("grip", h, t), self.v("at", x, h, t)])
                 self.add([-grab, -hx])  # hand must be empty
             for h in self.hexes:  # something to grab
-                self.add([-grab, -self.v("grip", h, t)]
-                         + [self.v("at", x, h, t) for x in X])
+                self.add([-grab, -self.v("grip", h, t)] + [self.v("at", x, h, t) for x in X])
             self.add([-drop] + [self.v("hold", x, t) for x in X])
         for t in range(1, T + 1):  # held atom rides the gripper
             for x in X:
                 for h in self.hexes:
-                    self.add([-self.v("hold", x, t), -self.v("grip", h, t),
-                              self.v("at", x, h, t)])
+                    self.add([-self.v("hold", x, t), -self.v("grip", h, t), self.v("at", x, h, t)])
 
         # ---- types: salt(x,t); calcification ----
         for x in X:
@@ -275,18 +270,17 @@ class Encoder2:
                     self.add([-w, cp])
                     self.add([-w, at])
                     wits.append(w)
-                self.add([-s1, s0] + wits)  # completion
+                self.add([-s1, s0, *wits])  # completion
 
         # ---- bonds ----
-        self.pairs = [(X[i], X[j]) for i in range(len(X))
-                      for j in range(i + 1, len(X))]
+        self.pairs = [(X[i], X[j]) for i in range(len(X)) for j in range(i + 1, len(X))]
 
         def pvar(x, y, t):
             p = (x, y) if (x, y) in self.pairs else (y, x)
             return self.v("bond", p, t)
 
         for t in times:
-            for (h1, d, h2) in self.placements:
+            for h1, d, h2 in self.placements:
                 for x in X:
                     for y in X:
                         if x == y:
@@ -303,14 +297,16 @@ class Encoder2:
         for p in self.pairs:
             for t in times:
                 b = self.v("bond", p, t)
-                wits = [self.v("bf", u, w2, h1, d, t)
-                        for (h1, d, h2) in self.placements
-                        for (u, w2) in (p, (p[1], p[0]))]
+                wits = [
+                    self.v("bf", u, w2, h1, d, t)
+                    for (h1, d, h2) in self.placements
+                    for (u, w2) in (p, (p[1], p[0]))
+                ]
                 if t == 0:
-                    self.add([-b] + wits)
+                    self.add([-b, *wits])
                 else:
                     self.add([-self.v("bond", p, t - 1), b])
-                    self.add([-b, self.v("bond", p, t - 1)] + wits)
+                    self.add([-b, self.v("bond", p, t - 1), *wits])
 
         # ---- held bond-connected component (levels; exact closure) ----
         # comp(0,x,t) == hold(x,t); comp(k+1,x,t) == comp(k,x,t) or
@@ -338,7 +334,7 @@ class Encoder2:
                         self.add([w, -cy, -b])
                         self.add([-w, ck1])
                         wits.append(w)
-                    self.add([-ck1, prev] + wits)
+                    self.add([-ck1, prev, *wits])
 
         def comp(x, t):
             return compvar(K, x, t)
@@ -362,17 +358,15 @@ class Encoder2:
                     for h in self.hexes:
                         h2 = rot_about(b, h, cw)
                         for x in X:
-                            pre = [-dl, -comp(x, t), -bl,
-                                   -self.v("at", x, h, t)]
+                            pre = [-dl, -comp(x, t), -bl, -self.v("at", x, h, t)]
                             if h2 in self.hexset:
-                                self.add(pre + [self.v("at", x, h2, t + 1)])
+                                self.add([*pre, self.v("at", x, h2, t + 1)])
                             else:  # swing off the board is illegal
                                 self.add(pre)
             for x in X:  # frame: unmoved atoms stay put
                 mv = self.v("mv", x, t)
                 for h in self.hexes:
-                    self.add([-self.v("at", x, h, t), mv,
-                              self.v("at", x, h, t + 1)])
+                    self.add([-self.v("at", x, h, t), mv, self.v("at", x, h, t + 1)])
 
         # ---- goal at the horizon: exact salt--water dimer ----
         sels = []
@@ -395,18 +389,20 @@ class Encoder2:
                     self.add([-sel, -pvar(s, z, T)])
                     self.add([-sel, -pvar(w, z, T)])
                 if inst.products:
-                    self.add([-sel,
-                              self.v("at", s, inst.products["salt"], T)])
-                    self.add([-sel,
-                              self.v("at", w, inst.products["water"], T)])
+                    self.add([-sel, self.v("at", s, inst.products["salt"], T)])
+                    self.add([-sel, self.v("at", w, inst.products["water"], T)])
         self.add(sels)
 
     # ------------------------------------------------------------------
     def layout_assumptions(self):
         inst = self.inst
-        lits = [self.v("base", inst.base), self.v("orient", inst.orient0, 0),
-                self.v("cpos", inst.calc), self.v("gpos", inst.glyph_pos),
-                self.v("gdir", inst.glyph_dir)]
+        lits = [
+            self.v("base", inst.base),
+            self.v("orient", inst.orient0, 0),
+            self.v("cpos", inst.calc),
+            self.v("gpos", inst.glyph_pos),
+            self.v("gdir", inst.glyph_dir),
+        ]
         for i, h in enumerate(inst.spawn_fixed, 1):
             lits.append(self.v("spawn", i, h))
         return lits
@@ -425,21 +421,21 @@ class Encoder2:
 
 def main():
     try:
-        from solvers import solve as run_solver
         from decode2 import decode_model2, format_plan2
+        from solvers import solve as run_solver
         from validate2 import validate_plan2
     except ImportError:
-        from sat.solvers import solve as run_solver
         from sat.decode2 import decode_model2, format_plan2
+        from sat.solvers import solve as run_solver
         from sat.validate2 import validate_plan2
 
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--case", default="sw",
-                    help="sw | sw-omsim | sw-rN (scaled board)")
+    ap.add_argument("--case", default="sw", help="sw | sw-omsim | sw-rN (scaled board)")
     ap.add_argument("--horizon", type=int, required=True)
     ap.add_argument("--fixed-layout", action="store_true")
-    ap.add_argument("--backend", default="cadical195",
-                    choices=["cadical195", "glucose42", "kissat"])
+    ap.add_argument(
+        "--backend", default="cadical195", choices=["cadical195", "glucose42", "kissat"]
+    )
     ap.add_argument("--timeout", type=float, default=None)
     args = ap.parse_args()
 
@@ -452,12 +448,13 @@ def main():
 
     enc = Encoder2(inst, args.horizon)
     assumptions = enc.layout_assumptions() if args.fixed_layout else []
-    print(f"case {inst.name} T={args.horizon} "
-          f"mode={'fixed' if args.fixed_layout else 'free'}: "
-          f"{enc.nvars} vars, {enc.nclauses} clauses, "
-          f"encode {enc.encode_time:.3f}s")
-    sat, model, solve_t = run_solver(args.backend, enc.cnf, assumptions,
-                                     timeout=args.timeout)
+    print(
+        f"case {inst.name} T={args.horizon} "
+        f"mode={'fixed' if args.fixed_layout else 'free'}: "
+        f"{enc.nvars} vars, {enc.nclauses} clauses, "
+        f"encode {enc.encode_time:.3f}s"
+    )
+    sat, model, solve_t = run_solver(args.backend, enc.cnf, assumptions, timeout=args.timeout)
     res = "TIMEOUT" if sat is None else ("SAT" if sat else "UNSAT")
     print(f"{args.backend}: {res} in {solve_t:.3f}s")
     if sat:

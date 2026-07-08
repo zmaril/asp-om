@@ -33,18 +33,17 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from instances import SW_CASES, DIRS
-from encode2 import Encoder2
-from solvers import solve
 from decode2 import decode_model2, format_plan2
+from encode2 import Encoder2
+from instances import DIRS, SW_CASES
+from solvers import solve
 from validate2 import validate_plan2
 
-SCRATCH = ("/tmp/claude-0/-workspace-asp-om/"
-           "231137e8-aa53-5099-b493-86deb373db42/scratchpad")
+SCRATCH = "/tmp/claude-0/-workspace-asp-om/231137e8-aa53-5099-b493-86deb373db42/scratchpad"
 DEFAULT_OMSIM = os.path.join(SCRATCH, "omsim", "omsim")
-DEFAULT_PUZZLE = os.path.join(SCRATCH, "omsim", "test", "puzzle",
-                              "campaign", "ch1-and-prologue",
-                              "P007.puzzle")
+DEFAULT_PUZZLE = os.path.join(
+    SCRATCH, "omsim", "test", "puzzle", "campaign", "ch1-and-prologue", "P007.puzzle"
+)
 
 LETTERS = {"rot_cw": b"r", "rot_ccw": b"R", "grab": b"G", "drop": b"g"}
 
@@ -72,52 +71,48 @@ def solution_bytes(inst, plan, solution_name="SAT-ARM"):
     T = len(plan["instructions"])
     salt_hex = inst.products["salt"]
     water_hex = inst.products["water"]
-    out_dir = DIRS.index((water_hex[0] - salt_hex[0],
-                          water_hex[1] - salt_hex[1]))
-    tape = [(t, LETTERS[a]) for t, a in enumerate(plan["instructions"])
-            if a != "wait"]
+    out_dir = DIRS.index((water_hex[0] - salt_hex[0], water_hex[1] - salt_hex[1]))
+    tape = [(t, LETTERS[a]) for t, a in enumerate(plan["instructions"]) if a != "wait"]
     tape.append((T, b"X"))  # reset: close the loop for repeated products
 
-    out = struct.pack("<I", 7)          # magic
-    out += _string("P007")              # puzzle name
+    out = struct.pack("<I", 7)  # magic
+    out += _string("P007")  # puzzle name
     out += _string(solution_name)
-    out += struct.pack("<I", 0)         # unsolved header
+    out += struct.pack("<I", 0)  # unsolved header
     parts = []
     for i, spawn in enumerate(plan["spawns"]):
         parts.append(_part("input", spawn, 1, 0, i, [], 0))
     parts.append(_part("out-std", salt_hex, 1, out_dir, 0, [], 0))
     parts.append(_part("glyph-calcification", plan["calc"], 1, 0, 0, [], 0))
     gp = plan["glyph"][0]
-    gd = DIRS.index((plan["glyph"][1][0] - gp[0],
-                     plan["glyph"][1][1] - gp[1]))
+    gd = DIRS.index((plan["glyph"][1][0] - gp[0], plan["glyph"][1][1] - gp[1]))
     parts.append(_part("bonder", gp, 1, gd, 0, [], 0))
-    parts.append(_part("arm1", plan["base"], 1, plan["orient0"], 0,
-                       tape, 0))
+    parts.append(_part("arm1", plan["base"], 1, plan["orient0"], 0, tape, 0))
     out += struct.pack("<I", len(parts)) + b"".join(parts)
     return out
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--horizon", type=int, default=None,
-                    help="use this horizon (default: iterate to first SAT)")
-    ap.add_argument("--out", default=os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "p007-sat.solution"))
+    ap.add_argument(
+        "--horizon", type=int, default=None, help="use this horizon (default: iterate to first SAT)"
+    )
+    ap.add_argument(
+        "--out",
+        default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "p007-sat.solution"),
+    )
     ap.add_argument("--omsim", default=DEFAULT_OMSIM)
     ap.add_argument("--puzzle", default=DEFAULT_PUZZLE)
     ap.add_argument("--backend", default="cadical195")
     args = ap.parse_args()
 
     inst = SW_CASES["sw-omsim"]
-    horizons = ([args.horizon] if args.horizon
-                else range(1, inst.t_max_default + 1))
+    horizons = [args.horizon] if args.horizon else range(1, inst.t_max_default + 1)
     plan = None
     for T in horizons:
         enc = Encoder2(inst, T)
-        sat, model, st = solve(args.backend, enc.cnf,
-                               enc.layout_assumptions(), timeout=300)
-        print(f"T={T}: {'SAT' if sat else 'UNSAT' if sat is False else 'TIMEOUT'}"
-              f" in {st:.3f}s")
+        sat, model, st = solve(args.backend, enc.cnf, enc.layout_assumptions(), timeout=300)
+        print(f"T={T}: {'SAT' if sat else 'UNSAT' if sat is False else 'TIMEOUT'} in {st:.3f}s")
         if sat:
             plan = decode_model2(enc, model)
             break
@@ -138,8 +133,9 @@ def main():
     print(f"wrote {args.out} ({len(data)} bytes)")
 
     if os.path.exists(args.omsim) and os.path.exists(args.puzzle):
-        res = subprocess.run([args.omsim, "-p", args.puzzle, args.out],
-                             capture_output=True, text=True, timeout=120)
+        res = subprocess.run(
+            [args.omsim, "-p", args.puzzle, args.out], capture_output=True, text=True, timeout=120
+        )
         print("omsim stdout:", res.stdout.strip())
         if res.stderr.strip():
             print("omsim stderr:", res.stderr.strip())

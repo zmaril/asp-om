@@ -14,9 +14,11 @@ import time
 
 from pysat.solvers import Cadical195, Glucose42
 
-KISSAT_DEFAULT = ("/tmp/claude-0/-workspace-asp-om/"
-                  "231137e8-aa53-5099-b493-86deb373db42/scratchpad/"
-                  "kissat/build/kissat")
+KISSAT_DEFAULT = (
+    "/tmp/claude-0/-workspace-asp-om/"
+    "231137e8-aa53-5099-b493-86deb373db42/scratchpad/"
+    "kissat/build/kissat"
+)
 KISSAT = os.environ.get("KISSAT", KISSAT_DEFAULT)
 
 PYSAT_BACKENDS = {"cadical195": Cadical195, "glucose42": Glucose42}
@@ -41,8 +43,7 @@ def solve(backend, cnf, assumptions=(), timeout=None):
                 timer = threading.Timer(timeout, s.interrupt)
                 timer.start()
                 try:
-                    sat = s.solve_limited(assumptions=list(assumptions),
-                                          expect_interrupt=True)
+                    sat = s.solve_limited(assumptions=list(assumptions), expect_interrupt=True)
                 finally:
                     timer.cancel()
             dt = time.perf_counter() - t0
@@ -58,6 +59,7 @@ def _solve_pysat_forked(backend, cnf, assumptions, timeout):
     The reported solve time is measured inside the child around s.solve()
     only (bootstrap excluded, matching the in-process path)."""
     import multiprocessing as mp
+
     ctx = mp.get_context("fork")
     rx, tx = ctx.Pipe(duplex=False)
 
@@ -87,32 +89,30 @@ def solve_kissat(cnf, assumptions=(), timeout=None):
     DIMACS write time is excluded.
     """
     nv = cnf.nv
-    with tempfile.NamedTemporaryFile(
-            "w", suffix=".cnf", delete=False) as f:
+    with tempfile.NamedTemporaryFile("w", suffix=".cnf", delete=False) as f:
         path = f.name
-        clauses = list(cnf.clauses) + [[l] for l in assumptions]
+        clauses = list(cnf.clauses) + [[lit] for lit in assumptions]
         f.write(f"p cnf {nv} {len(clauses)}\n")
         for c in clauses:
             f.write(" ".join(map(str, c)) + " 0\n")
     try:
         t0 = time.perf_counter()
         try:
-            res = subprocess.run([KISSAT, "-q", path],
-                                 capture_output=True, text=True,
-                                 timeout=timeout)
+            res = subprocess.run(
+                [KISSAT, "-q", path], capture_output=True, text=True, timeout=timeout
+            )
         except subprocess.TimeoutExpired:
             return None, None, time.perf_counter() - t0
         dt = time.perf_counter() - t0
         if res.returncode == 10:
-            model = []
+            model: list[int] = []
             for line in res.stdout.splitlines():
                 if line.startswith("v "):
                     model.extend(int(x) for x in line[2:].split())
-            model = [l for l in model if l != 0]
+            model = [lit for lit in model if lit != 0]
             return True, model, dt
         if res.returncode == 20:
             return False, None, dt
-        raise RuntimeError(
-            f"kissat exited {res.returncode}: {res.stderr[:500]}")
+        raise RuntimeError(f"kissat exited {res.returncode}: {res.stderr[:500]}")
     finally:
         os.unlink(path)

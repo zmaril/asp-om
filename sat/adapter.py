@@ -20,11 +20,9 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from encode3 import ACTIONS2, Encoder3, HarnessPuzzle
 from pysat.card import CardEnc, EncType
 from pysat.formula import CNF
-
-from encode3 import Encoder3, HarnessPuzzle, ACTIONS2
-from instances import DIRS
 from solvers import solve
 
 
@@ -33,46 +31,65 @@ def log(*a):
 
 
 def decode_plan(pz, enc, model):
-    true = set(l for l in model if l > 0)
+    true = {lit for lit in model if lit > 0}
 
     def tv(*key):
         return enc.v(*key) in true
 
     T = enc.T
     placements = [
-        {"type": "arm", "id": pz.arm["id"],
-         "position": list(next(h for h in enc.hexes if tv("base", h))),
-         "rotation": next(d for d in range(6) if tv("orient", d, 0))},
+        {
+            "type": "arm",
+            "id": pz.arm["id"],
+            "position": list(next(h for h in enc.hexes if tv("base", h))),
+            "rotation": next(d for d in range(6) if tv("orient", d, 0)),
+        },
     ]
     for i, rg in enumerate(pz.reagents, 1):
         placements.append(
-            {"type": "input", "id": rg["id"],
-             "position": list(next(h for h in enc.hexes
-                                   if tv("spawn", i, h))),
-             "rotation": 0})
+            {
+                "type": "input",
+                "id": rg["id"],
+                "position": list(next(h for h in enc.hexes if tv("spawn", i, h))),
+                "rotation": 0,
+            }
+        )
     placements.append(
-        {"type": "output", "id": pz.product["id"],
-         "position": list(next(h for h in enc.hexes if tv("opos", h))),
-         "rotation": next(k for k in enc.orots if tv("orot", k))})
+        {
+            "type": "output",
+            "id": pz.product["id"],
+            "position": list(next(h for h in enc.hexes if tv("opos", h))),
+            "rotation": next(k for k in enc.orots if tv("orot", k)),
+        }
+    )
     if pz.calcifier:
         placements.append(
-            {"type": "calcifier", "id": pz.calcifier["id"],
-             "position": list(next(h for h in enc.hexes if tv("cpos", h)))})
+            {
+                "type": "calcifier",
+                "id": pz.calcifier["id"],
+                "position": list(next(h for h in enc.hexes if tv("cpos", h))),
+            }
+        )
     if pz.bonder:
         placements.append(
-            {"type": "bonder", "id": pz.bonder["id"],
-             "position": list(next(h for h in enc.hexes if tv("gpos", h))),
-             "rotation": next(d for d in range(3) if tv("gdir", d))})
+            {
+                "type": "bonder",
+                "id": pz.bonder["id"],
+                "position": list(next(h for h in enc.hexes if tv("gpos", h))),
+                "rotation": next(d for d in range(3) if tv("gdir", d)),
+            }
+        )
     instructions = []
     for t in range(T):
         act = next(a for a in ACTIONS2 if tv("do", a, t))
         if act != "wait":
-            instructions.append(
-                {"t": t, "arm": pz.arm["id"], "action": act})
-    return {"puzzle": pz.name,
-            "solver": "sat (PySAT Cadical195, sat/encode3.py)",
-            "placements": placements,
-            "instructions": instructions}
+            instructions.append({"t": t, "arm": pz.arm["id"], "action": act})
+    return {
+        "puzzle": pz.name,
+        "solver": "sat (PySAT Cadical195, sat/encode3.py)",
+        "placements": placements,
+        "instructions": instructions,
+    }
 
 
 def main():
@@ -90,8 +107,10 @@ def main():
         return 3
 
     enc = Encoder3(pz)
-    log(f"{pz.name}: T={enc.T} {enc.nvars} vars {enc.nclauses} clauses "
-        f"(encode {enc.encode_time:.2f}s)")
+    log(
+        f"{pz.name}: T={enc.T} {enc.nvars} vars {enc.nclauses} clauses "
+        f"(encode {enc.encode_time:.2f}s)"
+    )
     remaining = max(1.0, deadline - time.monotonic())
     sat, model, st = solve("cadical195", enc.cnf, timeout=remaining)
     if sat is None:
@@ -103,8 +122,8 @@ def main():
     lits = enc.non_wait_literals()
 
     def cost_of(m):
-        tr = set(l for l in m if l > 0)
-        return sum(1 for l in lits if -l not in tr)
+        tr = {lit for lit in m if lit > 0}
+        return sum(1 for lit in lits if -lit not in tr)
 
     best, best_cost = model, cost_of(model)
     log(f"first plan: {best_cost} non-wait in {st:.2f}s; minimizing...")
@@ -112,18 +131,15 @@ def main():
     while k >= 0:
         remaining = deadline - time.monotonic()
         if remaining <= 0:
-            log(f"budget exhausted; best bound not proved below "
-                f"{best_cost}")
+            log(f"budget exhausted; best bound not proved below {best_cost}")
             break
         bounded = CNF()
         bounded.extend(enc.cnf.clauses)
-        card = CardEnc.atmost(lits=lits, bound=k, top_id=enc.pool.top,
-                              encoding=EncType.seqcounter)
+        card = CardEnc.atmost(lits=lits, bound=k, top_id=enc.pool.top, encoding=EncType.seqcounter)
         bounded.extend(card.clauses)
         sat, model, st = solve("cadical195", bounded, timeout=remaining)
         if sat is None:
-            log(f"minimization timed out at bound {k}; "
-                f"emitting best={best_cost}")
+            log(f"minimization timed out at bound {k}; emitting best={best_cost}")
             break
         if not sat:
             log(f"proved optimal: {best_cost} non-wait instructions")

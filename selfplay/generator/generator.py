@@ -22,6 +22,7 @@ Usage (see --help for all knobs):
     python3 selfplay/generator/generator.py --count 100 --seed 7 \
         --out selfplay/generator/sample_batch
 """
+
 from __future__ import annotations
 
 import argparse
@@ -34,12 +35,21 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from model import (ATOM_TYPES, Arm, Input, Machine, canonical_molecule,
-                   component_to_molecule, components, emit_plan, emit_puzzle,
-                   find_output_placement, load_harness_validator)
+from model import (
+    ATOM_TYPES,
+    Arm,
+    Input,
+    Machine,
+    canonical_molecule,
+    component_to_molecule,
+    components,
+    emit_plan,
+    emit_puzzle,
+    find_output_placement,
+    load_harness_validator,
+)
 
 import validate as omval  # repo root, put on sys.path by model
-
 
 # ---------------------------------------------------------------------------
 # Layout sampling: place each part on a still-free hex (constructive, so
@@ -68,17 +78,20 @@ def sample_layout(rng: random.Random, p) -> Machine | None:
             return None
         base = free.pop()
         length = rng.randint(1, p.arm_len)
-        dirs = [d for d in range(6)
-                if (base[0] + length * omval.DIRS[d][0],
-                    base[1] + length * omval.DIRS[d][1]) in board]
+        dirs = [
+            d
+            for d in range(6)
+            if (base[0] + length * omval.DIRS[d][0], base[1] + length * omval.DIRS[d][1]) in board
+        ]
         if not dirs:
             return None
-        arms.append(Arm(name=f"m{i + 1}", base=base, length=length,
-                        orient=rng.choice(dirs)))
+        arms.append(Arm(name=f"m{i + 1}", base=base, length=length, orient=rng.choice(dirs)))
 
-    grip_hexes = {(a.base[0] + a.length * omval.DIRS[d][0],
-                   a.base[1] + a.length * omval.DIRS[d][1])
-                  for a in arms for d in range(6)} & board
+    grip_hexes = {
+        (a.base[0] + a.length * omval.DIRS[d][0], a.base[1] + a.length * omval.DIRS[d][1])
+        for a in arms
+        for d in range(6)
+    } & board
 
     def take_hex() -> tuple[int, int] | None:
         reach = [h for h in free if h in grip_hexes]
@@ -94,12 +107,13 @@ def sample_layout(rng: random.Random, p) -> Machine | None:
         # strongly prefer an adjacent pair with BOTH hexes on gripper
         # hexes (a bond needs both hexes covered at once, and an arm can
         # only deliver an atom to its 6 gripper hexes)
-        pairs = [(h1, (h1[0] + dq, h1[1] + dr))
-                 for h1 in free for dq, dr in omval.DIRS
-                 if (h1[0] + dq, h1[1] + dr) in board
-                 and (h1[0] + dq, h1[1] + dr) in free]
-        both = [pr for pr in pairs
-                if pr[0] in grip_hexes and pr[1] in grip_hexes]
+        pairs = [
+            (h1, (h1[0] + dq, h1[1] + dr))
+            for h1 in free
+            for dq, dr in omval.DIRS
+            if (h1[0] + dq, h1[1] + dr) in board and (h1[0] + dq, h1[1] + dr) in free
+        ]
+        both = [pr for pr in pairs if pr[0] in grip_hexes and pr[1] in grip_hexes]
         pool = both if both and rng.random() < REACH_BIAS else pairs
         if not pool:
             return None
@@ -120,12 +134,13 @@ def sample_layout(rng: random.Random, p) -> Machine | None:
         h = take_hex()
         if h is None:
             return None
-        inputs.append(Input(index=i + 1, hex=h,
-                            type=rng.choice(p.atom_types),
-                            pool=rng.randint(1, p.pool)))
+        inputs.append(
+            Input(index=i + 1, hex=h, type=rng.choice(p.atom_types), pool=rng.randint(1, p.pool))
+        )
 
-    m = Machine(radius=p.radius, arms=arms, inputs=inputs,
-                calcs=calcs, bonders=bonders, tape={}, tmax=0)
+    m = Machine(
+        radius=p.radius, arms=arms, inputs=inputs, calcs=calcs, bonders=bonders, tape={}, tmax=0
+    )
     if not m.footprint_ok():
         return None
     # cheap viability screen: a machine can only ever produce something if
@@ -135,12 +150,12 @@ def sample_layout(rng: random.Random, p) -> Machine | None:
     # change: multi-arm relay chains it cannot see are astronomically
     # unlikely to assemble by random walk anyway.
     reachable_pool = sum(i.pool for i in inputs if i.hex in grip_hexes)
-    bondable = (reachable_pool >= 2
-                and any(h1 in grip_hexes and h2 in grip_hexes
-                        for h1, h2 in bonders))
-    calcable = (any(h in grip_hexes for h in calcs)
-                and any(i.pool >= 1 and i.hex in grip_hexes
-                        and i.type in omval.ELEMENTAL for i in inputs))
+    bondable = reachable_pool >= 2 and any(
+        h1 in grip_hexes and h2 in grip_hexes for h1, h2 in bonders
+    )
+    calcable = any(h in grip_hexes for h in calcs) and any(
+        i.pool >= 1 and i.hex in grip_hexes and i.type in omval.ELEMENTAL for i in inputs
+    )
     if not bondable and not calcable:
         return None
     return m
@@ -156,19 +171,19 @@ def sample_layout(rng: random.Random, p) -> Machine | None:
 # instead of stirring the board; the guidance only biases sampling and can
 # never make an illegal plan.
 # ---------------------------------------------------------------------------
-GREED = 3.0     # softmax sharpness over the state potential
+GREED = 3.0  # softmax sharpness over the state potential
 MOMENTUM = 3.0  # prior boost for continuing the previous rotation
 
 
-def try_step(machine: Machine, plan: dict, t: int,
-             cand: tuple[str, str] | None):
+def try_step(machine: Machine, plan: dict, t: int, cand: tuple[str, str] | None):
     """Replay plan[0..t-1] + cand; return the state list or None if the
     candidate action is illegal."""
     trial = dict(plan)
     if cand is not None:
         trial[t] = cand
-    m2 = Machine(machine.radius, machine.arms, machine.inputs,
-                 machine.calcs, machine.bonders, trial, t + 1)
+    m2 = Machine(
+        machine.radius, machine.arms, machine.inputs, machine.calcs, machine.bonders, trial, t + 1
+    )
     states, err = m2.replay()
     return None if err is not None else states
 
@@ -194,13 +209,15 @@ def score_state(machine: Machine, st, grippers) -> float:
     bonder_hexes = [h for pair in machine.bonders for h in pair]
     feet = machine.part_footprint()
     s = 6.0 * len(st["bonds"])
-    s += 2.0 * sum(1 for x, h in st["pos"].items()
-                   if h in bonder_hexes and x not in bonded
-                   and x not in st["held"])
-    s += 0.8 * sum(1 for x, h in st["pos"].items()
-                   if h in machine.calcs and st["typ"][x] in omval.ELEMENTAL)
-    s -= 0.7 * sum(1 for x, h in st["pos"].items()
-                   if x in bonded and h in feet)
+    s += 2.0 * sum(
+        1
+        for x, h in st["pos"].items()
+        if h in bonder_hexes and x not in bonded and x not in st["held"]
+    )
+    s += 0.8 * sum(
+        1 for x, h in st["pos"].items() if h in machine.calcs and st["typ"][x] in omval.ELEMENTAL
+    )
+    s -= 0.7 * sum(1 for x, h in st["pos"].items() if x in bonded and h in feet)
     if bonder_hexes:
         for x, h in st["pos"].items():
             if x not in bonded:
@@ -256,8 +273,7 @@ def sample_tape(rng: random.Random, machine: Machine, tape_len: int) -> bool:
                     holding = True
                 elif cand[1] == "drop":
                     holding = False
-            g = (base[0] + ln * omval.DIRS[d][0],
-                 base[1] + ln * omval.DIRS[d][1])
+            g = (base[0] + ln * omval.DIRS[d][0], base[1] + ln * omval.DIRS[d][1])
             out[name] = (g, holding)
         return out
 
@@ -281,12 +297,9 @@ def sample_tape(rng: random.Random, machine: Machine, tape_len: int) -> bool:
         for c, w in cands:
             states = try_step(machine, plan, t, c)
             if states is not None:
-                legal.append((c, w,
-                              score_state(machine, states[-1],
-                                          grippers_for(c, full))))
+                legal.append((c, w, score_state(machine, states[-1], grippers_for(c, full))))
         best = max(s for _, _, s in legal)
-        weights = [w * math.exp(GREED * min(s - best, 0.0))
-                   for _, w, s in legal]
+        weights = [w * math.exp(GREED * min(s - best, 0.0)) for _, w, s in legal]
         choice = rng.choices([c for c, _, _ in legal], weights=weights)[0]
         if choice is not None:
             plan[t] = choice
@@ -381,29 +394,24 @@ def generate_one(rng: random.Random, p):
     return (machine, (c_atoms, c_bonds, phash, rest)), None
 
 
-def diversity_report(pairs: list[tuple[dict, dict]], rejects: Counter,
-                     attempts: int) -> dict:
+def diversity_report(pairs: list[tuple[dict, dict]], rejects: Counter, attempts: int) -> dict:
     puzzles = [pz for pz, _ in pairs]
     plans = [pl for _, pl in pairs]
     prod_sizes = Counter(len(pz["products"][0]["atoms"]) for pz in puzzles)
     bond_counts = Counter(len(pz["products"][0]["bonds"]) for pz in puzzles)
-    atom_mix = Counter(a["element"] for pz in puzzles
-                       for a in pz["products"][0]["atoms"])
-    arm_counts = Counter(
-        sum(1 for p in pz["parts"] if p["type"] == "arm") for pz in puzzles)
-    tape_lens = Counter(
-        sum(1 for i in pl["instructions"] if i["action"] != "wait")
-        for pl in plans)
-    glyphs = Counter()
+    atom_mix = Counter(a["element"] for pz in puzzles for a in pz["products"][0]["atoms"])
+    arm_counts = Counter(sum(1 for p in pz["parts"] if p["type"] == "arm") for pz in puzzles)
+    tape_lens = Counter(sum(1 for i in pl["instructions"] if i["action"] != "wait") for pl in plans)
+    glyphs: Counter[str] = Counter()
     for pz in puzzles:
         for p in pz["parts"]:
             if p["type"] != "arm":
                 glyphs[p["type"]] += 1
     reagent_counts = Counter(len(pz["reagents"]) for pz in puzzles)
-    reagent_mix = Counter(a["element"] for pz in puzzles
-                          for r in pz["reagents"] for a in r["atoms"])
-    uniq = len({json.dumps(pz["products"][0], sort_keys=True)
-                for pz in puzzles})
+    reagent_mix = Counter(
+        a["element"] for pz in puzzles for r in pz["reagents"] for a in r["atoms"]
+    )
+    uniq = len({json.dumps(pz["products"][0], sort_keys=True) for pz in puzzles})
     return {
         "pairs": len(pairs),
         "attempts": attempts,
@@ -423,11 +431,9 @@ def diversity_report(pairs: list[tuple[dict, dict]], rejects: Counter,
 
 def summarize(rep: dict) -> str:
     lines = [
-        f"pairs: {rep['pairs']}  (attempts: {rep['attempts']}, "
-        f"yield: {rep['yield']})",
+        f"pairs: {rep['pairs']}  (attempts: {rep['attempts']}, yield: {rep['yield']})",
         f"rejections: {rep['rejections']}",
-        f"unique products (canonical up to rotation+translation): "
-        f"{rep['unique_products']}",
+        f"unique products (canonical up to rotation+translation): {rep['unique_products']}",
         f"product size dist:  {rep['product_size_distribution']}",
         f"product bond dist:  {rep['product_bond_count_distribution']}",
         f"product atom mix:   {rep['product_atom_type_mix']}",
@@ -448,35 +454,58 @@ def parse_range(s: str) -> tuple[int, int]:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(
-        description="Forward-generate solvable (puzzle, solution) pairs.")
-    ap.add_argument("--count", type=int, default=100,
-                    help="pairs to generate (after dedup)")
-    ap.add_argument("--seed", type=int, default=0,
-                    help="RNG seed (full run is deterministic)")
-    ap.add_argument("--out", type=Path,
-                    default=Path(__file__).parent / "batch",
-                    help="output directory")
+    ap = argparse.ArgumentParser(description="Forward-generate solvable (puzzle, solution) pairs.")
+    ap.add_argument("--count", type=int, default=100, help="pairs to generate (after dedup)")
+    ap.add_argument("--seed", type=int, default=0, help="RNG seed (full run is deterministic)")
+    ap.add_argument(
+        "--out", type=Path, default=Path(__file__).parent / "batch", help="output directory"
+    )
     # difficulty knobs -------------------------------------------------------
     ap.add_argument("--radius", type=int, default=2, help="board radius")
-    ap.add_argument("--arms", type=parse_range, default=(1, 2),
-                    metavar="A[:B]", help="number of arms")
+    ap.add_argument(
+        "--arms", type=parse_range, default=(1, 2), metavar="A[:B]", help="number of arms"
+    )
     ap.add_argument("--arm-len", type=int, default=2, help="max arm length")
-    ap.add_argument("--tape", type=parse_range, default=(12, 26),
-                    metavar="A[:B]", help="tape length (timesteps)")
-    ap.add_argument("--inputs", type=parse_range, default=(1, 3),
-                    metavar="A[:B]", help="number of reagent inputs")
-    ap.add_argument("--calcifiers", type=parse_range, default=(0, 1),
-                    metavar="A[:B]", help="number of calcification glyphs")
-    ap.add_argument("--bonders", type=parse_range, default=(1, 2),
-                    metavar="A[:B]", help="number of bonding glyphs")
-    ap.add_argument("--pool", type=int, default=2,
-                    help="max atoms per reagent input")
-    ap.add_argument("--atom-types", default="air,earth,fire,water,salt",
-                    help="comma-separated reagent atom types")
-    ap.add_argument("--max-attempts", type=int, default=None,
-                    help="give up after this many attempts "
-                         "(default: 200 * count)")
+    ap.add_argument(
+        "--tape",
+        type=parse_range,
+        default=(12, 26),
+        metavar="A[:B]",
+        help="tape length (timesteps)",
+    )
+    ap.add_argument(
+        "--inputs",
+        type=parse_range,
+        default=(1, 3),
+        metavar="A[:B]",
+        help="number of reagent inputs",
+    )
+    ap.add_argument(
+        "--calcifiers",
+        type=parse_range,
+        default=(0, 1),
+        metavar="A[:B]",
+        help="number of calcification glyphs",
+    )
+    ap.add_argument(
+        "--bonders",
+        type=parse_range,
+        default=(1, 2),
+        metavar="A[:B]",
+        help="number of bonding glyphs",
+    )
+    ap.add_argument("--pool", type=int, default=2, help="max atoms per reagent input")
+    ap.add_argument(
+        "--atom-types",
+        default="air,earth,fire,water,salt",
+        help="comma-separated reagent atom types",
+    )
+    ap.add_argument(
+        "--max-attempts",
+        type=int,
+        default=None,
+        help="give up after this many attempts (default: 200 * count)",
+    )
     args = ap.parse_args()
     args.atom_types = tuple(t.strip() for t in args.atom_types.split(","))
     for t in args.atom_types:
@@ -502,8 +531,7 @@ def main() -> int:
             rejects[why] += 1
             continue
         machine, (c_atoms, c_bonds, phash, rest) = result
-        key = (machine.radius,
-               tuple(sorted(i.type for i in machine.inputs)), phash)
+        key = (machine.radius, tuple(sorted(i.type for i in machine.inputs)), phash)
         if key in seen:
             rejects["duplicate"] += 1
             continue
@@ -516,20 +544,19 @@ def main() -> int:
         # construction -- a failure here is a generator (or model) bug
         hval.validate(puzzle, plan)
         pairs.append((puzzle, plan))
-        (puzzles_dir / f"{name}.json").write_text(
-            json.dumps(puzzle, indent=1) + "\n")
-        (plans_dir / f"{name}.json").write_text(
-            json.dumps(plan, indent=1) + "\n")
+        (puzzles_dir / f"{name}.json").write_text(json.dumps(puzzle, indent=1) + "\n")
+        (plans_dir / f"{name}.json").write_text(json.dumps(plan, indent=1) + "\n")
 
     rep = diversity_report(pairs, rejects, attempts)
-    (args.out / "diversity_report.json").write_text(
-        json.dumps(rep, indent=2) + "\n")
+    (args.out / "diversity_report.json").write_text(json.dumps(rep, indent=2) + "\n")
     summary = summarize(rep)
     (args.out / "diversity_summary.txt").write_text(summary + "\n")
     print(summary)
     if len(pairs) < args.count:
-        print(f"WARNING: only {len(pairs)}/{args.count} pairs after "
-              f"{attempts} attempts", file=sys.stderr)
+        print(
+            f"WARNING: only {len(pairs)}/{args.count} pairs after {attempts} attempts",
+            file=sys.stderr,
+        )
         return 1
     return 0
 

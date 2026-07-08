@@ -29,6 +29,7 @@ shape. Multi-atom reagents exit 2 with a clear message.
 Exit codes: 0 solved, 1 no plan found (unsat within horizon / timeout),
 2 unsupported or malformed puzzle.
 """
+
 import argparse
 import json
 import os
@@ -86,12 +87,15 @@ def build_instance(puz):
     pins = []  # extra .mzn constraint strings for pinned placements
 
     # ---- reagents -> spawn inputs + atom pool -------------------------------
-    atoms = []   # (spawn_idx, rank, type_code)
+    atoms = []  # (spawn_idx, rank, type_code)
     spawn_types = []
     for s, rg in enumerate(reagents, start=1):
         if len(rg["atoms"]) != 1:
-            die(2, f"reagent {rg['id']!r} has {len(rg['atoms'])} atoms; "
-                   "this adapter only supports single-atom reagents")
+            die(
+                2,
+                f"reagent {rg['id']!r} has {len(rg['atoms'])} atoms; "
+                "this adapter only supports single-atom reagents",
+            )
         el = rg["atoms"][0]["element"]
         if el not in ELEM:
             die(2, f"reagent {rg['id']!r}: unknown element {el!r}")
@@ -107,7 +111,10 @@ def build_instance(puz):
     nA, nSpawn = len(atoms), len(reagents)
 
     # ---- products -> output parts + slots -----------------------------------
-    prod_out, prod_off, prod_type, prod_bond = [], [], [], []
+    prod_out: list[int] = []
+    prod_off: list[tuple[int, int]] = []
+    prod_type: list[int] = []
+    prod_bond: list[tuple[int, int]] = []
     slot_base = {}
     for o, pd in enumerate(products, start=1):
         slot_base[pd["id"]] = len(prod_off)
@@ -118,12 +125,12 @@ def build_instance(puz):
             prod_out.append(o)
             prod_off.append(tuple(a["pos"]))
             prod_type.append(ELEM[el])
-        for (i, j) in pd.get("bonds", []):
-            prod_bond.append((slot_base[pd["id"]] + i + 1,
-                              slot_base[pd["id"]] + j + 1))
+        for i, j in pd.get("bonds", []):
+            prod_bond.append((slot_base[pd["id"]] + i + 1, slot_base[pd["id"]] + j + 1))
         if "position" in pd:
-            pins.append(f"constraint out_q[{o}] = {pd['position'][0]} /\\ "
-                        f"out_r[{o}] = {pd['position'][1]};")
+            pins.append(
+                f"constraint out_q[{o}] = {pd['position'][0]} /\\ out_r[{o}] = {pd['position'][1]};"
+            )
             if "rotation" in pd:
                 pins.append(f"constraint out_rot[{o}] = {pd['rotation'] % 6};")
     nProd, nOut = len(prod_off), len(products)
@@ -131,25 +138,27 @@ def build_instance(puz):
     # ---- arms / glyphs ------------------------------------------------------
     for m, p in enumerate(arms, start=1):
         if "position" in p:
-            pins.append(f"constraint base_q[{m}] = {p['position'][0]} /\\ "
-                        f"base_r[{m}] = {p['position'][1]};")
+            pins.append(
+                f"constraint base_q[{m}] = {p['position'][0]} /\\ base_r[{m}] = {p['position'][1]};"
+            )
         if "rotation" in p:
             pins.append(f"constraint ori[0,{m}] = {p['rotation'] % 6};")
     for g, p in enumerate(calcs, start=1):
         if "position" in p:
-            pins.append(f"constraint calc_q[{g}] = {p['position'][0]} /\\ "
-                        f"calc_r[{g}] = {p['position'][1]};")
+            pins.append(
+                f"constraint calc_q[{g}] = {p['position'][0]} /\\ calc_r[{g}] = {p['position'][1]};"
+            )
     for g, p in enumerate(bonders, start=1):
         if "position" in p:
             rot = p.get("rotation", 0) % 6
             aq, ar = p["position"]
             bq, br = aq + DIRS[rot][0], ar + DIRS[rot][1]
             pins.append(
-                "constraint (bonder_q1[{g}] = {aq} /\\ bonder_r1[{g}] = {ar}"
-                " /\\ bonder_q2[{g}] = {bq} /\\ bonder_r2[{g}] = {br}) \\/ "
-                "(bonder_q1[{g}] = {bq} /\\ bonder_r1[{g}] = {br} /\\ "
-                "bonder_q2[{g}] = {aq} /\\ bonder_r2[{g}] = {ar});".format(
-                    g=g, aq=aq, ar=ar, bq=bq, br=br))
+                f"constraint (bonder_q1[{g}] = {aq} /\\ bonder_r1[{g}] = {ar}"
+                f" /\\ bonder_q2[{g}] = {bq} /\\ bonder_r2[{g}] = {br}) \\/ "
+                f"(bonder_q1[{g}] = {bq} /\\ bonder_r1[{g}] = {br} /\\ "
+                f"bonder_q2[{g}] = {aq} /\\ bonder_r2[{g}] = {ar});"
+            )
 
     # ---- dzn text -----------------------------------------------------------
     def a1(vals):
@@ -157,8 +166,7 @@ def build_instance(puz):
 
     def a2(vals, ncols):
         flat = [str(x) for row in vals for x in row]
-        return (f"array2d(1..{len(vals)}, 1..{ncols}, [" + ", ".join(flat)
-                + "])")
+        return f"array2d(1..{len(vals)}, 1..{ncols}, [" + ", ".join(flat) + "])"
 
     nM = len(arms)
     L = []
@@ -202,10 +210,13 @@ def build_instance(puz):
     L.append(f"nOut = {nOut};")
     L.append(f"prod_out = {a1(prod_out)};")
     L.append(f"prod_off = {a2(prod_off, 2)};")
-    dzn = "% generated by minizinc/adapter.py from puzzle "\
-          f"{puz.get('name')!r}\n" + "\n".join(L) + "\n"
-    pins_mzn = ("% pinned placements from the puzzle file\n"
-                + "\n".join(pins) + "\n") if pins else None
+    dzn = (
+        "% generated by minizinc/adapter.py from puzzle "
+        f"{puz.get('name')!r}\n" + "\n".join(L) + "\n"
+    )
+    pins_mzn = (
+        ("% pinned placements from the puzzle file\n" + "\n".join(pins) + "\n") if pins else None
+    )
 
     meta = {
         "arm_ids": [p["id"] for p in arms],
@@ -224,19 +235,25 @@ def build_instance(puz):
 # ---------------------------------------------------------------------------
 def run_minizinc(solver, files, limit_s, procs):
     """Run one engine; return (solution_dict_or_None, proven_optimal, wall)."""
-    cmd = ["minizinc", "--solver", solver, "--output-mode", "json",
-           "--output-objective", "--time-limit", str(int(limit_s * 1000))]
+    cmd = [
+        "minizinc",
+        "--solver",
+        solver,
+        "--output-mode",
+        "json",
+        "--output-objective",
+        "--time-limit",
+        str(int(limit_s * 1000)),
+    ]
     if solver in ("cp-sat", "gecode") and procs > 1:
         cmd += ["-p", str(procs)]
     cmd += files
     log("run:", " ".join(cmd))
     t0 = time.time()
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True,
-                              timeout=limit_s + 120)
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=limit_s + 120)
     except subprocess.TimeoutExpired:
-        log(f"{solver}: hard-killed at {limit_s + 120:.0f}s "
-            "(ignored --time-limit)")
+        log(f"{solver}: hard-killed at {limit_s + 120:.0f}s (ignored --time-limit)")
         return None, False, time.time() - t0
     wall = time.time() - t0
     for line in (proc.stderr or "").strip().splitlines():
@@ -245,8 +262,11 @@ def run_minizinc(solver, files, limit_s, procs):
     proven = "==========" in text
     sol = None
     for chunk in text.split("----------"):
-        lines = [l for l in chunk.splitlines()
-                 if not l.strip().startswith("%") and "=====" not in l]
+        lines = [
+            line
+            for line in chunk.splitlines()
+            if not line.strip().startswith("%") and "=====" not in line
+        ]
         blob = "\n".join(lines).strip()
         if not blob:
             continue
@@ -257,8 +277,13 @@ def run_minizinc(solver, files, limit_s, procs):
     if "=====UNSATISFIABLE=====" in text:
         log(f"{solver}: UNSATISFIABLE within the horizon ({wall:.1f}s)")
         return None, True, wall
-    status = ("optimal" if proven and sol is not None
-              else "incumbent" if sol is not None else "no solution")
+    status = (
+        "optimal"
+        if proven and sol is not None
+        else "incumbent"
+        if sol is not None
+        else "no solution"
+    )
     obj = sol.get("total_actions") if sol else None
     log(f"{solver}: {status}, objective={obj}, wall={wall:.1f}s")
     return sol, proven and sol is not None, wall
@@ -280,8 +305,11 @@ def solve(files, solver, limit_s, procs):
     for s, p, name in ((sol1, False, "chuffed"), (sol2, proven2, "cp-sat")):
         if s is None:
             continue
-        if best is None or s["total_actions"] < best["total_actions"] \
-                or (s["total_actions"] == best["total_actions"] and p):
+        if (
+            best is None
+            or s["total_actions"] < best["total_actions"]
+            or (s["total_actions"] == best["total_actions"] and p)
+        ):
             best, engine, proven = s, name, p
     return best, proven, engine
 
@@ -294,32 +322,54 @@ def decode(puz, sol, meta, engine, proven):
     placements = []
     ori0 = sol["ori"][0]
     for m, aid in enumerate(meta["arm_ids"]):
-        placements.append({"type": "arm", "id": aid,
-                           "position": [sol["base_q"][m], sol["base_r"][m]],
-                           "rotation": ori0[m]})
+        placements.append(
+            {
+                "type": "arm",
+                "id": aid,
+                "position": [sol["base_q"][m], sol["base_r"][m]],
+                "rotation": ori0[m],
+            }
+        )
     for s, rid in enumerate(meta["reagent_ids"]):
         oq, orr = meta["reagent_off"][s]
-        placements.append({"type": "input", "id": rid,
-                           "position": [sol["sq"][s] - oq,
-                                        sol["sr"][s] - orr],
-                           "rotation": 0})
+        placements.append(
+            {
+                "type": "input",
+                "id": rid,
+                "position": [sol["sq"][s] - oq, sol["sr"][s] - orr],
+                "rotation": 0,
+            }
+        )
     for o, pid in enumerate(meta["product_ids"]):
-        placements.append({"type": "output", "id": pid,
-                           "position": [sol["out_q"][o], sol["out_r"][o]],
-                           "rotation": sol["out_rot"][o]})
+        placements.append(
+            {
+                "type": "output",
+                "id": pid,
+                "position": [sol["out_q"][o], sol["out_r"][o]],
+                "rotation": sol["out_rot"][o],
+            }
+        )
     for g, cid in enumerate(meta["calc_ids"]):
-        placements.append({"type": "calcifier", "id": cid,
-                           "position": [sol["calc_q"][g], sol["calc_r"][g]]})
+        placements.append(
+            {"type": "calcifier", "id": cid, "position": [sol["calc_q"][g], sol["calc_r"][g]]}
+        )
     for g, bid in enumerate(meta["bonder_ids"]):
-        d = (sol["bonder_q2"][g] - sol["bonder_q1"][g],
-             sol["bonder_r2"][g] - sol["bonder_r1"][g])
-        placements.append({"type": "bonder", "id": bid,
-                           "position": [sol["bonder_q1"][g],
-                                        sol["bonder_r1"][g]],
-                           "rotation": DIRS.index(d)})
+        d = (sol["bonder_q2"][g] - sol["bonder_q1"][g], sol["bonder_r2"][g] - sol["bonder_r1"][g])
+        placements.append(
+            {
+                "type": "bonder",
+                "id": bid,
+                "position": [sol["bonder_q1"][g], sol["bonder_r1"][g]],
+                "rotation": DIRS.index(d),
+            }
+        )
     instructions = []
-    acts = [("grab", sol["doGrab"]), ("drop", sol["doDrop"]),
-            ("rot_cw", sol["doCW"]), ("rot_ccw", sol["doCCW"])]
+    acts = [
+        ("grab", sol["doGrab"]),
+        ("drop", sol["doDrop"]),
+        ("rot_cw", sol["doCW"]),
+        ("rot_ccw", sol["doCCW"]),
+    ]
     for t in range(T):
         for m, aid in enumerate(meta["arm_ids"]):
             for name, arr in acts:
@@ -328,8 +378,8 @@ def decode(puz, sol, meta, engine, proven):
     return {
         "puzzle": puz["name"],
         "solver": f"minizinc/{engine} via minizinc/adapter.py "
-                  f"({'proved optimal' if proven else 'best incumbent'}, "
-                  f"objective {sol['total_actions']})",
+        f"({'proved optimal' if proven else 'best incumbent'}, "
+        f"objective {sol['total_actions']})",
         "placements": placements,
         "instructions": instructions,
     }
@@ -338,12 +388,13 @@ def decode(puz, sol, meta, engine, proven):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("puzzle")
-    ap.add_argument("--solver", default="auto",
-                    choices=["auto", "chuffed", "cp-sat", "gecode", "highs",
-                             "coin-bc"])
+    ap.add_argument(
+        "--solver",
+        default="auto",
+        choices=["auto", "chuffed", "cp-sat", "gecode", "highs", "coin-bc"],
+    )
     ap.add_argument("--time-limit", type=float, default=300.0)
-    ap.add_argument("--procs", type=int,
-                    default=min(4, os.cpu_count() or 1))
+    ap.add_argument("--procs", type=int, default=min(4, os.cpu_count() or 1))
     ap.add_argument("--keep-dzn")
     args = ap.parse_args()
 
@@ -368,13 +419,14 @@ def main():
             with open(pins_path, "w") as f:
                 f.write(pins)
             files.append(pins_path)
-        sol, proven, engine = solve(files, args.solver, args.time_limit,
-                                    args.procs)
+        sol, proven, engine = solve(files, args.solver, args.time_limit, args.procs)
         if sol is None:
             die(1, "no plan found within the budget")
         plan = decode(puz, sol, meta, engine, proven)
-        log(f"plan: {sol['total_actions']} actions, engine={engine}, "
-            f"optimal={'yes' if proven else 'not proved'}")
+        log(
+            f"plan: {sol['total_actions']} actions, engine={engine}, "
+            f"optimal={'yes' if proven else 'not proved'}"
+        )
         json.dump(plan, sys.stdout, indent=2)
         print()
     finally:

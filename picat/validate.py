@@ -24,72 +24,107 @@ lines) so the check is independent of the solver's own view of the world;
 free-layout placements are taken from the plan's place_* actions and
 checked for legality here.
 """
+
 import re
 import sys
+from typing import Any
 
 DIRS = [(1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1), (1, -1)]
 ELEMENTAL = {"air", "earth", "fire", "water"}
 
 
 def hexdist(a, b):
-    return (abs(a[0] - b[0]) + abs(a[1] - b[1])
-            + abs(a[0] + a[1] - b[0] - b[1])) // 2
+    return (abs(a[0] - b[0]) + abs(a[1] - b[1]) + abs(a[0] + a[1] - b[0] - b[1])) // 2
 
 
-CASES = {
+CASES: dict[str, dict[str, Any]] = {
     # atoms: name -> (elem, (q,r)); arms: name -> [base, len, dir, held]
-    "case1": dict(
-        radius=2, arms={"m1": [(0, 0), 1, 0, None]},
-        atoms={"a1": ["salt", (1, 0)]}, bonds=set(),
-        calc=[], bonders=[], spawn=None, pending=[],
-        goal=lambda st: st.atom_is("a1", None, (-1, 0)) and st.all_unheld(["a1"]),
-    ),
-    "case2": dict(
-        radius=2, arms={"m1": [(0, 0), 1, 0, None]},
-        atoms={"a1": ["salt", (1, 0)], "a2": ["salt", (0, 1)]}, bonds=set(),
-        calc=[], bonders=[((-1, 0), (0, -1))], spawn=None, pending=[],
-        goal=lambda st: (st.atom_is("a1", None, (-1, 0))
-                         and st.atom_is("a2", None, (0, -1))
-                         and st.bonded("a1", "a2") and st.all_unheld(["a1", "a2"])),
-    ),
-    "case3": dict(
-        radius=2, arms={"m1": [(0, 0), 1, 0, None]},
-        atoms={"a1": ["salt", (1, 0)], "a2": ["salt", (2, 0)]},
-        bonds={frozenset(("a1", "a2"))},
-        calc=[], bonders=[], spawn=None, pending=[],
-        goal=lambda st: (st.atom_is("a1", "salt", (-1, 1))
-                         and st.atom_is("a2", "salt", (-2, 2))
-                         and st.all_unheld(["a1", "a2"])),
-    ),
-    "case2_free": dict(
-        radius=2, arms={},
-        atoms={"a1": ["salt", (1, 0)], "a2": ["salt", (0, 1)]}, bonds=set(),
-        calc=[], bonders=[], spawn=None, pending=["arm", "bonder"],
-        io_cells=[],  # bonder may overlap goal/start hexes (case2 parity)
-        goal=lambda st: (st.atom_is("a1", None, (-1, 0))
-                         and st.atom_is("a2", None, (0, -1))
-                         and st.bonded("a1", "a2") and st.all_unheld(["a1", "a2"])),
-    ),
-    "sw": dict(
-        radius=2, arms={"m1": [(0, 0), 1, 0, None]},
-        atoms={}, bonds=set(),
-        calc=[(0, 1)], bonders=[((-1, 1), (-1, 0))],
-        spawn=dict(cell=(1, 0), elem="water", pool=2), pending=[],
-        goal=lambda st: st.sw_goal(),
-    ),
-    "sw_free": dict(
-        radius=2, arms={},
-        atoms={}, bonds=set(),
-        calc=[], bonders=[],
-        spawn=dict(cell=(1, 0), elem="water", pool=2),
-        pending=["arm", "calc", "bonder"],
-        io_cells=[(1, 0), (0, -1), (1, -1)],  # spawn + product output hexes
-        goal=lambda st: st.sw_goal(),
-    ),
+    "case1": {
+        "radius": 2,
+        "arms": {"m1": [(0, 0), 1, 0, None]},
+        "atoms": {"a1": ["salt", (1, 0)]},
+        "bonds": set(),
+        "calc": [],
+        "bonders": [],
+        "spawn": None,
+        "pending": [],
+        "goal": lambda st: st.atom_is("a1", None, (-1, 0)) and st.all_unheld(["a1"]),
+    },
+    "case2": {
+        "radius": 2,
+        "arms": {"m1": [(0, 0), 1, 0, None]},
+        "atoms": {"a1": ["salt", (1, 0)], "a2": ["salt", (0, 1)]},
+        "bonds": set(),
+        "calc": [],
+        "bonders": [((-1, 0), (0, -1))],
+        "spawn": None,
+        "pending": [],
+        "goal": lambda st: (
+            st.atom_is("a1", None, (-1, 0))
+            and st.atom_is("a2", None, (0, -1))
+            and st.bonded("a1", "a2")
+            and st.all_unheld(["a1", "a2"])
+        ),
+    },
+    "case3": {
+        "radius": 2,
+        "arms": {"m1": [(0, 0), 1, 0, None]},
+        "atoms": {"a1": ["salt", (1, 0)], "a2": ["salt", (2, 0)]},
+        "bonds": {frozenset(("a1", "a2"))},
+        "calc": [],
+        "bonders": [],
+        "spawn": None,
+        "pending": [],
+        "goal": lambda st: (
+            st.atom_is("a1", "salt", (-1, 1))
+            and st.atom_is("a2", "salt", (-2, 2))
+            and st.all_unheld(["a1", "a2"])
+        ),
+    },
+    "case2_free": {
+        "radius": 2,
+        "arms": {},
+        "atoms": {"a1": ["salt", (1, 0)], "a2": ["salt", (0, 1)]},
+        "bonds": set(),
+        "calc": [],
+        "bonders": [],
+        "spawn": None,
+        "pending": ["arm", "bonder"],
+        "io_cells": [],  # bonder may overlap goal/start hexes (case2 parity)
+        "goal": lambda st: (
+            st.atom_is("a1", None, (-1, 0))
+            and st.atom_is("a2", None, (0, -1))
+            and st.bonded("a1", "a2")
+            and st.all_unheld(["a1", "a2"])
+        ),
+    },
+    "sw": {
+        "radius": 2,
+        "arms": {"m1": [(0, 0), 1, 0, None]},
+        "atoms": {},
+        "bonds": set(),
+        "calc": [(0, 1)],
+        "bonders": [((-1, 1), (-1, 0))],
+        "spawn": {"cell": (1, 0), "elem": "water", "pool": 2},
+        "pending": [],
+        "goal": lambda st: st.sw_goal(),
+    },
+    "sw_free": {
+        "radius": 2,
+        "arms": {},
+        "atoms": {},
+        "bonds": set(),
+        "calc": [],
+        "bonders": [],
+        "spawn": {"cell": (1, 0), "elem": "water", "pool": 2},
+        "pending": ["arm", "calc", "bonder"],
+        "io_cells": [(1, 0), (0, -1), (1, -1)],  # spawn + product output hexes
+        "goal": lambda st: st.sw_goal(),
+    },
 }
-CASES["case2_free_fixed"] = dict(CASES["case2_free"],
-                                 arms={"m1": [(0, 0), 1, 0, None]},
-                                 bonders=[((-1, 0), (0, -1))], pending=[])
+CASES["case2_free_fixed"] = dict(
+    CASES["case2_free"], arms={"m1": [(0, 0), 1, 0, None]}, bonders=[((-1, 0), (0, -1))], pending=[]
+)
 
 
 class Fail(Exception):
@@ -113,8 +148,11 @@ class State:
 
     # ---------- helpers ----------
     def on_board(self, c):
-        return (abs(c[0]) <= self.radius and abs(c[1]) <= self.radius
-                and abs(c[0] + c[1]) <= self.radius)
+        return (
+            abs(c[0]) <= self.radius
+            and abs(c[1]) <= self.radius
+            and abs(c[0] + c[1]) <= self.radius
+        )
 
     def gripper(self, m):
         (bq, br), ln, d, _ = self.arms[m]
@@ -127,8 +165,11 @@ class State:
         return None
 
     def atom_is(self, n, elem, pos):
-        return (n in self.atoms and self.atoms[n][1] == pos
-                and (elem is None or self.atoms[n][0] == elem))
+        return (
+            n in self.atoms
+            and self.atoms[n][1] == pos
+            and (elem is None or self.atoms[n][0] == elem)
+        )
 
     def bonded(self, x, y):
         return frozenset((x, y)) in self.bonds
@@ -142,9 +183,14 @@ class State:
     def sw_goal(self):
         for x, (ex, px) in self.atoms.items():
             for y, (ey, py) in self.atoms.items():
-                if (ex == "salt" and px == (0, -1) and ey == "water"
-                        and py == (1, -1) and self.bonded(x, y)
-                        and self.all_unheld([x, y])):
+                if (
+                    ex == "salt"
+                    and px == (0, -1)
+                    and ey == "water"
+                    and py == (1, -1)
+                    and self.bonded(x, y)
+                    and self.all_unheld([x, y])
+                ):
                     return True
         return False
 
@@ -182,9 +228,8 @@ class State:
             if not self.on_board(c):
                 raise Fail(f"part cell {c} off board")
         # part-footprint disjointness where the case demands it
-        if "io_cells" in self.cfg and self.cfg["io_cells"]:
-            all_parts = cells + [c for c in self.cfg["io_cells"]
-                                 if c not in cells]
+        if self.cfg.get("io_cells"):
+            all_parts = cells + [c for c in self.cfg["io_cells"] if c not in cells]
             if len(set(all_parts)) != len(all_parts):
                 raise Fail(f"overlapping part footprints: {sorted(all_parts)}")
         for m in self.arms:
@@ -193,7 +238,7 @@ class State:
         self.check_atoms()
 
     def check_atoms(self):
-        seen = {}
+        seen: dict[tuple[int, int], str] = {}
         for n, (_, pos) in self.atoms.items():
             if not self.on_board(pos):
                 raise Fail(f"atom {n} off board at {pos}")
@@ -206,12 +251,14 @@ class State:
 
     # ---------- world rules (asp/core2.lp parity) ----------
     def post(self):
-        if (self.spawn and self.nspawned < self.spawn["pool"]
-                and self.occupant(self.spawn["cell"]) is None):
+        if (
+            self.spawn
+            and self.nspawned < self.spawn["pool"]
+            and self.occupant(self.spawn["cell"]) is None
+        ):
             self.nspawned += 1
-            self.atoms[self.nspawned] = [self.spawn["elem"],
-                                         self.spawn["cell"]]
-        for n, a in self.atoms.items():
+            self.atoms[self.nspawned] = [self.spawn["elem"], self.spawn["cell"]]
+        for a in self.atoms.values():
             if a[1] in self.calc and a[0] in ELEMENTAL:
                 a[0] = "salt"
         for c1, c2 in self.bonders:
@@ -223,12 +270,16 @@ class State:
     def step(self, act):
         kind = act[0]
         if kind.startswith("place_"):
-            if not self.pending or self.pending[0] != kind[len("place_"):]:
+            if not self.pending or self.pending[0] != kind[len("place_") :]:
                 raise Fail(f"unexpected placement {act}; pending={self.pending}")
             self.pending.pop(0)
             io = self.cfg.get("io_cells", [])
-            taken = ([a[0] for a in self.arms.values()] + self.calc
-                     + [c for p in self.bonders for c in p] + io)
+            taken = (
+                [a[0] for a in self.arms.values()]
+                + self.calc
+                + [c for p in self.bonders for c in p]
+                + io
+            )
             if kind == "place_arm":
                 _, m, q, r, ln, d = act
                 self.arms[m] = [(int(q), int(r)), int(ln), int(d), None]
@@ -252,8 +303,7 @@ class State:
             self.post()
             return
         if self.pending:
-            raise Fail(f"arm action {act} before setup finished "
-                       f"(pending={self.pending})")
+            raise Fail(f"arm action {act} before setup finished (pending={self.pending})")
         m, a = act
         if m not in self.arms:
             raise Fail(f"unknown arm {m}")
@@ -301,14 +351,15 @@ class State:
 
 def parse_plan(path):
     plan = []
-    for line in open(path):
-        mt = re.match(r"^PLAN \{(.*)\}\s*$", line)
-        if mt:
-            plan.append(tuple(t.strip() for t in mt.group(1).split(",")))
-            continue
-        mt = re.match(r"^\s*\d+\.\s+(\w+)\s*$", line)  # phase-1 format
-        if mt:
-            plan.append(("m1", mt.group(1)))
+    with open(path) as f:
+        for line in f:
+            mt = re.match(r"^PLAN \{(.*)\}\s*$", line)
+            if mt:
+                plan.append(tuple(t.strip() for t in mt.group(1).split(",")))
+                continue
+            mt = re.match(r"^\s*\d+\.\s+(\w+)\s*$", line)  # phase-1 format
+            if mt:
+                plan.append(("m1", mt.group(1)))
     return plan
 
 
@@ -326,14 +377,14 @@ def main():
         if st.pending:
             raise Fail(f"setup never finished: pending={st.pending}")
         if not cfg["goal"](st):
-            raise Fail(f"goal not reached; final atoms={st.atoms} "
-                       f"bonds={st.bonds}")
+            raise Fail(f"goal not reached; final atoms={st.atoms} bonds={st.bonds}")
     except Fail as e:
         print(f"{case}: FAIL ({e})")
         sys.exit(1)
     npl = sum(1 for a in plan if a[0].startswith("place_"))
-    print(f"{case}: PASS ({len(plan)} plan steps = {npl} placements + "
-          f"{len(plan) - npl} instructions)")
+    print(
+        f"{case}: PASS ({len(plan)} plan steps = {npl} placements + {len(plan) - npl} instructions)"
+    )
 
 
 if __name__ == "__main__":

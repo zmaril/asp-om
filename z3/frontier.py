@@ -17,10 +17,10 @@ import argparse
 import os
 import time
 
-import z3
-
 from om_bool import BoolEncoder
 from om_solver import INSTANCES, Encoder
+
+import z3
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -55,43 +55,56 @@ def descend_with_budget(cons, goal, cost, budget):
     while True:
         remaining = budget - (time.perf_counter() - t0)
         if remaining <= 0:
-            return (f"timeout({best})" if best is not None else "timeout",
-                    best, time.perf_counter() - t0)
+            return (
+                f"timeout({best})" if best is not None else "timeout",
+                best,
+                time.perf_counter() - t0,
+            )
         s.set("timeout", int(remaining * 1000))
         res = s.check()
         if res == z3.sat:
             best = s.model().eval(cost).as_long()
             s.add(cost <= best - 1)
         elif res == z3.unsat:
-            return (("opt" if best is not None else "unsat"), best,
-                    time.perf_counter() - t0)
+            return (("opt" if best is not None else "unsat"), best, time.perf_counter() - t0)
         else:  # unknown = solver timeout
-            return (f"timeout({best})" if best is not None else "timeout",
-                    best, time.perf_counter() - t0)
+            return (
+                f"timeout({best})" if best is not None else "timeout",
+                best,
+                time.perf_counter() - t0,
+            )
 
 
 def run(encoding, mode, radius, t_max, budget):
     inst = INSTANCES["water"]
     t0 = time.perf_counter()
+    enc: BoolEncoder | Encoder
     if encoding == "bool":
         assert mode == "fixed"
         enc = BoolEncoder(inst, t_max=t_max, radius=radius)
         goal = enc.goal()
     else:
-        enc = Encoder(inst, t_max=t_max, free_layout=(mode == "free"),
-                      radius=radius)
+        enc = Encoder(inst, t_max=t_max, free_layout=(mode == "free"), radius=radius)
         goal = enc.goal(t_max)
     build = time.perf_counter() - t0
-    status, cost, solve = descend_with_budget(enc.cons, goal, enc.cost,
-                                              budget)
-    return dict(encoding=encoding, mode=mode, radius=radius, t_max=t_max,
-                status=status, cost=cost, build=build, solve=solve)
+    status, cost, solve = descend_with_budget(enc.cons, goal, enc.cost, budget)
+    return {
+        "encoding": encoding,
+        "mode": mode,
+        "radius": radius,
+        "t_max": t_max,
+        "status": status,
+        "cost": cost,
+        "build": build,
+        "solve": solve,
+    }
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--budget", type=float, default=120.0,
-                    help="wall-clock budget per configuration (s)")
+    ap.add_argument(
+        "--budget", type=float, default=120.0, help="wall-clock budget per configuration (s)"
+    )
     args = ap.parse_args()
 
     rows = []
@@ -109,15 +122,15 @@ def main():
         "10; free-layout optimum is 3.  `timeout(k)` = best (unproven) "
         "cost k when the budget ran out.",
         "",
-        "| encoding | layout | radius | t_max | status | cost | build s | "
-        "solve s |",
+        "| encoding | layout | radius | t_max | status | cost | build s | solve s |",
         "|---|---|---|---|---|---|---|---|",
     ]
     for r in rows:
         lines.append(
             f"| {r['encoding']} | {r['mode']} | {r['radius']} | "
             f"{r['t_max']} | {r['status']} | {r['cost']} | "
-            f"{r['build']:.2f} | {r['solve']:.2f} |")
+            f"{r['build']:.2f} | {r['solve']:.2f} |"
+        )
     lines.append("")
     with open(os.path.join(HERE, "results-frontier.md"), "w") as f:
         f.write("\n".join(lines))

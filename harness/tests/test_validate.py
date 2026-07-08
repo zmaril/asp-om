@@ -11,6 +11,7 @@ Run either way:
     python3 harness/tests/test_validate.py     # plain script
     python3 -m pytest harness/tests/           # pytest
 """
+
 import copy
 import json
 import os
@@ -38,11 +39,9 @@ def expect_fail(puzzle, plan, needle, exc=Invalid):
     try:
         validate(puzzle, plan)
     except exc as e:
-        assert needle in str(e), (
-            f"expected failure containing {needle!r}, got: {e}")
+        assert needle in str(e), f"expected failure containing {needle!r}, got: {e}"
         return
-    raise AssertionError(f"plan was accepted but should have failed "
-                         f"with {needle!r}")
+    raise AssertionError(f"plan was accepted but should have failed with {needle!r}")
 
 
 # ---------------------------------------------------------------------------
@@ -67,7 +66,7 @@ def test_explicit_waits_are_legal_and_free():
     puzzle, plan = case("single_transport")
     plan = copy.deepcopy(plan)
     for ins in plan["instructions"]:
-        ins["t"] += 1                       # shift plan right ...
+        ins["t"] += 1  # shift plan right ...
     plan["instructions"].insert(0, {"t": 0, "arm": "m1", "action": "wait"})
     assert validate(puzzle, plan) == {"salt_out": 6}
 
@@ -151,7 +150,7 @@ def test_gripper_off_board():
     puzzle, plan = case("single_transport")
     plan = copy.deepcopy(plan)
     arm = next(p for p in plan["placements"] if p["type"] == "arm")
-    arm["position"] = [2, 0]          # gripper at (3,0): off a radius-2 board
+    arm["position"] = [2, 0]  # gripper at (3,0): off a radius-2 board
     expect_fail(puzzle, plan, "off the board")
 
 
@@ -167,22 +166,21 @@ def test_overlapping_parts():
     puzzle, plan = case("two_atom_bond")
     plan = copy.deepcopy(plan)
     b = next(p for p in plan["placements"] if p["type"] == "bonder")
-    b["position"], b["rotation"] = [1, 0], 1   # on top of input salt_a
+    b["position"], b["rotation"] = [1, 0], 1  # on top of input salt_a
     expect_fail(puzzle, plan, "footprints overlap")
 
 
 def test_missing_placement():
     puzzle, plan = case("two_atom_bond")
     plan = copy.deepcopy(plan)
-    plan["placements"] = [p for p in plan["placements"]
-                          if p["type"] != "output"]
+    plan["placements"] = [p for p in plan["placements"] if p["type"] != "output"]
     expect_fail(puzzle, plan, "never places an output")
 
 
 def test_pinned_placement_violated():
     puzzle, plan = case("single_transport")
     puzzle = copy.deepcopy(puzzle)
-    puzzle["parts"][0]["position"] = [0, 1]    # pin the arm elsewhere
+    puzzle["parts"][0]["position"] = [0, 1]  # pin the arm elsewhere
     expect_fail(puzzle, plan, "pins position")
 
 
@@ -211,16 +209,16 @@ def test_incomplete_bond():
     puzzle, plan = case("two_atom_bond")
     plan = copy.deepcopy(plan)
     plan["instructions"] = [
-        {"t": 0, "arm": "m1", "action": "grab"},      # salt_a @ (1,0)
-        {"t": 1, "arm": "m1", "action": "rot_ccw"},   # -> (1,-1)
-        {"t": 2, "arm": "m1", "action": "rot_ccw"},   # -> (0,-1)
+        {"t": 0, "arm": "m1", "action": "grab"},  # salt_a @ (1,0)
+        {"t": 1, "arm": "m1", "action": "rot_ccw"},  # -> (1,-1)
+        {"t": 2, "arm": "m1", "action": "rot_ccw"},  # -> (0,-1)
         {"t": 3, "arm": "m1", "action": "drop"},
-        {"t": 4, "arm": "m1", "action": "rot_cw"},    # d5
-        {"t": 5, "arm": "m1", "action": "rot_cw"},    # d0
-        {"t": 6, "arm": "m1", "action": "rot_cw"},    # d1: over salt_b @ (0,1)
+        {"t": 4, "arm": "m1", "action": "rot_cw"},  # d5
+        {"t": 5, "arm": "m1", "action": "rot_cw"},  # d0
+        {"t": 6, "arm": "m1", "action": "rot_cw"},  # d1: over salt_b @ (0,1)
         {"t": 7, "arm": "m1", "action": "grab"},
-        {"t": 8, "arm": "m1", "action": "rot_ccw"},   # salt_b -> (1,0)
-        {"t": 9, "arm": "m1", "action": "rot_ccw"},   # salt_b -> (1,-1)
+        {"t": 8, "arm": "m1", "action": "rot_ccw"},  # salt_b -> (1,0)
+        {"t": 9, "arm": "m1", "action": "rot_ccw"},  # salt_b -> (1,-1)
         {"t": 10, "arm": "m1", "action": "drop"},
     ]
     expect_fail(puzzle, plan, "goal not reached")
@@ -262,8 +260,8 @@ def test_excess_bonds_rejected():
         {"t": 13, "arm": "m1", "action": "rot_ccw"},  # d2
         {"t": 14, "arm": "m1", "action": "rot_ccw"},  # d1: over salt_b#2
         {"t": 15, "arm": "m1", "action": "grab"},
-        {"t": 16, "arm": "m1", "action": "rot_cw"},   # -> (-1,1) bonder A
-        {"t": 17, "arm": "m1", "action": "rot_cw"},   # -> (-1,0) bonder B
+        {"t": 16, "arm": "m1", "action": "rot_cw"},  # -> (-1,1) bonder A
+        {"t": 17, "arm": "m1", "action": "rot_cw"},  # -> (-1,0) bonder B
         {"t": 18, "arm": "m1", "action": "drop"},
     ]
     # the dimer legitimately completed at t=12, before the third atom
@@ -273,22 +271,30 @@ def test_excess_bonds_rejected():
     # reject it. Rebuild: bond all three atoms FIRST, then deliver.
     plan2 = copy.deepcopy(plan)
     plan2["instructions"] = [
-        {"t": 0, "arm": "m1", "action": "grab"},      # salt_a @ (1,0)
+        {"t": 0, "arm": "m1", "action": "grab"},  # salt_a @ (1,0)
         {"t": 1, "arm": "m1", "action": "rot_ccw"},
         {"t": 2, "arm": "m1", "action": "rot_ccw"},
-        {"t": 3, "arm": "m1", "action": "rot_ccw"},   # salt_a -> (-1,0) = bonder B
+        {"t": 3, "arm": "m1", "action": "rot_ccw"},  # salt_a -> (-1,0) = bonder B
         {"t": 4, "arm": "m1", "action": "drop"},
-        {"t": 5, "arm": "m1", "action": "rot_ccw"},   # d2
-        {"t": 6, "arm": "m1", "action": "rot_ccw"},   # d1: over salt_b#1
+        {"t": 5, "arm": "m1", "action": "rot_ccw"},  # d2
+        {"t": 6, "arm": "m1", "action": "rot_ccw"},  # d1: over salt_b#1
         {"t": 7, "arm": "m1", "action": "grab"},
-        {"t": 8, "arm": "m1", "action": "rot_cw"},    # b#1 -> (-1,1) = bonder A; bond a-b1
-        {"t": 9, "arm": "m1", "action": "rot_cw"},    # dimer swings: b#1 -> (-1,0), a -> (0,-1)
+        {"t": 8, "arm": "m1", "action": "rot_cw"},  # b#1 -> (-1,1) = bonder A; bond a-b1
+        {"t": 9, "arm": "m1", "action": "rot_cw"},  # dimer swings: b#1 -> (-1,0), a -> (0,-1)
         {"t": 10, "arm": "m1", "action": "drop"},
         {"t": 11, "arm": "m1", "action": "rot_ccw"},  # d2
         {"t": 12, "arm": "m1", "action": "rot_ccw"},  # d1: over respawned salt_b#2
         {"t": 13, "arm": "m1", "action": "grab"},
-        {"t": 14, "arm": "m1", "action": "rot_cw"},   # b#2 -> (-1,1) A; B holds b#1 => bond b1-b2 (trimer a-b1-b2)
-        {"t": 15, "arm": "m1", "action": "rot_cw"},   # trimer swings: b#2->(-1,0), b#1->(0,-1), a->(1,-1)
+        {
+            "t": 14,
+            "arm": "m1",
+            "action": "rot_cw",
+        },  # b#2 -> (-1,1) A; B holds b#1 => bond b1-b2 (trimer a-b1-b2)
+        {
+            "t": 15,
+            "arm": "m1",
+            "action": "rot_cw",
+        },  # trimer swings: b#2->(-1,0), b#1->(0,-1), a->(1,-1)
         {"t": 16, "arm": "m1", "action": "drop"},
     ]
     # now atoms b#1@(0,-1) and a@(1,-1) cover the output hexes, both salt,
@@ -320,8 +326,7 @@ def test_plan_for_wrong_puzzle():
 
 
 def main():
-    tests = [(n, f) for n, f in sorted(globals().items())
-             if n.startswith("test_") and callable(f)]
+    tests = [(n, f) for n, f in sorted(globals().items()) if n.startswith("test_") and callable(f)]
     failed = 0
     for name, fn in tests:
         try:
@@ -330,7 +335,7 @@ def main():
         except AssertionError as e:
             failed += 1
             print(f"FAIL  {name}: {e}")
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             failed += 1
             print(f"ERROR {name}: {type(e).__name__}: {e}")
     print(f"\n{len(tests) - failed}/{len(tests)} tests passed")

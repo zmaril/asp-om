@@ -45,6 +45,7 @@ Usage (the committed demo run):
                   harness/puzzles/two_atom_bond.json \
         --iterations 80 --proposer learned --seed 0 --run-name demo
 """
+
 import argparse
 import json
 import os
@@ -57,10 +58,11 @@ sys.path.insert(0, os.path.join(REPO, "harness"))
 sys.path.insert(0, os.path.join(REPO, "selfplay", "leaderboard"))
 sys.path.insert(0, HERE)
 
-from validate import Invalid, Malformed, plan_length, validate  # noqa: E402
-from store import IncumbentStore  # noqa: E402
 from proposer import LearnedProposer, make_proposer, puzzle_slots  # noqa: E402
+from store import IncumbentStore  # noqa: E402
 from teacher import ClingoTeacher  # noqa: E402
+
+from validate import Invalid, Malformed, plan_length, validate  # noqa: E402
 
 DIRS = [(1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1), (1, -1)]
 
@@ -73,8 +75,13 @@ def plan_choices(puzzle, plan):
     choices = []
     for slot in puzzle_slots(puzzle):
         kind, pid = slot["key"].split("/", 1)
-        ptype = {"arm": "arm", "input": "input", "output": "output",
-                 "calcifier": "calcifier", "bonder": "bonder"}[kind]
+        ptype = {
+            "arm": "arm",
+            "input": "input",
+            "output": "output",
+            "calcifier": "calcifier",
+            "bonder": "bonder",
+        }[kind]
         pl = by_id.get((ptype, pid))
         if pl is None:
             return None
@@ -95,11 +102,13 @@ class Run:
         os.makedirs(out_dir, exist_ok=True)
         self.dir = out_dir
         self.echo = echo
-        self.logf = open(os.path.join(out_dir, "run.log"), "w")
-        self.records = open(os.path.join(out_dir, "records.jsonl"), "w")
-        self.curve = open(os.path.join(out_dir, "curve.csv"), "w")
-        self.curve.write("iteration,puzzle,mode,seeded_ok,reward,"
-                         "plan_len,ref_len,improved,window_validity\n")
+        # Handles stay open for the lifetime of the run; Run.close() closes them.
+        self.logf = open(os.path.join(out_dir, "run.log"), "w")  # noqa: SIM115
+        self.records = open(os.path.join(out_dir, "records.jsonl"), "w")  # noqa: SIM115
+        self.curve = open(os.path.join(out_dir, "curve.csv"), "w")  # noqa: SIM115
+        self.curve.write(
+            "iteration,puzzle,mode,seeded_ok,reward,plan_len,ref_len,improved,window_validity\n"
+        )
 
     def log(self, msg):
         self.logf.write(msg + "\n")
@@ -122,20 +131,28 @@ class Run:
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--puzzles", nargs="+", required=True,
-                    help="puzzle JSON paths (keep these trivial: the "
-                         "teacher's ceiling is low, see README.md)")
-    ap.add_argument("--iterations", type=int, default=40,
-                    help="iterations per puzzle")
-    ap.add_argument("--proposer", choices=("random", "learned"),
-                    default="learned")
+    ap.add_argument(
+        "--puzzles",
+        nargs="+",
+        required=True,
+        help="puzzle JSON paths (keep these trivial: the teacher's ceiling is low, see README.md)",
+    )
+    ap.add_argument("--iterations", type=int, default=40, help="iterations per puzzle")
+    ap.add_argument("--proposer", choices=("random", "learned"), default="learned")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--run-name", default=None)
-    ap.add_argument("--seeded-limit", type=float, default=15.0,
-                    help="clingo time limit (s) for proposal-pinned solves")
-    ap.add_argument("--relaxed-limit", type=float, default=60.0,
-                    help="clingo time limit (s) for the one from-scratch "
-                         "reference solve per puzzle")
+    ap.add_argument(
+        "--seeded-limit",
+        type=float,
+        default=15.0,
+        help="clingo time limit (s) for proposal-pinned solves",
+    )
+    ap.add_argument(
+        "--relaxed-limit",
+        type=float,
+        default=60.0,
+        help="clingo time limit (s) for the one from-scratch reference solve per puzzle",
+    )
     args = ap.parse_args()
 
     name = args.run_name or f"{args.proposer}-{int(time.time())}"
@@ -143,14 +160,17 @@ def main():
     run = Run(out_dir)
     store = IncumbentStore(os.path.join(out_dir, "incumbents.json"))
     weights_path = os.path.join(out_dir, "weights.json")
-    proposer = make_proposer(args.proposer, seed=args.seed,
-                             weights_path=weights_path)
-    teacher = ClingoTeacher(os.path.join(out_dir, "scratch"),
-                            seeded_limit=args.seeded_limit,
-                            relaxed_limit=args.relaxed_limit)
+    proposer = make_proposer(args.proposer, seed=args.seed, weights_path=weights_path)
+    teacher = ClingoTeacher(
+        os.path.join(out_dir, "scratch"),
+        seeded_limit=args.seeded_limit,
+        relaxed_limit=args.relaxed_limit,
+    )
 
-    run.log(f"# expert iteration run {name!r}: proposer={args.proposer} "
-            f"seed={args.seed} iterations={args.iterations}/puzzle")
+    run.log(
+        f"# expert iteration run {name!r}: proposer={args.proposer} "
+        f"seed={args.seed} iterations={args.iterations}/puzzle"
+    )
     summary = {}
     for path in args.puzzles:
         with open(path) as f:
@@ -162,22 +182,31 @@ def main():
         t0 = time.time()
         ref_plan = teacher.relaxed_solve(puzzle)
         if ref_plan is None:
-            run.log(f"  teacher cannot solve {pname} from scratch within "
-                    f"{args.relaxed_limit}s -- skipping (competence "
-                    f"ceiling, see README.md)")
+            run.log(
+                f"  teacher cannot solve {pname} from scratch within "
+                f"{args.relaxed_limit}s -- skipping (competence "
+                f"ceiling, see README.md)"
+            )
             continue
         validate(puzzle, ref_plan)  # canonical check; raises on failure
         ref_len = plan_length(ref_plan)
         ref_sub = store.submit(puzzle, ref_plan, source="teacher/relaxed")
-        run.record({"kind": "reference", "puzzle": pname, "plan": ref_plan,
-                    "metrics": ref_sub["metrics"],
-                    "improved": ref_sub["improved"]})
-        run.log(f"  reference from-scratch solve: {ref_len} instructions "
-                f"({time.time() - t0:.1f}s)")
+        run.record(
+            {
+                "kind": "reference",
+                "puzzle": pname,
+                "plan": ref_plan,
+                "metrics": ref_sub["metrics"],
+                "improved": ref_sub["improved"],
+            }
+        )
+        run.log(f"  reference from-scratch solve: {ref_len} instructions ({time.time() - t0:.1f}s)")
         ref_choices = plan_choices(puzzle, ref_plan)
         if ref_choices is None:
-            run.log("  note: reference layout outside proposer candidate "
-                    "space; imitation disabled for this puzzle")
+            run.log(
+                "  note: reference layout outside proposer candidate "
+                "space; imitation disabled for this puzzle"
+            )
 
         window = []
         stats = []  # (seeded_ok, reward, plan_len or None)
@@ -199,21 +228,27 @@ def main():
                     run.log(f"  it={it} WARNING teacher plan invalid: {e}")
                     plan, mode, seeded_ok = None, "none", False
             if plan is not None:
-                sub = store.submit(
-                    puzzle, plan,
-                    source=f"loop1/{args.proposer}/{mode}")
+                sub = store.submit(puzzle, plan, source=f"loop1/{args.proposer}/{mode}")
                 assert sub["accepted"], sub["reason"]
                 improved = sub["improved"]
                 plan_len = plan_length(plan)
                 if seeded_ok:
-                    reward = (1.0 + (ref_len - plan_len) / max(ref_len, 1)
-                              + 0.1 * len(improved))
-                run.record({"kind": "iteration", "iteration": it,
-                            "puzzle": pname, "proposal": proposal,
-                            "mode": mode, "seeded_ok": seeded_ok,
-                            "plan": plan, "metrics": sub["metrics"],
-                            "improved": improved, "reward": reward,
-                            "solver_seconds": round(solver_s, 3)})
+                    reward = 1.0 + (ref_len - plan_len) / max(ref_len, 1) + 0.1 * len(improved)
+                run.record(
+                    {
+                        "kind": "iteration",
+                        "iteration": it,
+                        "puzzle": pname,
+                        "proposal": proposal,
+                        "mode": mode,
+                        "seeded_ok": seeded_ok,
+                        "plan": plan,
+                        "metrics": sub["metrics"],
+                        "improved": improved,
+                        "reward": reward,
+                        "solver_seconds": round(solver_s, 3),
+                    }
+                )
 
             # policy update -- from this loop's own outcomes only
             if isinstance(proposer, LearnedProposer):
@@ -226,14 +261,24 @@ def main():
             window = window[-10:]
             wv = sum(window) / len(window)
             stats.append((seeded_ok, reward, plan_len if seeded_ok else None))
-            run.curve_row(it, pname, mode, int(seeded_ok),
-                          f"{reward:.3f}", plan_len if plan_len else "",
-                          ref_len, len(improved), f"{wv:.2f}")
-            run.log(f"  it={it:3d} mode={mode:7s} seeded_ok={int(seeded_ok)} "
-                    f"reward={reward:5.2f} "
-                    f"len={plan_len if plan_len is not None else '-':>2} "
-                    f"(ref {ref_len}) window_validity={wv:.2f} "
-                    f"[{solver_s:.2f}s]")
+            run.curve_row(
+                it,
+                pname,
+                mode,
+                int(seeded_ok),
+                f"{reward:.3f}",
+                plan_len if plan_len else "",
+                ref_len,
+                len(improved),
+                f"{wv:.2f}",
+            )
+            run.log(
+                f"  it={it:3d} mode={mode:7s} seeded_ok={int(seeded_ok)} "
+                f"reward={reward:5.2f} "
+                f"len={plan_len if plan_len is not None else '-':>2} "
+                f"(ref {ref_len}) window_validity={wv:.2f} "
+                f"[{solver_s:.2f}s]"
+            )
 
         h = len(stats) // 2
         first, second = stats[:h], stats[h:]
@@ -251,12 +296,14 @@ def main():
             "mean_reward_second_half": round(mean_reward(second), 3),
             "reference_len": ref_len,
         }
-        run.log(f"  summary {pname}: proposal validity "
-                f"{summary[pname]['validity_first_half']:.2f} -> "
-                f"{summary[pname]['validity_second_half']:.2f} "
-                f"(first vs second half), mean reward "
-                f"{summary[pname]['mean_reward_first_half']:.2f} -> "
-                f"{summary[pname]['mean_reward_second_half']:.2f}")
+        run.log(
+            f"  summary {pname}: proposal validity "
+            f"{summary[pname]['validity_first_half']:.2f} -> "
+            f"{summary[pname]['validity_second_half']:.2f} "
+            f"(first vs second half), mean reward "
+            f"{summary[pname]['mean_reward_first_half']:.2f} -> "
+            f"{summary[pname]['mean_reward_second_half']:.2f}"
+        )
 
     run.log("\n# learning-curve summary (first half vs second half)")
     run.log(json.dumps(summary, indent=2, sort_keys=True))

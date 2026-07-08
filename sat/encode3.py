@@ -81,11 +81,9 @@ class HarnessPuzzle:
             raise ValueError("at most one calcifier and one bonder")
         self.calcifier = calcs[0] if calcs else None
         self.bonder = bonders[0] if bonders else None
-        unknown = [p for p in data["parts"]
-                   if p["type"] not in ("arm", "calcifier", "bonder")]
+        unknown = [p for p in data["parts"] if p["type"] not in ("arm", "calcifier", "bonder")]
         if unknown:
-            raise ValueError(f"unsupported part types: "
-                             f"{[p['type'] for p in unknown]}")
+            raise ValueError(f"unsupported part types: {[p['type'] for p in unknown]}")
         # atoms (i, n): reagent index i (1-based), pool copy n
         self.pools = tuple(rg["pool"] for rg in self.reagents)
         self.elem0 = {}
@@ -95,9 +93,7 @@ class HarnessPuzzle:
 
     @property
     def atoms(self):
-        return tuple((i, n)
-                     for i, p in enumerate(self.pools, 1)
-                     for n in range(1, p + 1))
+        return tuple((i, n) for i, p in enumerate(self.pools, 1) for n in range(1, p + 1))
 
 
 class Encoder3:
@@ -163,50 +159,50 @@ class Encoder3:
         self.out_placements = []  # (p, k, cells)
         for p in self.hexes:
             for k in self.orots:
-                cells = tuple((p[0] + rot_k(o, k)[0], p[1] + rot_k(o, k)[1])
-                              for o in self.prod_offsets)
+                cells = tuple(
+                    (p[0] + rot_k(o, k)[0], p[1] + rot_k(o, k)[1]) for o in self.prod_offsets
+                )
                 if all(c in self.hexset for c in cells):
                     self.out_placements.append((p, k, cells))
                 else:
                     self.add([-self.v("opos", p), -self.v("orot", k)])
 
         # ---- part-non-overlap (footprints pairwise disjoint) ----
-        single_parts = ([("base",)]
-                        + [("spawn", i) for i in range(1, ninputs + 1)]
-                        + ([("cpos",)] if pz.calcifier else []))
+        single_parts = (
+            [("base",)]
+            + [("spawn", i) for i in range(1, ninputs + 1)]
+            + ([("cpos",)] if pz.calcifier else [])
+        )
         for h in self.hexes:
             self.at_most_one([self.v(*p, h) for p in single_parts])
         if pz.bonder:
             for h in self.hexes:
                 for p in single_parts:
                     self.add([-self.v("gpos", h), -self.v(*p, h)])
-            for (h1, d, h2) in self.placements:
+            for h1, d, h2 in self.placements:
                 for p in single_parts:
-                    self.add([-self.v("gpos", h1), -self.v("gdir", d),
-                              -self.v(*p, h2)])
-        for (p, k, cells) in self.out_placements:
+                    self.add([-self.v("gpos", h1), -self.v("gdir", d), -self.v(*p, h2)])
+        for p, k, cells in self.out_placements:
             ol = [-self.v("opos", p), -self.v("orot", k)]
             for c in cells:
                 for sp in single_parts:
-                    self.add(ol + [-self.v(*sp, c)])
+                    self.add([*ol, -self.v(*sp, c)])
                 if pz.bonder:
-                    self.add(ol + [-self.v("gpos", c)])
+                    self.add([*ol, -self.v("gpos", c)])
             if pz.bonder:
-                for (h1, d, h2) in self.placements:
+                for h1, d, h2 in self.placements:
                     if h2 in cells:
-                        self.add(ol + [-self.v("gpos", h1),
-                                       -self.v("gdir", d)])
+                        self.add([*ol, -self.v("gpos", h1), -self.v("gdir", d)])
 
         # ---- pins from the puzzle file ----
         def pin(cond, *lits):
             if cond:
                 for lit in lits:
                     self.add([lit])
+
         for i, rg in enumerate(pz.reagents, 1):
-            pin("position" in rg,
-                self.v("spawn", i, tuple(rg.get("position", (0, 0)))))
-        pin("position" in pz.arm,
-            self.v("base", tuple(pz.arm.get("position", (0, 0)))))
+            pin("position" in rg, self.v("spawn", i, tuple(rg.get("position", (0, 0)))))
+        pin("position" in pz.arm, self.v("base", tuple(pz.arm.get("position", (0, 0)))))
         if "rotation" in pz.arm:
             self.add([self.v("orient", pz.arm["rotation"], 0)])
         if pz.calcifier and "position" in pz.calcifier:
@@ -242,7 +238,7 @@ class Encoder3:
                     g = (b[0] + L * DIRS[d][0], b[1] + L * DIRS[d][1])
                     pre = [-self.v("base", b), -self.v("orient", d, t)]
                     if g in self.hexset:
-                        self.add(pre + [self.v("grip", g, t)])
+                        self.add([*pre, self.v("grip", g, t)])
                     else:
                         self.add(pre)
             self.at_most_one([self.v("grip", h, t) for h in self.hexes])
@@ -263,11 +259,10 @@ class Encoder3:
                     w = self.v("exw", x, h, t)
                     self.add([-w, self.v("ex", x, t - 1)])
                     self.add([-w, self.v("at", x, h, t)])
-                    self.add([w, -self.v("ex", x, t - 1),
-                              -self.v("at", x, h, t)])
+                    self.add([w, -self.v("ex", x, t - 1), -self.v("at", x, h, t)])
                     self.add([-w, eo])
                     wits.append(w)
-                self.add([-eo] + wits)
+                self.add([-eo, *wits])
         for x in X:
             i, n = x
             if n == 1:
@@ -292,7 +287,7 @@ class Encoder3:
             for x in X:
                 ats = [self.v("at", x, h, t) for h in self.hexes]
                 self.at_most_one(ats)
-                self.add([-self.v("ex", x, t)] + ats)
+                self.add([-self.v("ex", x, t), *ats])
                 for a in ats:
                     self.add([self.v("ex", x, t), -a])
             for h in self.hexes:
@@ -310,24 +305,20 @@ class Encoder3:
             for x in X:
                 hx, hx1 = self.v("hold", x, t), self.v("hold", x, t + 1)
                 for h in self.hexes:
-                    self.add([-grab, -self.v("grip", h, t),
-                              -self.v("at", x, h, t), hx1])
+                    self.add([-grab, -self.v("grip", h, t), -self.v("at", x, h, t), hx1])
                 self.add([-hx, drop, hx1])
                 self.add([-drop, -hx1])
                 self.add([-hx1, hx, grab])
                 for h in self.hexes:
-                    self.add([-hx1, hx, -self.v("grip", h, t),
-                              self.v("at", x, h, t)])
+                    self.add([-hx1, hx, -self.v("grip", h, t), self.v("at", x, h, t)])
                 self.add([-grab, -hx])
             for h in self.hexes:
-                self.add([-grab, -self.v("grip", h, t)]
-                         + [self.v("at", x, h, t) for x in X])
+                self.add([-grab, -self.v("grip", h, t)] + [self.v("at", x, h, t) for x in X])
             self.add([-drop] + [self.v("hold", x, t) for x in X])
         for t in range(1, T + 1):
             for x in X:
                 for h in self.hexes:
-                    self.add([-self.v("hold", x, t), -self.v("grip", h, t),
-                              self.v("at", x, h, t)])
+                    self.add([-self.v("hold", x, t), -self.v("grip", h, t), self.v("at", x, h, t)])
 
         # ---- element bit: salt(x,t) ----
         for x in X:
@@ -348,18 +339,17 @@ class Encoder3:
                         self.add([-w, cp])
                         self.add([-w, at])
                         wits.append(w)
-                self.add([-s1, s0] + wits)
+                self.add([-s1, s0, *wits])
 
         # ---- bonds ----
-        self.pairs = [(X[i], X[j]) for i in range(len(X))
-                      for j in range(i + 1, len(X))]
+        self.pairs = [(X[i], X[j]) for i in range(len(X)) for j in range(i + 1, len(X))]
 
         def pvar(x, y, t):
             p = (x, y) if (x, y) in self.pairs else (y, x)
             return self.v("bond", p, t)
 
         for t in times:
-            for (h1, d, h2) in self.placements:
+            for h1, d, h2 in self.placements:
                 for x in X:
                     for y in X:
                         if x == y:
@@ -376,14 +366,16 @@ class Encoder3:
         for p in self.pairs:
             for t in times:
                 b = self.v("bond", p, t)
-                wits = [self.v("bf", u, w2, h1, d, t)
-                        for (h1, d, h2) in self.placements
-                        for (u, w2) in (p, (p[1], p[0]))]
+                wits = [
+                    self.v("bf", u, w2, h1, d, t)
+                    for (h1, d, h2) in self.placements
+                    for (u, w2) in (p, (p[1], p[0]))
+                ]
                 if t == 0:
-                    self.add([-b] + wits)
+                    self.add([-b, *wits])
                 else:
                     self.add([-self.v("bond", p, t - 1), b])
-                    self.add([-b, self.v("bond", p, t - 1)] + wits)
+                    self.add([-b, self.v("bond", p, t - 1), *wits])
 
         # ---- held component / rigid motion (identical to encode2) ----
         K = len(X) - 1 if pz.bonder else 0
@@ -409,7 +401,7 @@ class Encoder3:
                         self.add([w, -cy, -b])
                         self.add([-w, ck1])
                         wits.append(w)
-                    self.add([-ck1, prev] + wits)
+                    self.add([-ck1, prev, *wits])
 
         def comp(x, t):
             return compvar(K, x, t)
@@ -430,31 +422,28 @@ class Encoder3:
                     for h in self.hexes:
                         h2 = rot_about(b, h, cw)
                         for x in X:
-                            pre = [-dl, -comp(x, t), -bl,
-                                   -self.v("at", x, h, t)]
+                            pre = [-dl, -comp(x, t), -bl, -self.v("at", x, h, t)]
                             if h2 in self.hexset:
-                                self.add(pre + [self.v("at", x, h2, t + 1)])
+                                self.add([*pre, self.v("at", x, h2, t + 1)])
                             else:
                                 self.add(pre)
             for x in X:
                 mv = self.v("mv", x, t)
                 for h in self.hexes:
-                    self.add([-self.v("at", x, h, t), mv,
-                              self.v("at", x, h, t + 1)])
+                    self.add([-self.v("at", x, h, t), mv, self.v("at", x, h, t + 1)])
 
         # ---- goal: exact product on the output part at the horizon ----
         nslots = len(self.prod_offsets)
         slot_elems = [a["element"] for a in pz.product["atoms"]]
-        prod_bonds = set(frozenset(b) for b in pz.product.get("bonds", []))
+        prod_bonds = {frozenset(b) for b in pz.product.get("bonds", [])}
         sels = []
+
         # candidate atoms per slot: birth element must be able to reach
         # the slot element (salt slot: anything calcifiable or salt;
         # elemental slot: exactly that birth element)
         def candidates(e):
             if e == "salt":
-                return [x for x in X
-                        if pz.elem0[x] == "salt"
-                        or pz.elem0[x] in ELEMENTAL]
+                return [x for x in X if pz.elem0[x] == "salt" or pz.elem0[x] in ELEMENTAL]
             return [x for x in X if pz.elem0[x] == e]
 
         if nslots == 1:
@@ -469,9 +458,10 @@ class Encoder3:
                 for p2 in self.pairs:  # exact degree 0
                     if x in p2:
                         self.add([-sel, -self.v("bond", p2, T)])
-                for (p, k, cells) in self.out_placements:
-                    self.add([-sel, -self.v("opos", p), -self.v("orot", k),
-                              self.v("at", x, cells[0], T)])
+                for p, k, cells in self.out_placements:
+                    self.add(
+                        [-sel, -self.v("opos", p), -self.v("orot", k), self.v("at", x, cells[0], T)]
+                    )
         else:
             b01 = frozenset((0, 1)) in prod_bonds
             for a0 in candidates(slot_elems[0]):
@@ -492,10 +482,10 @@ class Encoder3:
                             if z in (a0, a1) or z == x:
                                 continue
                             self.add([-sel, -pvar(x, z, T)])
-                    for (p, k, cells) in self.out_placements:
+                    for p, k, cells in self.out_placements:
                         ol = [-sel, -self.v("opos", p), -self.v("orot", k)]
-                        self.add(ol + [self.v("at", a0, cells[0], T)])
-                        self.add(ol + [self.v("at", a1, cells[1], T)])
+                        self.add([*ol, self.v("at", a0, cells[0], T)])
+                        self.add([*ol, self.v("at", a1, cells[1], T)])
         self.add(sels)
 
     @property

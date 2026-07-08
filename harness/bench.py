@@ -19,6 +19,7 @@ timeout, or unparseable stdout) counts as unsolved. Anything the adapter
 prints to stderr is passed through for the log. Wall time is measured by
 this runner around the whole adapter invocation.
 """
+
 import argparse
 import glob
 import json
@@ -34,23 +35,31 @@ from validate import Invalid, Malformed, plan_length, validate  # noqa: E402
 
 
 def run_one(name, cmd, puzzle_path, puzzle, timeout, keep_dir):
-    argv = shlex.split(cmd) + [puzzle_path]
+    argv = [*shlex.split(cmd), puzzle_path]
     t0 = time.time()
     try:
-        proc = subprocess.run(argv, capture_output=True, text=True,
-                              timeout=timeout)
+        proc = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
         wall = time.time() - t0
         timed_out = False
+        stderr = proc.stderr or ""
     except subprocess.TimeoutExpired as e:
         wall = time.time() - t0
-        proc, timed_out = e, True
-    stderr = (proc.stderr or "")
+        timed_out = True
+        raw = e.stderr
+        stderr = raw.decode() if isinstance(raw, bytes) else (raw or "")
     if stderr.strip():
         for line in stderr.strip().splitlines():
             print(f"    [{name}] {line}", file=sys.stderr)
 
-    row = {"puzzle": puzzle["name"], "solver": name, "solved": False,
-           "valid": None, "wall": wall, "length": None, "note": ""}
+    row = {
+        "puzzle": puzzle["name"],
+        "solver": name,
+        "solved": False,
+        "valid": None,
+        "wall": wall,
+        "length": None,
+        "note": "",
+    }
     if timed_out:
         row["note"] = f"timeout after {timeout}s"
         return row
@@ -72,21 +81,23 @@ def run_one(name, cmd, puzzle_path, puzzle, timeout, keep_dir):
         row["valid"] = True
         row["length"] = plan_length(plan)
         done = ", ".join(f"{p}@t={t}" for p, t in sorted(complete_at.items()))
-        print(f"    [validator] PASS  {puzzle['name']} x {name}: "
-              f"plan length {row['length']}, complete: {done}",
-              file=sys.stderr)
+        print(
+            f"    [validator] PASS  {puzzle['name']} x {name}: "
+            f"plan length {row['length']}, complete: {done}",
+            file=sys.stderr,
+        )
     except (Invalid, Malformed) as e:
         row["valid"] = False
         row["note"] = str(e)
-        print(f"    [validator] FAIL  {puzzle['name']} x {name}: {e}",
-              file=sys.stderr)
+        print(f"    [validator] FAIL  {puzzle['name']} x {name}: {e}", file=sys.stderr)
     return row
 
 
 def markdown_table(rows):
-    lines = ["| puzzle | solver | solved | valid plan | wall time (s) | "
-             "plan length |",
-             "|---|---|---|---|---|---|"]
+    lines = [
+        "| puzzle | solver | solved | valid plan | wall time (s) | plan length |",
+        "|---|---|---|---|---|---|",
+    ]
     for r in rows:
         solved = "yes" if r["solved"] else f"no ({r['note']})"
         if r["valid"] is None:
@@ -96,24 +107,32 @@ def markdown_table(rows):
         else:
             valid = f"NO ({r['note'][:60]})"
         length = r["length"] if r["length"] is not None else "-"
-        lines.append(f"| {r['puzzle']} | {r['solver']} | {solved} | {valid} "
-                     f"| {r['wall']:.2f} | {length} |")
+        lines.append(
+            f"| {r['puzzle']} | {r['solver']} | {solved} | {valid} | {r['wall']:.2f} | {length} |"
+        )
     return "\n".join(lines)
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--adapter", action="append", required=True,
-                    metavar="NAME=CMD",
-                    help='e.g. clingo="python3 harness/adapters/clingo/'
-                         'adapter.py"')
-    ap.add_argument("--puzzle", action="append", default=None,
-                    help="puzzle JSON path (default: harness/puzzles/*.json)")
-    ap.add_argument("--timeout", type=float, default=300,
-                    help="per-run hard timeout in seconds (default 300)")
+    ap.add_argument(
+        "--adapter",
+        action="append",
+        required=True,
+        metavar="NAME=CMD",
+        help='e.g. clingo="python3 harness/adapters/clingo/adapter.py"',
+    )
+    ap.add_argument(
+        "--puzzle",
+        action="append",
+        default=None,
+        help="puzzle JSON path (default: harness/puzzles/*.json)",
+    )
+    ap.add_argument(
+        "--timeout", type=float, default=300, help="per-run hard timeout in seconds (default 300)"
+    )
     ap.add_argument("--out", help="also write the markdown table here")
-    ap.add_argument("--keep-plans", metavar="DIR",
-                    help="save every produced plan JSON into DIR")
+    ap.add_argument("--keep-plans", metavar="DIR", help="save every produced plan JSON into DIR")
     args = ap.parse_args()
 
     adapters = []
@@ -121,8 +140,7 @@ def main():
         if "=" not in spec:
             ap.error(f"--adapter must be NAME=CMD, got {spec!r}")
         adapters.append(tuple(spec.split("=", 1)))
-    puzzle_paths = args.puzzle or sorted(
-        glob.glob(os.path.join(HERE, "puzzles", "*.json")))
+    puzzle_paths = args.puzzle or sorted(glob.glob(os.path.join(HERE, "puzzles", "*.json")))
     if not puzzle_paths:
         ap.error("no puzzle instances found")
     if args.keep_plans:
@@ -134,8 +152,7 @@ def main():
             puzzle = json.load(f)
         for name, cmd in adapters:
             print(f"== {puzzle['name']} x {name}", file=sys.stderr)
-            rows.append(run_one(name, cmd, path, puzzle, args.timeout,
-                                args.keep_plans))
+            rows.append(run_one(name, cmd, path, puzzle, args.timeout, args.keep_plans))
 
     table = markdown_table(rows)
     print()
