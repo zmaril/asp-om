@@ -13,9 +13,10 @@ and an adapter contract, so the harness-canonical numbers below are the
 apples-to-apples comparison.
 
 Source of every number: the arms' own notes and result files —
-`NOTES.md` (clingo, default branch), `picat/NOTES.md` (default branch),
-`z3/NOTES.md` (branch `z3-encoding`, PR #4), `sat/NOTES.md` (branch
-`sat-encoding`, PR #10), `minizinc/NOTES.md` +
+`NOTES.md` (clingo, default branch), `picat/NOTES.md` (default branch)
+plus `picat/results/canonical.md` (branch `picat-harness-adapter`,
+PR #13), `z3/NOTES.md` (branch `z3-encoding`, PR #4), `sat/NOTES.md`
+(branch `sat-encoding`, PR #10), `minizinc/NOTES.md` +
 `minizinc/results/benchmarks.md` + `minizinc/results/canonical.md`
 (branch `minizinc`, PR #11). Machines differ slightly per arm (all
 4-core containers); treat cross-arm wall times as order-of-magnitude
@@ -58,31 +59,42 @@ canonical `harness/validate.py`.
 
 Cell = **plan length** (wall time; optimality proof status). Canonical
 optima: **single_transport 3, two_atom_bond 11, stabilized_water 12** —
-proved independently by the SAT arm and by MiniZinc/CP-SAT.
+proved independently by the SAT arm, by MiniZinc/CP-SAT, and by Picat's
+planner.
 
 | puzzle | clingo (reference adapter) | Picat | MiniZinc (best engine) | Z3 | SAT |
 |---|---|---|---|---|---|
-| `single_transport` | **3** (0.08–0.11 s; proved) | *not run — no adapter (unverified)* | **3** (0.2 s, Chuffed; proved) | **3** (0.16 s; proved) | **3** (0.15 s; proved) |
-| `two_atom_bond` | **11** (returned at its 30 s cap; found in ~1 s, **not proved**) | *not run — no adapter (unverified)* | **11** (21.1 s, CP-SAT `-p4`; proved) | **11** (returned at its 120 s cap; **not proved**) | **11** (9.3 s; **proved**) |
-| `stabilized_water` | **12** (returned at its 30 s cap; found in ~1 s, **not proved**) | *not run — no adapter (unverified)* | **12** (124.4 s, CP-SAT `-p4`; proved) | **12** (found ~15–20 s, returned at its 120 s cap; **not proved**) | **12** (9.6 s; **proved**) |
+| `single_transport` | **3** (0.08–0.11 s; proved) | **3** (0.06 s; proved) | **3** (0.2 s, Chuffed; proved) | **3** (0.16 s; proved) | **3** (0.15 s; proved) |
+| `two_atom_bond` | **11** (returned at its 30 s cap; found in ~1 s, **not proved**) | **11** (2.8 s; **proved**) | **11** (21.1 s, CP-SAT `-p4`; proved) | **11** (returned at its 120 s cap; **not proved**) | **11** (9.3 s; **proved**) |
+| `stabilized_water` | **12** (returned at its 30 s cap; found in ~1 s, **not proved**) | **12** (62.6 s; **proved**) | **12** (124.4 s, CP-SAT `-p4`; proved) | **12** (found ~15–20 s, returned at its 120 s cap; **not proved**) | **12** (9.6 s; **proved**) |
 
 Sources: SAT rows and the clingo-reference columns from `sat/NOTES.md`
 ("Harness conformance"); Z3 rows and a second clingo measurement from
 `z3/NOTES.md` ("Canonical validation results"); MiniZinc rows from
-`minizinc/results/canonical.md`. Notes on reading it:
+`minizinc/results/canonical.md`; Picat rows from
+`picat/results/canonical.md` (PR #13). Notes on reading it:
 
 - **clingo's 30.2 s walls are its adapter's internal time-limit cap,
   not solve time**: it finds the optimal-length plans "within ~1 s"
   (`minizinc/NOTES.md` §5) but never proves them optimal — raising the
   budget to 300 s changes nothing (`z3/NOTES.md`). Same story for Z3's
   120.2–120.3 s walls.
-- **Only SAT and MiniZinc's CP-SAT prove the canonical optima**, and
-  SAT is 2–13× faster at it (9.3 s / 9.6 s vs 21.1 s / 124.4 s).
-- **Picat never got a harness adapter.** Its arm (PR #1) merged before
-  the harness (PR #3) and no `picat` adapter or canonical results
-  exist on any branch, so its column is honestly "unverified" — the
-  Picat numbers in this document are its pre-harness instances only
-  (`picat/NOTES.md`). Follow-up: write `harness/adapters/picat/`.
+- **SAT, MiniZinc's CP-SAT and Picat prove the canonical optima**, and
+  SAT is the fastest at it (9.3 s / 9.6 s vs Picat's 2.8 s / 62.6 s and
+  CP-SAT's 21.1 s / 124.4 s — Picat is actually quickest on
+  `two_atom_bond` but 6.5× slower than SAT on `stabilized_water`).
+- **Picat's adapter landed later than the other arms'.** Its arm
+  (PR #1) merged before the harness (PR #3); the harness adapter
+  (`picat/adapter.py`) and canonical results arrived in PR #13
+  (`picat/results/canonical.md`, branch `picat-harness-adapter`).
+  Because it solves with the planner module's `best_plan` (iterative
+  deepening), every Picat optimum above is proved, not an incumbent —
+  a timeout returns no plan at all. One caveat: the adapter keeps the
+  merged Picat model's glyph timing (calcify/spawn/bond applied at
+  post-action positions) rather than the harness's read-at-t/
+  retype-at-t+1 calcifier rule, but every emitted plan was replayed by
+  the canonical `harness/validate.py` and PASSED — the numbers are
+  validator-checked facts, not model claims.
 - MiniZinc's wall times above are with the engine chosen directly; its
   adapter's default portfolio (Chuffed slice, then CP-SAT) reports
   0.32 / 80.02 / 181.09 s through `harness/bench.py`
@@ -126,7 +138,12 @@ Cell = **optimum** (time to proven optimum).
 
 † Not the same question: Picat pinned the output hexes *and* enforced
 footprint disjointness including input/output hexes (13 is its proven
-optimum over that stricter convention, `picat/NOTES.md`); MiniZinc's
+optimum over that stricter convention, `picat/NOTES.md`) — a convention
+that already matched the harness footprint rule: PR #13's adapter,
+re-run on the canonical Stabilized Water puzzle with that same hand
+layout pinned, reproduces **optimum 13, proved, in 0.05 s**, and the
+plan passes `harness/validate.py` (`picat/results/canonical.md`,
+"Fixed layout"); MiniZinc's
 fixed instance pins a *different*, better hand layout with the bonder
 directly on the product hexes (`minizinc/instances/stabilized_water.dzn`
 comments; hand plan = 9). Only the clingo/Z3/SAT 10s are the same
@@ -227,9 +244,11 @@ Head-to-head on the same box, same instances (`sat/NOTES.md`,
 | fixed layout, slack horizon t_max=20 | optimum 10 proved in **8.0 s** | >300 s without the breaker |
 
 And on the canonical instances (§2.1): SAT proves all three optima in
-≤9.6 s; MiniZinc/CP-SAT proves all three in ≤124.4 s; clingo and Z3
-find the same plan lengths but prove only `single_transport`, even at
-300 s budgets.
+≤9.6 s; Picat's `best_plan` proves all three in ≤62.6 s (proof is the
+only mode it has — iterative deepening exhausts every shorter cost
+bound before returning); MiniZinc/CP-SAT proves all three in ≤124.4 s;
+clingo and Z3 find the same plan lengths but prove only
+`single_transport`, even at 300 s budgets.
 
 Within Z3, encoding style dominates: the **pure-boolean one-hot
 encoding is ~10× faster to solve than the Int encoding** everywhere it
@@ -272,7 +291,12 @@ boards, encode like a grounder, or use one."
   the fixed-layout solve on a 19-hex board; the tabled state carries
   every atom/bond/arm plus the chosen layout, so bigger products and
   boards grow the reachable state set sharply, and iterative deepening
-  re-expands each layout's subtree at every depth bound.
+  re-expands each layout's subtree at every depth bound. The canonical
+  runs (PR #13) confirm it: the adapter needs symmetry reduction plus
+  sound distance prunes to prove 11/12 in 2.8 s / 62.6 s — with
+  `--noprune`, `two_atom_bond` alone blows the 300 s budget — and the
+  pinned-layout SW variant that free-layout search takes 62.6 s on is
+  proved in 0.05 s (`picat/results/canonical.md`).
 
 ## 5. Takeaways
 
@@ -285,11 +309,16 @@ boards, encode like a grounder, or use one."
 - **Proving optimality**: the **SAT arm** is the clear winner —
   off-the-shelf cardinality constraints + incremental CDCL prove
   every canonical optimum in ≤10 s and deliver UNSAT certificates
-  10–14× faster than clingo on the same questions. MiniZinc with
-  **multi-core OR-Tools CP-SAT** is the runner-up (and the only
-  MiniZinc engine that survives the canonical instances).
-- **Joint layout + program design**: all arms can do it; SAT and
-  CP-SAT are the only ones that also *prove* the co-designed machine
+  10–14× faster than clingo on the same questions. **Picat** is the
+  runner-up: `best_plan`'s iterative deepening proves all three
+  canonical optima in ≤62.6 s (PR #13) — proof is structural, not
+  optional, since it has no incumbent-at-timeout mode. MiniZinc with
+  **multi-core OR-Tools CP-SAT** proves all three too, in ≤124.4 s
+  (and is the only MiniZinc engine that survives the canonical
+  instances); clingo and Z3 find the optimal plans but prove only the
+  easiest one.
+- **Joint layout + program design**: all arms can do it; SAT, Picat
+  and CP-SAT are the ones that also *prove* the co-designed machine
   optimal under the harness rules. Z3's free-layout mode deserves
   credit for *discovering* the glyphs-under-inputs speedrun trick
   (cost 3) rather than being told it — the one qualitative win for
@@ -316,9 +345,15 @@ boards, encode like a grounder, or use one."
 
 ## Appendix: claims deliberately marked unverified
 
-- **Picat on the canonical harness instances**: no adapter exists on
-  any branch; all Picat numbers here are its pre-harness instances
-  with its own (stricter) layout conventions.
+- **Picat's canonical numbers rest on the validator, not the model**:
+  its adapter (PR #13) keeps the merged model's glyph timing rather
+  than the harness's calcifier rule (`picat/results/canonical.md`,
+  "Methodology / caveats"). Every emitted plan passed
+  `harness/validate.py`, so the plan lengths and PASS verdicts are
+  verified; the "proved optimal" claims additionally rely on the
+  adapter's soundness argument for its timing shim and search prunes
+  (cross-checked against the SAT/CP-SAT-proved optima, which match
+  exactly).
 - clingo's canonical-instance behavior is reported via the other arms'
   runs of the reference adapter (`sat/NOTES.md`, `z3/NOTES.md`,
   `minizinc/NOTES.md`) — the clingo arm itself predates the canonical
