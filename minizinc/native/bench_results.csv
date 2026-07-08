@@ -1,0 +1,10 @@
+instance,variant,threads,native_status,native_obj,native_build_s,native_solve_s,native_wall_s,mzn_status,mzn_obj,mzn_flatten_s,mzn_solve_s,mzn_wall_s
+t1_transport,fixed,1,OPTIMAL,5,0.005,0.047,0.542,OPTIMAL,5,0.194,0.064,0.294
+t1_transport,free,1,OPTIMAL,5,0.006,0.047,0.538,OPTIMAL,5,0.195,0.077,0.311
+t2_bond,fixed,1,OPTIMAL,12,0.018,0.242,0.766,OPTIMAL,12,0.237,0.34,0.661
+t2_bond,free,1,OPTIMAL,5,0.018,0.519,1.103,OPTIMAL,5,0.248,0.486,0.798
+t3_rigid,fixed,1,OPTIMAL,4,0.01,0.112,0.667,OPTIMAL,4,0.22,0.147,0.419
+t3_rigid,free,1,OPTIMAL,4,0.01,0.165,0.727,OPTIMAL,4,0.222,0.198,0.473
+t4_calc,fixed,1,OPTIMAL,5,0.006,0.051,0.638,OPTIMAL,5,0.211,0.073,0.326
+t4_calc,free,1,OPTIMAL,5,0.006,0.073,0.633,OPTIMAL,5,0.215,0.089,0.352
+t2_bond,free,8,OPTIMAL,5,0.019,0.471,1.066,OPTIMAL,5,0.244,0.702,1.033

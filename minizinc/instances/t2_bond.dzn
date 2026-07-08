@@ -1,0 +1,56 @@
+% Test 2: bond two salt atoms via a glyph of bonding
+% (mirrors asp/bond_instance.lp with t_max=16).
+% Arm base (0,0), len 1, orient 0. a1 at (1,0), a2 at (0,1).
+% Bonder on hexes (-1,0) and (0,-1). Goal: a1 unheld at (-1,0),
+% a2 unheld at (0,-1), and some bond exists at t_max.
+% clingo optimum (fixed layout): 12 (same value under v1 no-rigid-rotation
+% and v2 rigid semantics; verified with asp/core2.lp as well).
+T = 16;
+radius = 2;
+nA = 2;
+nM = 1;
+
+arm_len = [1];
+init_ori = [0];
+given_base_q = [0];
+given_base_r = [0];
+
+init_q = [1, 0];
+init_r = [0, 1];
+init_type = [1, 1];       % salt, salt
+
+nInitBond = 0;
+init_bond = array2d(1..0, 1..2, []);
+
+nBonder = 1;
+given_bonder = [| -1, 0, 0, -1 |];
+nCalc = 0;
+given_calc = array2d(1..0, 1..2, []);
+
+nProd = 2;
+prod_atom = [1, 2];
+prod_q = [-1, 0];
+prod_r = [0, -1];
+prod_type = [0, 0];
+require_any_bond = true;
+
+% no reagent spawning, plain product goal (parameters added in phase 3)
+nSpawn = 0;
+spawn_q = [];
+spawn_r = [];
+spawn_type = [];
+atom_spawn = [0, 0];
+atom_rank  = [1, 1];
+free_prod_atoms = false;
+nProdBond = 0;
+prod_bond = array2d(1..0, 1..2, []);
+exact_molecule = false;
+
+% phase-4 harness-freedom flags: off (phase-2/3 conventions unchanged)
+free_in_layout = false;
+free_out_layout = false;
+free_init_ori = false;
+parts_disjoint_full = false;
+nOut = 0;
+prod_out = [0, 0];
+prod_off = array2d(1..2, 1..2, [0, 0, 0, 0]);

@@ -1,0 +1,55 @@
+% Test 4: calcification (MiniZinc-added instance; no asp/ counterpart file,
+% but cross-checked against asp/core2.lp with an equivalent instance).
+% Arm base (0,0), len 1, orient 0. WATER atom at (1,0); calc glyph at (0,1).
+% Goal: atom unheld at (-1,0) as SALT.
+% Optimum 5: grab, rot_cw (over the glyph -> salt), rot_cw, rot_cw, drop
+% (the ccw route avoids the glyph and cannot calcify).
+T = 10;
+radius = 2;
+nA = 1;
+nM = 1;
+
+arm_len = [1];
+init_ori = [0];
+given_base_q = [0];
+given_base_r = [0];
+
+init_q = [1];
+init_r = [0];
+init_type = [5];          % water
+
+nInitBond = 0;
+init_bond = array2d(1..0, 1..2, []);
+
+nBonder = 0;
+given_bonder = array2d(1..0, 1..4, []);
+nCalc = 1;
+given_calc = [| 0, 1 |];
+
+nProd = 1;
+prod_atom = [1];
+prod_q = [-1];
+prod_r = [0];
+prod_type = [1];          % must be salt
+require_any_bond = false;
+
+% no reagent spawning, plain product goal (parameters added in phase 3)
+nSpawn = 0;
+spawn_q = [];
+spawn_r = [];
+spawn_type = [];
+atom_spawn = [0];
+atom_rank  = [1];
+free_prod_atoms = false;
+nProdBond = 0;
+prod_bond = array2d(1..0, 1..2, []);
+exact_molecule = false;
+
+% phase-4 harness-freedom flags: off (phase-2/3 conventions unchanged)
+free_in_layout = false;
+free_out_layout = false;
+free_init_ori = false;
+parts_disjoint_full = false;
+nOut = 0;
+prod_out = [0];
+prod_off = array2d(1..1, 1..2, [0, 0]);
