@@ -1,0 +1,348 @@
+{
+ "meta": {
+  "instance": "bond",
+  "mode": "free",
+  "strategy": "descend-cost",
+  "t_max": 16,
+  "radius": 2,
+  "solver": "z3-4.16.0",
+  "solve_time_s": 22.4654
+ },
+ "layout": {
+  "arms": [
+   {
+    "name": "m1",
+    "base": [
+     0,
+     0
+    ],
+    "length": 1,
+    "init_orient": 1
+   }
+  ],
+  "glyph_bonds": [
+   [
+    -1,
+    0,
+    0,
+    -1
+   ]
+  ],
+  "glyph_calcs": []
+ },
+ "horizon": 16,
+ "cost": 12,
+ "actions": [
+  {
+   "t": 0,
+   "action": "grab",
+   "arm": "m1"
+  },
+  {
+   "t": 1,
+   "action": "rot_cw",
+   "arm": "m1"
+  },
+  {
+   "t": 2,
+   "action": "rot_cw",
+   "arm": "m1"
+  },
+  {
+   "t": 3,
+   "action": "rot_cw",
+   "arm": "m1"
+  },
+  {
+   "t": 4,
+   "action": "drop",
+   "arm": "m1"
+  },
+  {
+   "t": 5,
+   "action": "rot_cw",
+   "arm": "m1"
+  },
+  {
+   "t": 6,
+   "action": "wait",
+   "arm": null
+  },
+  {
+   "t": 7,
+   "action": "wait",
+   "arm": null
+  },
+  {
+   "t": 8,
+   "action": "wait",
+   "arm": null
+  },
+  {
+   "t": 9,
+   "action": "wait",
+   "arm": null
+  },
+  {
+   "t": 10,
+   "action": "rot_cw",
+   "arm": "m1"
+  },
+  {
+   "t": 11,
+   "action": "grab",
+   "arm": "m1"
+  },
+  {
+   "t": 12,
+   "action": "rot_cw",
+   "arm": "m1"
+  },
+  {
+   "t": 13,
+   "action": "rot_cw",
+   "arm": "m1"
+  },
+  {
+   "t": 14,
+   "action": "rot_cw",
+   "arm": "m1"
+  },
+  {
+   "t": 15,
+   "action": "drop",
+   "arm": "m1"
+  }
+ ],
+ "atom_trajectories": {
+  "a1": [
+   [
+    1,
+    0
+   ],
+   [
+    1,
+    0
+   ],
+   [
+    1,
+    0
+   ],
+   [
+    1,
+    0
+   ],
+   [
+    1,
+    0
+   ],
+   [
+    1,
+    0
+   ],
+   [
+    1,
+    0
+   ],
+   [
+    1,
+    0
+   ],
+   [
+    1,
+    0
+   ],
+   [
+    1,
+    0
+   ],
+   [
+    1,
+    0
+   ],
+   [
+    1,
+    0
+   ],
+   [
+    1,
+    0
+   ],
+   [
+    0,
+    1
+   ],
+   [
+    -1,
+    1
+   ],
+   [
+    -1,
+    0
+   ],
+   [
+    -1,
+    0
+   ]
+  ],
+  "a2": [
+   [
+    0,
+    1
+   ],
+   [
+    0,
+    1
+   ],
+   [
+    -1,
+    1
+   ],
+   [
+    -1,
+    0
+   ],
+   [
+    0,
+    -1
+   ],
+   [
+    0,
+    -1
+   ],
+   [
+    0,
+    -1
+   ],
+   [
+    0,
+    -1
+   ],
+   [
+    0,
+    -1
+   ],
+   [
+    0,
+    -1
+   ],
+   [
+    0,
+    -1
+   ],
+   [
+    0,
+    -1
+   ],
+   [
+    0,
+    -1
+   ],
+   [
+    0,
+    -1
+   ],
+   [
+    0,
+    -1
+   ],
+   [
+    0,
+    -1
+   ],
+   [
+    0,
+    -1
+   ]
+  ]
+ },
+ "orientations": {
+  "m1": [
+   1,
+   1,
+   2,
+   3,
+   4,
+   4,
+   5,
+   5,
+   5,
+   5,
+   5,
+   0,
+   0,
+   1,
+   2,
+   3,
+   3
+  ]
+ },
+ "held": {
+  "a1": [
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   "m1",
+   "m1",
+   "m1",
+   "m1",
+   null
+  ],
+  "a2": [
+   null,
+   "m1",
+   "m1",
+   "m1",
+   "m1",
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "bonds": [
+  {
+   "atoms": [
+    "a1",
+    "a2"
+   ],
+   "bonded": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    true,
+    true
+   ]
+  }
+ ],
+ "atom_types": null
+}

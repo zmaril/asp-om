@@ -1,0 +1,239 @@
+{
+ "meta": {
+  "instance": "rigid",
+  "mode": "free",
+  "strategy": "descend-cost",
+  "t_max": 10,
+  "radius": 2,
+  "solver": "z3-4.16.0",
+  "solve_time_s": 1.1588
+ },
+ "layout": {
+  "arms": [
+   {
+    "name": "m1",
+    "base": [
+     0,
+     0
+    ],
+    "length": 1,
+    "init_orient": 0
+   }
+  ],
+  "glyph_bonds": [],
+  "glyph_calcs": []
+ },
+ "horizon": 10,
+ "cost": 4,
+ "actions": [
+  {
+   "t": 0,
+   "action": "grab",
+   "arm": "m1"
+  },
+  {
+   "t": 1,
+   "action": "rot_cw",
+   "arm": "m1"
+  },
+  {
+   "t": 2,
+   "action": "wait",
+   "arm": null
+  },
+  {
+   "t": 3,
+   "action": "wait",
+   "arm": null
+  },
+  {
+   "t": 4,
+   "action": "wait",
+   "arm": null
+  },
+  {
+   "t": 5,
+   "action": "wait",
+   "arm": null
+  },
+  {
+   "t": 6,
+   "action": "wait",
+   "arm": null
+  },
+  {
+   "t": 7,
+   "action": "rot_cw",
+   "arm": "m1"
+  },
+  {
+   "t": 8,
+   "action": "drop",
+   "arm": "m1"
+  },
+  {
+   "t": 9,
+   "action": "wait",
+   "arm": null
+  }
+ ],
+ "atom_trajectories": {
+  "a1": [
+   [
+    1,
+    0
+   ],
+   [
+    1,
+    0
+   ],
+   [
+    0,
+    1
+   ],
+   [
+    0,
+    1
+   ],
+   [
+    0,
+    1
+   ],
+   [
+    0,
+    1
+   ],
+   [
+    0,
+    1
+   ],
+   [
+    0,
+    1
+   ],
+   [
+    -1,
+    1
+   ],
+   [
+    -1,
+    1
+   ],
+   [
+    -1,
+    1
+   ]
+  ],
+  "a2": [
+   [
+    2,
+    0
+   ],
+   [
+    2,
+    0
+   ],
+   [
+    0,
+    2
+   ],
+   [
+    0,
+    2
+   ],
+   [
+    0,
+    2
+   ],
+   [
+    0,
+    2
+   ],
+   [
+    0,
+    2
+   ],
+   [
+    0,
+    2
+   ],
+   [
+    -2,
+    2
+   ],
+   [
+    -2,
+    2
+   ],
+   [
+    -2,
+    2
+   ]
+  ]
+ },
+ "orientations": {
+  "m1": [
+   0,
+   0,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   2,
+   2,
+   2
+  ]
+ },
+ "held": {
+  "a1": [
+   null,
+   "m1",
+   "m1",
+   "m1",
+   "m1",
+   "m1",
+   "m1",
+   "m1",
+   "m1",
+   null,
+   null
+  ],
+  "a2": [
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "bonds": [
+  {
+   "atoms": [
+    "a1",
+    "a2"
+   ],
+   "bonded": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ]
+  }
+ ],
+ "atom_types": null
+}

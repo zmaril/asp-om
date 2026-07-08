@@ -1,0 +1,316 @@
+{
+ "meta": {
+  "instance": "water",
+  "mode": "fixed",
+  "strategy": "descend-cost",
+  "t_max": 12,
+  "radius": 2,
+  "solver": "z3-4.16.0",
+  "solve_time_s": 1.8438
+ },
+ "layout": {
+  "arms": [
+   {
+    "name": "m1",
+    "base": [
+     0,
+     0
+    ],
+    "length": 1,
+    "init_orient": 0
+   }
+  ],
+  "glyph_bonds": [
+   [
+    -1,
+    0,
+    0,
+    -1
+   ]
+  ],
+  "glyph_calcs": [
+   [
+    -1,
+    1
+   ]
+  ]
+ },
+ "horizon": 12,
+ "cost": 10,
+ "actions": [
+  {
+   "t": 0,
+   "action": "wait",
+   "arm": null
+  },
+  {
+   "t": 1,
+   "action": "grab",
+   "arm": "m1"
+  },
+  {
+   "t": 2,
+   "action": "rot_cw",
+   "arm": "m1"
+  },
+  {
+   "t": 3,
+   "action": "rot_cw",
+   "arm": "m1"
+  },
+  {
+   "t": 4,
+   "action": "rot_cw",
+   "arm": "m1"
+  },
+  {
+   "t": 5,
+   "action": "drop",
+   "arm": "m1"
+  },
+  {
+   "t": 6,
+   "action": "rot_cw",
+   "arm": "m1"
+  },
+  {
+   "t": 7,
+   "action": "rot_cw",
+   "arm": "m1"
+  },
+  {
+   "t": 8,
+   "action": "grab",
+   "arm": "m1"
+  },
+  {
+   "t": 9,
+   "action": "rot_ccw",
+   "arm": "m1"
+  },
+  {
+   "t": 10,
+   "action": "drop",
+   "arm": "m1"
+  },
+  {
+   "t": 11,
+   "action": "wait",
+   "arm": null
+  }
+ ],
+ "atom_trajectories": {
+  "w1": [
+   [
+    1,
+    0
+   ],
+   [
+    1,
+    0
+   ],
+   [
+    1,
+    0
+   ],
+   [
+    0,
+    1
+   ],
+   [
+    -1,
+    1
+   ],
+   [
+    -1,
+    0
+   ],
+   [
+    -1,
+    0
+   ],
+   [
+    -1,
+    0
+   ],
+   [
+    -1,
+    0
+   ],
+   [
+    -1,
+    0
+   ],
+   [
+    -1,
+    0
+   ],
+   [
+    -1,
+    0
+   ],
+   [
+    -1,
+    0
+   ]
+  ],
+  "w2": [
+   [
+    1,
+    -1
+   ],
+   [
+    1,
+    -1
+   ],
+   [
+    1,
+    -1
+   ],
+   [
+    1,
+    -1
+   ],
+   [
+    1,
+    -1
+   ],
+   [
+    1,
+    -1
+   ],
+   [
+    1,
+    -1
+   ],
+   [
+    1,
+    -1
+   ],
+   [
+    1,
+    -1
+   ],
+   [
+    1,
+    -1
+   ],
+   [
+    0,
+    -1
+   ],
+   [
+    0,
+    -1
+   ],
+   [
+    0,
+    -1
+   ]
+  ]
+ },
+ "orientations": {
+  "m1": [
+   0,
+   0,
+   0,
+   1,
+   2,
+   3,
+   3,
+   4,
+   5,
+   5,
+   4,
+   4,
+   4
+  ]
+ },
+ "held": {
+  "w1": [
+   null,
+   null,
+   "m1",
+   "m1",
+   "m1",
+   "m1",
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
+  ],
+  "w2": [
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   "m1",
+   "m1",
+   null,
+   null
+  ]
+ },
+ "bonds": [
+  {
+   "atoms": [
+    "w1",
+    "w2"
+   ],
+   "bonded": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    true,
+    true,
+    true
+   ]
+  }
+ ],
+ "atom_types": {
+  "w1": [
+   "water",
+   "water",
+   "water",
+   "water",
+   "water",
+   "salt",
+   "salt",
+   "salt",
+   "salt",
+   "salt",
+   "salt",
+   "salt",
+   "salt"
+  ],
+  "w2": [
+   "water",
+   "water",
+   "water",
+   "water",
+   "water",
+   "water",
+   "water",
+   "water",
+   "water",
+   "water",
+   "water",
+   "water",
+   "water"
+  ]
+ }
+}
