@@ -1,0 +1,2050 @@
+{
+  "format": 1,
+  "records": {
+    "single_transport": {
+      "area": {
+        "metrics": {
+          "area": 3,
+          "area_at_infinity": null,
+          "cost": 20,
+          "instructions": 3,
+          "looping": null,
+          "makespan": 6,
+          "overlap": false,
+          "product_ca": 18,
+          "product_ga": 60,
+          "product_gc": 120,
+          "product_gca": 360,
+          "rate": null,
+          "sum": 29,
+          "sum4": 32,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 5
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_in",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_out",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "single_transport",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 3,
+        "source": "teacher/relaxed",
+        "submission": 1
+      },
+      "cost": {
+        "metrics": {
+          "area": 3,
+          "area_at_infinity": null,
+          "cost": 20,
+          "instructions": 3,
+          "looping": null,
+          "makespan": 6,
+          "overlap": false,
+          "product_ca": 18,
+          "product_ga": 60,
+          "product_gc": 120,
+          "product_gca": 360,
+          "rate": null,
+          "sum": 29,
+          "sum4": 32,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 5
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_in",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_out",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "single_transport",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 20,
+        "source": "teacher/relaxed",
+        "submission": 1
+      },
+      "instructions": {
+        "metrics": {
+          "area": 3,
+          "area_at_infinity": null,
+          "cost": 20,
+          "instructions": 3,
+          "looping": null,
+          "makespan": 6,
+          "overlap": false,
+          "product_ca": 18,
+          "product_ga": 60,
+          "product_gc": 120,
+          "product_gca": 360,
+          "rate": null,
+          "sum": 29,
+          "sum4": 32,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 5
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_in",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_out",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "single_transport",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 3,
+        "source": "teacher/relaxed",
+        "submission": 1
+      },
+      "makespan": {
+        "metrics": {
+          "area": 3,
+          "area_at_infinity": null,
+          "cost": 20,
+          "instructions": 3,
+          "looping": null,
+          "makespan": 3,
+          "overlap": false,
+          "product_ca": 9,
+          "product_ga": 60,
+          "product_gc": 60,
+          "product_gca": 180,
+          "rate": null,
+          "sum": 26,
+          "sum4": 29,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 2
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_in",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_out",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "single_transport",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 3,
+        "source": "loop1/learned/seeded",
+        "submission": 6
+      },
+      "product_ca": {
+        "metrics": {
+          "area": 3,
+          "area_at_infinity": null,
+          "cost": 20,
+          "instructions": 3,
+          "looping": null,
+          "makespan": 3,
+          "overlap": false,
+          "product_ca": 9,
+          "product_ga": 60,
+          "product_gc": 60,
+          "product_gca": 180,
+          "rate": null,
+          "sum": 26,
+          "sum4": 29,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 2
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_in",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_out",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "single_transport",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 9,
+        "source": "loop1/learned/seeded",
+        "submission": 6
+      },
+      "product_ga": {
+        "metrics": {
+          "area": 3,
+          "area_at_infinity": null,
+          "cost": 20,
+          "instructions": 3,
+          "looping": null,
+          "makespan": 6,
+          "overlap": false,
+          "product_ca": 18,
+          "product_ga": 60,
+          "product_gc": 120,
+          "product_gca": 360,
+          "rate": null,
+          "sum": 29,
+          "sum4": 32,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 5
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_in",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_out",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "single_transport",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 60,
+        "source": "teacher/relaxed",
+        "submission": 1
+      },
+      "product_gc": {
+        "metrics": {
+          "area": 3,
+          "area_at_infinity": null,
+          "cost": 20,
+          "instructions": 3,
+          "looping": null,
+          "makespan": 3,
+          "overlap": false,
+          "product_ca": 9,
+          "product_ga": 60,
+          "product_gc": 60,
+          "product_gca": 180,
+          "rate": null,
+          "sum": 26,
+          "sum4": 29,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 2
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_in",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_out",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "single_transport",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 60,
+        "source": "loop1/learned/seeded",
+        "submission": 6
+      },
+      "product_gca": {
+        "metrics": {
+          "area": 3,
+          "area_at_infinity": null,
+          "cost": 20,
+          "instructions": 3,
+          "looping": null,
+          "makespan": 3,
+          "overlap": false,
+          "product_ca": 9,
+          "product_ga": 60,
+          "product_gc": 60,
+          "product_gca": 180,
+          "rate": null,
+          "sum": 26,
+          "sum4": 29,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 2
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_in",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_out",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "single_transport",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 180,
+        "source": "loop1/learned/seeded",
+        "submission": 6
+      },
+      "sum": {
+        "metrics": {
+          "area": 3,
+          "area_at_infinity": null,
+          "cost": 20,
+          "instructions": 3,
+          "looping": null,
+          "makespan": 3,
+          "overlap": false,
+          "product_ca": 9,
+          "product_ga": 60,
+          "product_gc": 60,
+          "product_gca": 180,
+          "rate": null,
+          "sum": 26,
+          "sum4": 29,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 2
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_in",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_out",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "single_transport",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 26,
+        "source": "loop1/learned/seeded",
+        "submission": 6
+      },
+      "sum4": {
+        "metrics": {
+          "area": 3,
+          "area_at_infinity": null,
+          "cost": 20,
+          "instructions": 3,
+          "looping": null,
+          "makespan": 3,
+          "overlap": false,
+          "product_ca": 9,
+          "product_ga": 60,
+          "product_gc": 60,
+          "product_gca": 180,
+          "rate": null,
+          "sum": 26,
+          "sum4": 29,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 2
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                -1,
+                -1
+              ],
+              "rotation": 0,
+              "type": "arm"
+            },
+            {
+              "id": "salt_in",
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_out",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 0,
+              "type": "output"
+            }
+          ],
+          "puzzle": "single_transport",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 29,
+        "source": "loop1/learned/seeded",
+        "submission": 6
+      }
+    },
+    "two_atom_bond": {
+      "area": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 30,
+          "instructions": 11,
+          "looping": null,
+          "makespan": 13,
+          "overlap": false,
+          "product_ca": 91,
+          "product_ga": 210,
+          "product_gc": 390,
+          "product_gca": 2730,
+          "rate": null,
+          "sum": 50,
+          "sum4": 61,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 11
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 12
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 5,
+              "type": "arm"
+            },
+            {
+              "id": "salt_a",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_b",
+              "position": [
+                1,
+                -2
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_dimer",
+              "position": [
+                1,
+                -1
+              ],
+              "rotation": 2,
+              "type": "output"
+            },
+            {
+              "id": "b1",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 2,
+              "type": "bonder"
+            }
+          ],
+          "puzzle": "two_atom_bond",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 7,
+        "source": "teacher/relaxed",
+        "submission": 82
+      },
+      "cost": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 30,
+          "instructions": 11,
+          "looping": null,
+          "makespan": 13,
+          "overlap": false,
+          "product_ca": 91,
+          "product_ga": 210,
+          "product_gc": 390,
+          "product_gca": 2730,
+          "rate": null,
+          "sum": 50,
+          "sum4": 61,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 11
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 12
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 5,
+              "type": "arm"
+            },
+            {
+              "id": "salt_a",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_b",
+              "position": [
+                1,
+                -2
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_dimer",
+              "position": [
+                1,
+                -1
+              ],
+              "rotation": 2,
+              "type": "output"
+            },
+            {
+              "id": "b1",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 2,
+              "type": "bonder"
+            }
+          ],
+          "puzzle": "two_atom_bond",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 30,
+        "source": "teacher/relaxed",
+        "submission": 82
+      },
+      "instructions": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 30,
+          "instructions": 11,
+          "looping": null,
+          "makespan": 13,
+          "overlap": false,
+          "product_ca": 91,
+          "product_ga": 210,
+          "product_gc": 390,
+          "product_gca": 2730,
+          "rate": null,
+          "sum": 50,
+          "sum4": 61,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 11
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 12
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 5,
+              "type": "arm"
+            },
+            {
+              "id": "salt_a",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_b",
+              "position": [
+                1,
+                -2
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_dimer",
+              "position": [
+                1,
+                -1
+              ],
+              "rotation": 2,
+              "type": "output"
+            },
+            {
+              "id": "b1",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 2,
+              "type": "bonder"
+            }
+          ],
+          "puzzle": "two_atom_bond",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 11,
+        "source": "teacher/relaxed",
+        "submission": 82
+      },
+      "makespan": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 30,
+          "instructions": 11,
+          "looping": null,
+          "makespan": 11,
+          "overlap": false,
+          "product_ca": 77,
+          "product_ga": 210,
+          "product_gc": 330,
+          "product_gca": 2310,
+          "rate": null,
+          "sum": 48,
+          "sum4": 59,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 10
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 5,
+              "type": "arm"
+            },
+            {
+              "id": "salt_a",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_b",
+              "position": [
+                1,
+                -2
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_dimer",
+              "position": [
+                1,
+                -1
+              ],
+              "rotation": 2,
+              "type": "output"
+            },
+            {
+              "id": "b1",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 2,
+              "type": "bonder"
+            }
+          ],
+          "puzzle": "two_atom_bond",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 11,
+        "source": "loop1/learned/seeded",
+        "submission": 94
+      },
+      "product_ca": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 30,
+          "instructions": 11,
+          "looping": null,
+          "makespan": 11,
+          "overlap": false,
+          "product_ca": 77,
+          "product_ga": 210,
+          "product_gc": 330,
+          "product_gca": 2310,
+          "rate": null,
+          "sum": 48,
+          "sum4": 59,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 10
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 5,
+              "type": "arm"
+            },
+            {
+              "id": "salt_a",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_b",
+              "position": [
+                1,
+                -2
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_dimer",
+              "position": [
+                1,
+                -1
+              ],
+              "rotation": 2,
+              "type": "output"
+            },
+            {
+              "id": "b1",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 2,
+              "type": "bonder"
+            }
+          ],
+          "puzzle": "two_atom_bond",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 77,
+        "source": "loop1/learned/seeded",
+        "submission": 94
+      },
+      "product_ga": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 30,
+          "instructions": 11,
+          "looping": null,
+          "makespan": 13,
+          "overlap": false,
+          "product_ca": 91,
+          "product_ga": 210,
+          "product_gc": 390,
+          "product_gca": 2730,
+          "rate": null,
+          "sum": 50,
+          "sum4": 61,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 10
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 11
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 12
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 5,
+              "type": "arm"
+            },
+            {
+              "id": "salt_a",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_b",
+              "position": [
+                1,
+                -2
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_dimer",
+              "position": [
+                1,
+                -1
+              ],
+              "rotation": 2,
+              "type": "output"
+            },
+            {
+              "id": "b1",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 2,
+              "type": "bonder"
+            }
+          ],
+          "puzzle": "two_atom_bond",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 210,
+        "source": "teacher/relaxed",
+        "submission": 82
+      },
+      "product_gc": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 30,
+          "instructions": 11,
+          "looping": null,
+          "makespan": 11,
+          "overlap": false,
+          "product_ca": 77,
+          "product_ga": 210,
+          "product_gc": 330,
+          "product_gca": 2310,
+          "rate": null,
+          "sum": 48,
+          "sum4": 59,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 10
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 5,
+              "type": "arm"
+            },
+            {
+              "id": "salt_a",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_b",
+              "position": [
+                1,
+                -2
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_dimer",
+              "position": [
+                1,
+                -1
+              ],
+              "rotation": 2,
+              "type": "output"
+            },
+            {
+              "id": "b1",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 2,
+              "type": "bonder"
+            }
+          ],
+          "puzzle": "two_atom_bond",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 330,
+        "source": "loop1/learned/seeded",
+        "submission": 94
+      },
+      "product_gca": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 30,
+          "instructions": 11,
+          "looping": null,
+          "makespan": 11,
+          "overlap": false,
+          "product_ca": 77,
+          "product_ga": 210,
+          "product_gc": 330,
+          "product_gca": 2310,
+          "rate": null,
+          "sum": 48,
+          "sum4": 59,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 10
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 5,
+              "type": "arm"
+            },
+            {
+              "id": "salt_a",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_b",
+              "position": [
+                1,
+                -2
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_dimer",
+              "position": [
+                1,
+                -1
+              ],
+              "rotation": 2,
+              "type": "output"
+            },
+            {
+              "id": "b1",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 2,
+              "type": "bonder"
+            }
+          ],
+          "puzzle": "two_atom_bond",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 2310,
+        "source": "loop1/learned/seeded",
+        "submission": 94
+      },
+      "sum": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 30,
+          "instructions": 11,
+          "looping": null,
+          "makespan": 11,
+          "overlap": false,
+          "product_ca": 77,
+          "product_ga": 210,
+          "product_gc": 330,
+          "product_gca": 2310,
+          "rate": null,
+          "sum": 48,
+          "sum4": 59,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 10
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 5,
+              "type": "arm"
+            },
+            {
+              "id": "salt_a",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_b",
+              "position": [
+                1,
+                -2
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_dimer",
+              "position": [
+                1,
+                -1
+              ],
+              "rotation": 2,
+              "type": "output"
+            },
+            {
+              "id": "b1",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 2,
+              "type": "bonder"
+            }
+          ],
+          "puzzle": "two_atom_bond",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 48,
+        "source": "loop1/learned/seeded",
+        "submission": 94
+      },
+      "sum4": {
+        "metrics": {
+          "area": 7,
+          "area_at_infinity": null,
+          "cost": 30,
+          "instructions": 11,
+          "looping": null,
+          "makespan": 11,
+          "overlap": false,
+          "product_ca": 77,
+          "product_ga": 210,
+          "product_gc": 330,
+          "product_gca": 2310,
+          "rate": null,
+          "sum": 48,
+          "sum4": 59,
+          "trackless": true
+        },
+        "plan": {
+          "instructions": [
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 0
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 1
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 2
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 3
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 4
+            },
+            {
+              "action": "grab",
+              "arm": "m1",
+              "t": 5
+            },
+            {
+              "action": "rot_cw",
+              "arm": "m1",
+              "t": 6
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 7
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 8
+            },
+            {
+              "action": "rot_ccw",
+              "arm": "m1",
+              "t": 9
+            },
+            {
+              "action": "drop",
+              "arm": "m1",
+              "t": 10
+            }
+          ],
+          "placements": [
+            {
+              "id": "m1",
+              "length": 1,
+              "position": [
+                0,
+                -1
+              ],
+              "rotation": 5,
+              "type": "arm"
+            },
+            {
+              "id": "salt_a",
+              "position": [
+                -1,
+                0
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_b",
+              "position": [
+                1,
+                -2
+              ],
+              "rotation": 0,
+              "type": "input"
+            },
+            {
+              "id": "salt_dimer",
+              "position": [
+                1,
+                -1
+              ],
+              "rotation": 2,
+              "type": "output"
+            },
+            {
+              "id": "b1",
+              "position": [
+                0,
+                -2
+              ],
+              "rotation": 2,
+              "type": "bonder"
+            }
+          ],
+          "puzzle": "two_atom_bond",
+          "solver": "clingo (asp/core2.lp + asp/layout.lp)"
+        },
+        "score": 59,
+        "source": "loop1/learned/seeded",
+        "submission": 94
+      }
+    }
+  },
+  "submissions": 94
+}
