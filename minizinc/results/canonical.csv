@@ -1,0 +1,10 @@
+puzzle,t_max,engine,threads,status,objective,wall_s,validate
+single_transport,6,chuffed,1,OPTIMAL,3,0.2,PASS
+single_transport,6,cp-sat,4,OPTIMAL,3,0.3,PASS
+single_transport,6,gecode,4,OPTIMAL,3,0.3,PASS
+two_atom_bond,13,chuffed,1,UNKNOWN,,300.1,"timeout, no solution"
+two_atom_bond,13,cp-sat,4,OPTIMAL,11,21.1,PASS
+two_atom_bond,13,gecode,4,UNKNOWN,,300.1,"timeout, no solution"
+stabilized_water,14,chuffed,1,UNKNOWN,,300.1,"timeout, no solution"
+stabilized_water,14,cp-sat,4,OPTIMAL,12,124.4,PASS
+stabilized_water,14,gecode,4,UNKNOWN,,300.1,"timeout, no solution"

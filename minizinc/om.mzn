@@ -103,6 +103,26 @@ array[1..nProdBond, 1..2] of int: prod_bond;
 % time T: no bond to a non-product atom and no unrequested slot-slot bond.
 bool: exact_molecule;
 
+% ---- Canonical-harness layout freedom (phase 4 / harness adapter) ----
+% The cross-solver harness (harness/SPEC.md) makes INPUT and OUTPUT parts
+% placeable like any other part, includes their footprints in the
+% part-disjointness rule, and makes the initial arm orientation part of the
+% arm placement. These flags switch those conventions on; the phase-2/3
+% instances keep them all false (behaviour unchanged).
+bool: free_in_layout;      % spawn (input) hexes are decision variables
+bool: free_out_layout;     % product hexes come from a placeable output part
+bool: free_init_ori;       % initial arm orientations are decision variables
+bool: parts_disjoint_full; % input/output footprints join part disjointness
+
+int: nOut;                              % number of output parts (products)
+set of int: OUT = 1..nOut;
+array[1..nProd] of int: prod_out;       % slot -> output part (free_out_layout)
+array[1..nProd, 1..2] of int: prod_off; % slot offset in the molecule's frame
+
+constraint assert(
+    not free_out_layout \/ forall(k in 1..nProd)(prod_out[k] in 1..nOut),
+    "prod_out entries must index output parts");
+
 bool: spawn_active = exists(a in ATOM)(atom_rank[a] > 1);
 % predecessor (rank k-1 atom of the same pool) for rank >= 2 atoms
 array[ATOM] of int: predA =
@@ -117,8 +137,8 @@ constraint assert(
     "atom_spawn/atom_rank out of range");
 constraint assert(
     forall(a in ATOM where atom_spawn[a] > 0)(
-        init_q[a] = spawn_q[atom_spawn[a]] /\
-        init_r[a] = spawn_r[atom_spawn[a]] /\
+        (free_in_layout \/ (init_q[a] = spawn_q[atom_spawn[a]] /\
+                            init_r[a] = spawn_r[atom_spawn[a]])) /\
         init_type[a] = spawn_type[atom_spawn[a]]),
     "pool atoms must have init position/type equal to their spawn input");
 constraint assert(
@@ -128,6 +148,7 @@ constraint assert(
                          /\ atom_rank[b] = atom_rank[a] - 1)(1) = 1),
     "pool ranks must be contiguous and unique per spawn input");
 constraint assert(
+    free_in_layout \/
     forall(s1, s2 in SPAWN where s1 < s2)(
         spawn_q[s1] != spawn_q[s2] \/ spawn_r[s1] != spawn_r[s2]),
     "spawn hexes must be distinct");
@@ -140,6 +161,18 @@ constraint assert(
 % clockwise direction table, dir 0 = (1,0)
 array[0..5] of int: DQ = array1d(0..5, [1, 0, -1, -1,  0,  1]);
 array[0..5] of int: DR = array1d(0..5, [0, 1,  1,  0, -1, -1]);
+
+% k-fold clockwise rotation of a PAR point about the origin
+% (cw: (q,r) -> (-r, q+r)); used to pre-tabulate product-slot offsets
+% under all six output-part rotations.
+function int: rotq_k(int: q, int: r, int: k) =
+    if k <= 0 then q else rotq_k(-r, q + r, k - 1) endif;
+function int: rotr_k(int: q, int: r, int: k) =
+    if k <= 0 then r else rotr_k(-r, q + r, k - 1) endif;
+array[1..nProd, 0..5] of int: offq_rot = array2d(1..nProd, 0..5,
+    [ rotq_k(prod_off[k,1], prod_off[k,2], j) | k in 1..nProd, j in 0..5 ]);
+array[1..nProd, 0..5] of int: offr_rot = array2d(1..nProd, 0..5,
+    [ rotr_k(prod_off[k,1], prod_off[k,2], j) | k in 1..nProd, j in 0..5 ]);
 
 % --------------------------------------------------------------------------
 % Layout decision variables (the "machine" being designed)
@@ -163,25 +196,59 @@ array[CALC] of var -radius..radius: calc_q :: output;
 array[CALC] of var -radius..radius: calc_r :: output;
 constraint forall(g in CALC)(abs(calc_q[g] + calc_r[g]) <= radius);
 
+% Input (spawn) hexes: decision variables when free_in_layout, otherwise
+% pinned to the spawn_q/spawn_r parameters (phase-2/3 behaviour).
+array[SPAWN] of var -radius..radius: sq :: output;
+array[SPAWN] of var -radius..radius: sr :: output;
+constraint forall(s in SPAWN)(abs(sq[s] + sr[s]) <= radius);
+constraint if free_in_layout then
+    forall(s1, s2 in SPAWN where s1 < s2)(sq[s1] != sq[s2] \/ sr[s1] != sr[s2])
+  else forall(s in SPAWN)(sq[s] = spawn_q[s] /\ sr[s] = spawn_r[s]) endif;
+
+% Output parts: when free_out_layout, each product molecule is a placeable
+% part with a position and rotation, and slot k's board hex pq/pr[k] is the
+% transformed molecule offset; otherwise pq/pr are the prod_q/prod_r
+% parameters (phase-2/3 behaviour).
+array[OUT] of var -radius..radius: out_q :: output;
+array[OUT] of var -radius..radius: out_r :: output;
+array[OUT] of var 0..5: out_rot :: output;
+constraint forall(o in OUT)(abs(out_q[o] + out_r[o]) <= radius);
+array[1..nProd] of var -radius..radius: pq :: output;
+array[1..nProd] of var -radius..radius: pr :: output;
+constraint forall(k in 1..nProd)(abs(pq[k] + pr[k]) <= radius);
+constraint if free_out_layout then
+    forall(k in 1..nProd)(
+        pq[k] = out_q[prod_out[k]] + offq_rot[k, out_rot[prod_out[k]]] /\
+        pr[k] = out_r[prod_out[k]] + offr_rot[k, out_rot[prod_out[k]]])
+  else forall(k in 1..nProd)(pq[k] = prod_q[k] /\ pr[k] = prod_r[k]) endif;
+
 % Parts may not overlap: arm bases, bonder hexes and calc hexes are
-% pairwise distinct cells. (Cell id = linearised (q,r).)
+% pairwise distinct cells (cell id = linearised (q,r)). Under the harness
+% footprint rule (parts_disjoint_full) the input hexes and the output
+% (product) hexes join the same alldifferent — no part may sit on them,
+% and they may not sit on each other.
 int: W = 2*radius + 1;
 function var int: cell(var int: q, var int: r) = (q + radius)*W + (r + radius);
 constraint alldifferent(
     [cell(base_q[m], base_r[m]) | m in ARM] ++
     [cell(bonder_q1[g], bonder_r1[g]) | g in BONDER] ++
     [cell(bonder_q2[g], bonder_r2[g]) | g in BONDER] ++
-    [cell(calc_q[g], calc_r[g]) | g in CALC]);
+    [cell(calc_q[g], calc_r[g]) | g in CALC] ++
+    (if parts_disjoint_full then
+        [cell(sq[s], sr[s]) | s in SPAWN] ++
+        [cell(pq[k], pr[k]) | k in 1..nProd]
+     else [] endif));
 
 % Parts may not sit on a reagent-input (spawn) hex: in the game the input is
 % itself a part occupying that hex. (Vacuous when nSpawn = 0; arm bases are
-% already excluded implicitly because the rank-1 pool atom sits there at t=0.)
+% already excluded implicitly because the rank-1 pool atom sits there at t=0.
+% Redundant when parts_disjoint_full, but kept: it is the phase-2/3 rule.)
 constraint forall(s in SPAWN)(
-    forall(m in ARM)(base_q[m] != spawn_q[s] \/ base_r[m] != spawn_r[s]) /\
+    forall(m in ARM)(base_q[m] != sq[s] \/ base_r[m] != sr[s]) /\
     forall(g in BONDER)(
-        (bonder_q1[g] != spawn_q[s] \/ bonder_r1[g] != spawn_r[s]) /\
-        (bonder_q2[g] != spawn_q[s] \/ bonder_r2[g] != spawn_r[s])) /\
-    forall(g in CALC)(calc_q[g] != spawn_q[s] \/ calc_r[g] != spawn_r[s]));
+        (bonder_q1[g] != sq[s] \/ bonder_r1[g] != sr[s]) /\
+        (bonder_q2[g] != sq[s] \/ bonder_r2[g] != sr[s])) /\
+    forall(g in CALC)(calc_q[g] != sq[s] \/ calc_r[g] != sr[s]));
 
 % --------------------------------------------------------------------------
 % State variables
@@ -211,13 +278,13 @@ constraint forall(a in ATOM where atom_rank[a] > 1)(not ex[0,a]);
 array[STEP, SPAWN] of var bool: occSpawn;
 constraint forall(t in STEP, s in SPAWN)(
     occSpawn[t,s] = exists(b in ATOM)(
-        ex[t,b] /\ aq[t+1,b] = spawn_q[s] /\ ar[t+1,b] = spawn_r[s]));
+        ex[t,b] /\ aq[t+1,b] = sq[s] /\ ar[t+1,b] = sr[s]));
 constraint forall(t in STEP, a in ATOM where atom_rank[a] > 1)(
     ex[t+1,a] = (ex[t,a] \/ (ex[t,predA[a]] /\ not occSpawn[t,atom_spawn[a]])));
 
 constraint forall(t in TIME, a in ATOM where atom_rank[a] > 1)(
-    (not ex[t,a]) -> (aq[t,a] = spawn_q[atom_spawn[a]] /\
-                      ar[t,a] = spawn_r[atom_spawn[a]] /\
+    (not ex[t,a]) -> (aq[t,a] = sq[atom_spawn[a]] /\
+                      ar[t,a] = sr[atom_spawn[a]] /\
                       held[t,a] = 0 /\
                       typ[t,a] = spawn_type[atom_spawn[a]]));
 
@@ -242,9 +309,12 @@ constraint forall(t in STEP)(
 % Initial state
 % --------------------------------------------------------------------------
 constraint forall(a in ATOM)(
-    aq[0,a] = init_q[a] /\ ar[0,a] = init_r[a] /\
+    (if free_in_layout /\ atom_spawn[a] > 0
+     then aq[0,a] = sq[atom_spawn[a]] /\ ar[0,a] = sr[atom_spawn[a]]
+     else aq[0,a] = init_q[a] /\ ar[0,a] = init_r[a] endif) /\
     held[0,a] = 0 /\ typ[0,a] = init_type[a]);
-constraint forall(m in ARM)(ori[0,m] = init_ori[m]);
+constraint if not free_init_ori then
+    forall(m in ARM)(ori[0,m] = init_ori[m]) endif;
 
 % initial bonds (glyph-formed bonds at t=0 are added by the bond rule below)
 function bool: is_init_bond(int: a, int: b) =
@@ -392,8 +462,8 @@ constraint if free_prod_atoms then alldifferent(prod_who)
 
 constraint forall(k in 1..nProd)(
     ex[T, prod_who[k]] /\
-    aq[T, prod_who[k]] = prod_q[k] /\
-    ar[T, prod_who[k]] = prod_r[k] /\
+    aq[T, prod_who[k]] = pq[k] /\
+    ar[T, prod_who[k]] = pr[k] /\
     held[T, prod_who[k]] = 0 /\
     (prod_type[k] = 0 \/ typ[T, prod_who[k]] = prod_type[k]));
 constraint require_any_bond ->
@@ -455,7 +525,9 @@ array[int] of var bool: action_seq =
 solve :: seq_search([
         bool_search(action_seq, input_order, indomain_min),
         int_search(base_q ++ base_r ++ bonder_q1 ++ bonder_r1 ++
-                   bonder_q2 ++ bonder_r2 ++ calc_q ++ calc_r ++ prod_who,
+                   bonder_q2 ++ bonder_r2 ++ calc_q ++ calc_r ++
+                   sq ++ sr ++ out_q ++ out_r ++ out_rot ++
+                   [ori[0,m] | m in ARM] ++ prod_who,
                    first_fail, indomain_min)])
       minimize total_actions;
 
@@ -466,6 +538,8 @@ output [
     [ "bonder \(g): (\(bonder_q1[g]),\(bonder_r1[g]))-(\(bonder_q2[g]),\(bonder_r2[g]))\n"
     | g in BONDER ] ++
     [ "calc \(g): (\(calc_q[g]),\(calc_r[g]))\n" | g in CALC ] ++
+    [ "input \(s): (\(sq[s]),\(sr[s]))\n" | s in SPAWN ] ++
+    [ "output \(o): pos=(\(out_q[o]),\(out_r[o])) rot=\(out_rot[o])\n" | o in OUT ] ++
     [ "t=\(t) " ++
       concat([" arm\(m) dir=\(ori[t,m]) grip=(\(gq[t,m]),\(gr[t,m]))" | m in ARM ]) ++
       concat([" a\(a)@(\(aq[t,a]),\(ar[t,a]))" ++

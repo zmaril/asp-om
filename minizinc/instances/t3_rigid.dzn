@@ -43,3 +43,12 @@ free_prod_atoms = false;
 nProdBond = 0;
 prod_bond = array2d(1..0, 1..2, []);
 exact_molecule = false;
+
+% phase-4 harness-freedom flags: off (phase-2/3 conventions unchanged)
+free_in_layout = false;
+free_out_layout = false;
+free_init_ori = false;
+parts_disjoint_full = false;
+nOut = 0;
+prod_out = [0, 0];
+prod_off = array2d(1..2, 1..2, [0, 0, 0, 0]);

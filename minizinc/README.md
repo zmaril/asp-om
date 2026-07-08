@@ -21,6 +21,16 @@ objective: minimize the number of actions within the horizon.
   plan and verifies legality and (with `--dzn`) the goal.
 - `bench.py` — benchmark driver; `results/benchmarks.csv` + `.md` hold the
   phase-3 engine matrix, `results/frontier.csv` the tractability probes.
+- `adapter.py` — cross-solver harness adapter (`harness/` on the `harness`
+  branch): canonical puzzle.json in, canonical plan.json out, validated by
+  `harness/validate.py`. Uses the harness-freedom flags of `om.mzn` (free
+  input/output placement, free initial arm orientation, full part-footprint
+  disjointness). `results/canonical.md` + `results/plans/` hold the
+  validated canonical runs.
+- `native/` — native OR-Tools CP-SAT port of the same model (reads the same
+  .dzn files) + the FlatZinc-overhead benchmark (`native/bench_results.csv`).
+- `NOTES.md` — the full engineering writeup (results, tractability
+  frontier, native-vs-FlatZinc numbers, clingo comparison, verdict).
 
 ## Usage
 

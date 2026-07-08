@@ -1,0 +1,50 @@
+{
+  "puzzle": "single_transport",
+  "solver": "minizinc/cp-sat via minizinc/adapter.py (proved optimal, objective 3)",
+  "placements": [
+    {
+      "type": "arm",
+      "id": "m1",
+      "position": [
+        1,
+        1
+      ],
+      "rotation": 4
+    },
+    {
+      "type": "input",
+      "id": "salt_in",
+      "position": [
+        1,
+        0
+      ],
+      "rotation": 0
+    },
+    {
+      "type": "output",
+      "id": "salt_out",
+      "position": [
+        2,
+        0
+      ],
+      "rotation": 0
+    }
+  ],
+  "instructions": [
+    {
+      "t": 0,
+      "arm": "m1",
+      "action": "grab"
+    },
+    {
+      "t": 1,
+      "arm": "m1",
+      "action": "rot_cw"
+    },
+    {
+      "t": 2,
+      "arm": "m1",
+      "action": "drop"
+    }
+  ]
+}
