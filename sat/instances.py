@@ -12,9 +12,8 @@ exactly.  The `fixed_layout` field records the clingo arm's layout so that
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, Optional, Tuple
 
-Hex = Tuple[int, int]
+Hex = tuple[int, int]
 
 DIRS = [(1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1), (1, -1)]
 
@@ -35,23 +34,23 @@ def hex_ball(radius: int):
 class FixedLayout:
     base: Hex
     length: int
-    orient: int                      # initial orientation D in 0..5
-    glyph_pos: Optional[Hex] = None  # first bonder cell
-    glyph_dir: Optional[int] = None  # second cell = glyph_pos + dir(glyph_dir)
+    orient: int  # initial orientation D in 0..5
+    glyph_pos: Hex | None = None  # first bonder cell
+    glyph_dir: int | None = None  # second cell = glyph_pos + dir(glyph_dir)
 
 
 @dataclass
 class Instance:
     name: str
     radius: int
-    atoms: Tuple[str, ...]
-    init_at: Dict[str, Hex]
-    products: Dict[str, Hex]         # atom -> target hex (must be unheld there)
-    has_glyph: bool                  # glyph of bonding present (placeable)
-    require_bond: bool               # goal: at least one bond at t_max
-    t_max_default: int               # clingo arm's t_max, for optimization parity
-    fixed_layout: FixedLayout = field(default=None)
-    max_arm_len: int = 2             # arm length domain 1..max_arm_len (free layout)
+    atoms: tuple[str, ...]
+    init_at: dict[str, Hex]
+    products: dict[str, Hex]  # atom -> target hex (must be unheld there)
+    has_glyph: bool  # glyph of bonding present (placeable)
+    require_bond: bool  # goal: at least one bond at t_max
+    t_max_default: int  # clingo arm's t_max, for optimization parity
+    fixed_layout: FixedLayout | None = field(default=None)
+    max_arm_len: int = 2  # arm length domain 1..max_arm_len (free layout)
 
 
 # (a) trivial: transport one salt atom from (1,0) to (-1,0).
@@ -78,9 +77,7 @@ CASE_B = Instance(
     has_glyph=True,
     require_bond=True,
     t_max_default=16,
-    fixed_layout=FixedLayout(
-        base=(0, 0), length=1, orient=0, glyph_pos=(-1, 0), glyph_dir=5
-    ),
+    fixed_layout=FixedLayout(base=(0, 0), length=1, orient=0, glyph_pos=(-1, 0), glyph_dir=5),
 )
 
 CASES = {"a": CASE_A, "b": CASE_B}
@@ -96,20 +93,22 @@ CASES = {"a": CASE_A, "b": CASE_B}
 # instance also fixes length 1 via place_arm(m1,1)).
 # ===========================================================================
 
+
 @dataclass
 class InstanceSW:
     """A phase-2 instance: single arm (length 1), water inputs, one
     calcification glyph, one bonding glyph, salt--water dimer goal."""
+
     name: str
     radius: int
-    pools: Tuple[int, ...]           # pool size per reagent input (1-based)
-    spawn_fixed: Tuple[Hex, ...]     # fixed-layout spawn hex per input
-    base: Hex                        # fixed-layout arm base
-    orient0: int                     # fixed-layout initial orientation
-    calc: Hex                        # fixed-layout calcification hex
-    glyph_pos: Hex                   # fixed-layout bonder cell 1
-    glyph_dir: int                   # bonder cell 2 = cell1 + dir; 0..2 only
-    products: Optional[Dict[str, Hex]] = None
+    pools: tuple[int, ...]  # pool size per reagent input (1-based)
+    spawn_fixed: tuple[Hex, ...]  # fixed-layout spawn hex per input
+    base: Hex  # fixed-layout arm base
+    orient0: int  # fixed-layout initial orientation
+    calc: Hex  # fixed-layout calcification hex
+    glyph_pos: Hex  # fixed-layout bonder cell 1
+    glyph_dir: int  # bonder cell 2 = cell1 + dir; 0..2 only
+    products: dict[str, Hex] | None = None
     # products=None: goal is the exact salt--water dimer resting UNHELD
     #   anywhere on the board (matches asp/stabilized_water.lp).
     # products={"salt": hex, "water": hex}: additionally the dimer must
@@ -120,9 +119,7 @@ class InstanceSW:
     @property
     def atoms(self):
         """Atom ids (input_index, pool_index), both 1-based."""
-        return tuple((i, n)
-                     for i, p in enumerate(self.pools, 1)
-                     for n in range(1, p + 1))
+        return tuple((i, n) for i, p in enumerate(self.pools, 1) for n in range(1, p + 1))
 
 
 # The clingo arm's exact fixed layout (asp/stabilized_water.lp): radius-2
@@ -139,7 +136,7 @@ SW = InstanceSW(
     orient0=0,
     calc=(1, -1),
     glyph_pos=(-1, 0),
-    glyph_dir=1,                     # second cell (-1,0)+dir1 = (-1,1)
+    glyph_dir=1,  # second cell (-1,0)+dir1 = (-1,1)
     products=None,
     t_max_default=10,
 )
@@ -160,7 +157,7 @@ SW_OMSIM = InstanceSW(
     orient0=4,
     calc=(1, -1),
     glyph_pos=(3, -2),
-    glyph_dir=1,                     # second cell (3,-2)+dir1 = (3,-1)
+    glyph_dir=1,  # second cell (3,-2)+dir1 = (3,-1)
     products={"salt": (1, 0), "water": (2, 0)},
     t_max_default=16,
 )
@@ -173,4 +170,5 @@ def sw_scaled(radius):
     Same parts and goal; the fixed layout stays the radius-2 one (it is
     still on-board), only the search space grows."""
     from dataclasses import replace
+
     return replace(SW, name=f"sw-r{radius}", radius=radius)

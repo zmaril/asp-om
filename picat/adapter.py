@@ -89,10 +89,10 @@ distance prunes; the rotational symmetry quotient is always exact):
 Limitations (like the clingo reference adapter): single-atom reagents
 only; elements air/earth/fire/water/salt.
 """
+
 import argparse
 import json
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -122,8 +122,12 @@ def on_board(q, r, radius):
 
 
 def board_hexes(radius):
-    return [(q, r) for q in range(-radius, radius + 1)
-            for r in range(-radius, radius + 1) if on_board(q, r, radius)]
+    return [
+        (q, r)
+        for q in range(-radius, radius + 1)
+        for r in range(-radius, radius + 1)
+        if on_board(q, r, radius)
+    ]
 
 
 def molecule(m):
@@ -139,12 +143,19 @@ def canonical_rotations(atoms, bonds):
     for d in range(6):
         cells = [rot_k(q, r, d) for _, (q, r) in atoms]
         anchor = min(cells)
-        norm = frozenset(((c[0] - anchor[0], c[1] - anchor[1]), el)
-                         for (el, _), c in zip(atoms, cells))
+        norm = frozenset(
+            ((c[0] - anchor[0], c[1] - anchor[1]), el)
+            for (el, _), c in zip(atoms, cells, strict=False)
+        )
         nbonds = frozenset(
-            frozenset(((cells[i][0] - anchor[0], cells[i][1] - anchor[1]),
-                       (cells[j][0] - anchor[0], cells[j][1] - anchor[1])))
-            for i, j in (sorted(b) for b in bonds))
+            frozenset(
+                (
+                    (cells[i][0] - anchor[0], cells[i][1] - anchor[1]),
+                    (cells[j][0] - anchor[0], cells[j][1] - anchor[1]),
+                )
+            )
+            for i, j in (sorted(b) for b in bonds)
+        )
         key = (norm, nbonds)
         if key not in seen:
             seen.add(key)
@@ -156,9 +167,9 @@ def canonical_rotations(atoms, bonds):
 # Instance fact generation
 # ---------------------------------------------------------------------------
 def puzzle_pins_anything(puzzle):
-    return any("position" in spec
-               for spec in (puzzle["reagents"] + puzzle["products"]
-                            + puzzle["parts"]))
+    return any(
+        "position" in spec for spec in (puzzle["reagents"] + puzzle["products"] + puzzle["parts"])
+    )
 
 
 def arm_candidates(puzzle, arm, first_and_free):
@@ -169,8 +180,7 @@ def arm_candidates(puzzle, arm, first_and_free):
         canonical = False
     elif first_and_free:
         # one representative hex per orbit of rotation about the origin
-        bases = sorted({min(rot_k(q, r, k) for k in range(6))
-                        for q, r in board_hexes(radius)})
+        bases = sorted({min(rot_k(q, r, k) for k in range(6)) for q, r in board_hexes(radius)})
         canonical = True
     else:
         bases = board_hexes(radius)
@@ -182,7 +192,7 @@ def arm_candidates(puzzle, arm, first_and_free):
         elif canonical and (bq, br) == (0, 0):
             dirs = [0]  # origin is fixed by the rotation group
         else:
-            dirs = range(6)
+            dirs = list(range(6))
         for d in dirs:
             gq, gr = bq + length * DIRS[d][0], br + length * DIRS[d][1]
             if on_board(gq, gr, radius):
@@ -195,14 +205,21 @@ def input_candidates(puzzle, reagent):
     (candidate hexes, offset, pinned_rotation)."""
     radius = puzzle["board_radius"]
     atoms, _ = molecule(reagent)
-    (_, off), = atoms
+    ((_, off),) = atoms
     if "position" in reagent:
         rot = reagent.get("rotation", 0) % 6
-        oq, orr = rot_k(*off, rot)
-        return ([(reagent["position"][0] + oq,
-                  reagent["position"][1] + orr)], off, rot)
-    return ([(q + off[0], r + off[1]) for q, r in board_hexes(radius)
-             if on_board(q + off[0], r + off[1], radius)], off, 0)
+        offq, offr = off
+        oq, orr = rot_k(offq, offr, rot)
+        return ([(reagent["position"][0] + oq, reagent["position"][1] + orr)], off, rot)
+    return (
+        [
+            (q + off[0], r + off[1])
+            for q, r in board_hexes(radius)
+            if on_board(q + off[0], r + off[1], radius)
+        ],
+        off,
+        0,
+    )
 
 
 def bonder_candidates(puzzle, part):
@@ -231,7 +248,7 @@ def output_candidates(puzzle, product):
     """(pos_q, pos_r, rot, cells [(q, r, elem, degree)], bond hex pairs)."""
     radius = puzzle["board_radius"]
     atoms, bonds = molecule(product)
-    deg = {i: 0 for i in range(len(atoms))}
+    deg = dict.fromkeys(range(len(atoms)), 0)
     for b in bonds:
         i, j = sorted(b)
         deg[i] += 1
@@ -249,10 +266,8 @@ def output_candidates(puzzle, product):
             cells = [(pq + oq, pr + orr) for oq, orr in offs]
             if not all(on_board(q, r, radius) for q, r in cells):
                 continue
-            cell_facts = [(c[0], c[1], atoms[i][0], deg[i])
-                          for i, c in enumerate(cells)]
-            bond_pairs = [(cells[i], cells[j])
-                          for i, j in (sorted(b) for b in bonds)]
+            cell_facts = [(c[0], c[1], atoms[i][0], deg[i]) for i, c in enumerate(cells)]
+            bond_pairs = [(cells[i], cells[j]) for i, j in (sorted(b) for b in bonds)]
             out.append((pq, pr, rot, cell_facts, bond_pairs))
     return out
 
@@ -271,8 +286,10 @@ def generate_program(puzzle, prune):
     for m in reagents:
         atoms, bonds = molecule(m)
         if len(atoms) != 1 or bonds:
-            die(f"reagent {m['id']}: this adapter supports single-atom "
-                f"reagents only (like the clingo reference adapter)")
+            die(
+                f"reagent {m['id']}: this adapter supports single-atom "
+                f"reagents only (like the clingo reference adapter)"
+            )
 
     # --- prune applicability (soundness conditions in the docstring) --------
     total_pool = sum(m["pool"] for m in reagents)
@@ -298,16 +315,15 @@ def generate_program(puzzle, prune):
     arm_ids = {}
     for i, arm in enumerate(arms, start=1):
         arm_ids[i] = arm["id"]
-        cands = arm_candidates(puzzle, arm, first_and_free=(i == 1 and
-                                                            not pins))
+        cands = arm_candidates(puzzle, arm, first_and_free=(i == 1 and not pins))
         if not cands:
             die(f"arm {arm['id']}: no legal base/orientation")
-        for bq, br, d, l in cands:
-            facts.append(f"arm_cand({i},{bq},{br},{d},{l}).")
+        for bq, br, d, length in cands:
+            facts.append(f"arm_cand({i},{bq},{br},{d},{length}).")
 
     # --- inputs ----------------------------------------------------------------
     reagent_ids, input_off, input_rot = {}, {}, {}
-    sig_prev = {}
+    sig_prev: dict[tuple, int] = {}
     cand_f, pool_f, type_f, prev_f = [], [], [], []
     for i, m in enumerate(reagents, start=1):
         reagent_ids[i] = m["id"]
@@ -319,8 +335,7 @@ def generate_program(puzzle, prune):
         type_f.append(f"input_type({i}) = {m['atoms'][0]['element']}.")
         # identical single-atom reagents are interchangeable: force their
         # chosen hexes into lexicographic order (symmetry breaking)
-        sig = (m["atoms"][0]["element"], tuple(m["atoms"][0]["pos"]),
-               m["pool"])
+        sig = (m["atoms"][0]["element"], tuple(m["atoms"][0]["pos"]), m["pool"])
         prev = sig_prev.get(sig) if "position" not in m else None
         prev_f.append(f"input_prev({i}) = {prev if prev else 'none'}.")
         sig_prev[sig] = i
@@ -364,20 +379,20 @@ def generate_program(puzzle, prune):
             die(f"product {m['id']}: no on-board output placement")
         for pq, pr, rot, cells, bond_pairs in cands:
             out_place_facts.append(f"out_place({k},{pq},{pr},{rot}).")
-            cl = picat_list([f"{{{q},{r},{el},{dg}}}"
-                             for q, r, el, dg in cells])
+            cl = picat_list([f"{{{q},{r},{el},{dg}}}" for q, r, el, dg in cells])
             out_cells_facts.append(f"out_cells({k},{pq},{pr},{rot}) = {cl}.")
-            bl = picat_list([f"{{{{{a[0]},{a[1]}}},{{{b[0]},{b[1]}}}}}"
-                             for a, b in bond_pairs])
+            bl = picat_list([f"{{{{{a[0]},{a[1]}}},{{{b[0]},{b[1]}}}}}" for a, b in bond_pairs])
             out_bonds_facts.append(f"out_bonds({k},{pq},{pr},{rot}) = {bl}.")
     facts += out_place_facts + out_cells_facts + out_bonds_facts
 
     # --- pending list + prune flags ----------------------------------------------
-    pending = ([f"$place_arm({i})" for i in arm_ids]
-               + [f"$place_input({i})" for i in reagent_ids]
-               + [f"$place_bonder({i})" for i in bonder_ids]
-               + [f"$place_calc({i})" for i in calc_ids]
-               + [f"$place_out({k})" for k in product_ids])
+    pending = (
+        [f"$place_arm({i})" for i in arm_ids]
+        + [f"$place_input({i})" for i in reagent_ids]
+        + [f"$place_bonder({i})" for i in bonder_ids]
+        + [f"$place_calc({i})" for i in calc_ids]
+        + [f"$place_out({k})" for k in product_ids]
+    )
     facts.append(f"pending_parts() = {picat_list(pending)}.")
     facts.append(f"nplace() = {len(pending)}.")
     facts.append(f"prune_input_ring() = {str(prunes_on).lower()}.")
@@ -385,11 +400,11 @@ def generate_program(puzzle, prune):
     facts.append(f"prune_out_ring() = {str(prunes_on).lower()}.")
     facts.append(f"prune_part_max() = {part_max_extra}.")
 
-    program = ("% Generated by picat/adapter.py -- do not edit.\n"
-               "import planner.\n\n"
-               + "\n".join(facts) + "\n\n" + ENGINE)
-    maps = (arm_ids, reagent_ids, input_off, input_rot, calc_ids,
-            bonder_ids, product_ids)
+    program = (
+        "% Generated by picat/adapter.py -- do not edit.\n"
+        "import planner.\n\n" + "\n".join(facts) + "\n\n" + ENGINE
+    )
+    maps = (arm_ids, reagent_ids, input_off, input_rot, calc_ids, bonder_ids, product_ids)
     return program, maps
 
 
@@ -669,16 +684,19 @@ def run_picat(picat_bin, program, time_limit, keep_program):
             f.write(program)
     try:
         t0 = time.monotonic()
-        proc = subprocess.run([picat_bin, path], capture_output=True,
-                              text=True, timeout=time_limit)
+        proc = subprocess.run([picat_bin, path], capture_output=True, text=True, timeout=time_limit)
         wall = time.monotonic() - t0
     except subprocess.TimeoutExpired:
-        log(f"picat killed at the {time_limit}s time limit -- no plan "
-            f"(best_plan does not stream incumbents)")
+        log(
+            f"picat killed at the {time_limit}s time limit -- no plan "
+            f"(best_plan does not stream incumbents)"
+        )
         sys.exit(1)
     except OSError as e:
-        die(f"cannot run picat binary {picat_bin!r}: {e} "
-            f"(install per picat/NOTES.md, set $PICAT or --picat)")
+        die(
+            f"cannot run picat binary {picat_bin!r}: {e} "
+            f"(install per picat/NOTES.md, set $PICAT or --picat)"
+        )
     finally:
         if tmpdir:
             try:
@@ -693,8 +711,7 @@ def run_picat(picat_bin, program, time_limit, keep_program):
 
 
 def parse_solution(stdout, puzzle, maps):
-    (arm_ids, reagent_ids, input_off, input_rot, calc_ids, bonder_ids,
-     product_ids) = maps
+    (arm_ids, reagent_ids, input_off, input_rot, calc_ids, bonder_ids, product_ids) = maps
     if "plan_found" not in stdout:
         return None
     placements, instructions = [], []
@@ -707,29 +724,42 @@ def parse_solution(stdout, puzzle, maps):
         if toks[0] == "PLACE":
             kind = toks[1]
             if kind == "arm":
-                i, bq, br, l, d = map(int, toks[2:7])
-                placements.append({"type": "arm", "id": arm_ids[i],
-                                   "position": [bq, br], "rotation": d,
-                                   "length": l})
+                i, bq, br, length, d = map(int, toks[2:7])
+                placements.append(
+                    {
+                        "type": "arm",
+                        "id": arm_ids[i],
+                        "position": [bq, br],
+                        "rotation": d,
+                        "length": length,
+                    }
+                )
             elif kind == "input":
                 i, q, r = map(int, toks[2:5])
-                off = rot_k(*input_off[i], input_rot[i])
-                placements.append({"type": "input", "id": reagent_ids[i],
-                                   "position": [q - off[0], r - off[1]],
-                                   "rotation": input_rot[i]})
+                offq, offr = input_off[i]
+                off = rot_k(offq, offr, input_rot[i])
+                placements.append(
+                    {
+                        "type": "input",
+                        "id": reagent_ids[i],
+                        "position": [q - off[0], r - off[1]],
+                        "rotation": input_rot[i],
+                    }
+                )
             elif kind == "calc":
                 i, q, r = map(int, toks[2:5])
-                placements.append({"type": "calcifier", "id": calc_ids[i],
-                                   "position": [q, r]})
+                placements.append({"type": "calcifier", "id": calc_ids[i], "position": [q, r]})
             elif kind == "bonder":
                 i, q1, r1, q2, r2 = map(int, toks[2:7])
                 d = DIRS.index((q2 - q1, r2 - r1))
-                placements.append({"type": "bonder", "id": bonder_ids[i],
-                                   "position": [q1, r1], "rotation": d})
+                placements.append(
+                    {"type": "bonder", "id": bonder_ids[i], "position": [q1, r1], "rotation": d}
+                )
             elif kind == "output":
                 k, q, r, rot = map(int, toks[2:6])
-                placements.append({"type": "output", "id": product_ids[k],
-                                   "position": [q, r], "rotation": rot})
+                placements.append(
+                    {"type": "output", "id": product_ids[k], "position": [q, r], "rotation": rot}
+                )
         elif toks[0] == "STEP":
             m, act = int(toks[1]), toks[2]
             instructions.append({"t": t, "arm": arm_ids[m], "action": act})
@@ -740,58 +770,73 @@ def parse_solution(stdout, puzzle, maps):
             nplace = int(toks[1])
     order = {"arm": 0, "input": 1, "output": 2, "calcifier": 3, "bonder": 4}
     placements.sort(key=lambda p: (order[p["type"]], p["id"]))
-    return {"puzzle": puzzle["name"],
+    return (
+        {
+            "puzzle": puzzle["name"],
             "solver": "picat (planner; free-layout setup-phase encoding)",
             "placements": placements,
-            "instructions": instructions}, cost, nplace
+            "instructions": instructions,
+        },
+        cost,
+        nplace,
+    )
 
 
 def main():
-    ap = argparse.ArgumentParser(
-        description="Picat adapter for the Opus Magnum harness.")
+    ap = argparse.ArgumentParser(description="Picat adapter for the Opus Magnum harness.")
     ap.add_argument("puzzle")
     ap.add_argument("--out", help="write the plan JSON here instead of stdout")
-    ap.add_argument("--time-limit", type=float,
-                    default=float(os.environ.get("HARNESS_PICAT_TIME_LIMIT",
-                                                 300)))
-    ap.add_argument("--picat", default=os.environ.get("PICAT", "picat"),
-                    help="picat binary (default: $PICAT or `picat` on PATH)")
-    ap.add_argument("--noprune", action="store_true",
-                    help="disable the sound distance prunes (keeps the "
-                         "exact rotational-symmetry quotient)")
-    ap.add_argument("--keep-program",
-                    help="also write the generated Picat program here")
+    ap.add_argument(
+        "--time-limit", type=float, default=float(os.environ.get("HARNESS_PICAT_TIME_LIMIT", 300))
+    )
+    ap.add_argument(
+        "--picat",
+        default=os.environ.get("PICAT", "picat"),
+        help="picat binary (default: $PICAT or `picat` on PATH)",
+    )
+    ap.add_argument(
+        "--noprune",
+        action="store_true",
+        help="disable the sound distance prunes (keeps the exact rotational-symmetry quotient)",
+    )
+    ap.add_argument("--keep-program", help="also write the generated Picat program here")
     args = ap.parse_args()
 
     if shutil.which(args.picat) is None and not os.path.isfile(args.picat):
-        die(f"picat binary {args.picat!r} not found -- install per "
-            f"picat/NOTES.md (picat-lang.org), set $PICAT or --picat")
+        die(
+            f"picat binary {args.picat!r} not found -- install per "
+            f"picat/NOTES.md (picat-lang.org), set $PICAT or --picat"
+        )
     try:
         with open(args.puzzle) as f:
             puzzle = json.load(f)
     except (OSError, json.JSONDecodeError) as e:
         die(str(e))
-    for key in ("name", "board_radius", "t_max", "reagents", "products",
-                "parts"):
+    for key in ("name", "board_radius", "t_max", "reagents", "products", "parts"):
         if key not in puzzle:
             die(f"puzzle: missing key {key!r}")
 
     program, maps = generate_program(puzzle, prune=not args.noprune)
-    log(f"solving {puzzle['name']} (t_max={puzzle['t_max']}, "
+    log(
+        f"solving {puzzle['name']} (t_max={puzzle['t_max']}, "
         f"prune={'off' if args.noprune else 'on'}, "
-        f"time limit {args.time_limit:g}s)")
-    stdout, wall = run_picat(args.picat, program, args.time_limit,
-                             args.keep_program)
+        f"time limit {args.time_limit:g}s)"
+    )
+    stdout, wall = run_picat(args.picat, program, args.time_limit, args.keep_program)
     parsed = parse_solution(stdout, puzzle, maps)
     if parsed is None:
-        log(f"no plan within the horizon (t_max={puzzle['t_max']}) -- "
-            f"proven by iterative deepening in {wall:.2f}s")
+        log(
+            f"no plan within the horizon (t_max={puzzle['t_max']}) -- "
+            f"proven by iterative deepening in {wall:.2f}s"
+        )
         sys.exit(1)
     plan, cost, nplace = parsed
     n_instr = len(plan["instructions"])
-    log(f"solved in {wall:.2f}s wall: cost {cost} = {nplace} placements + "
+    log(
+        f"solved in {wall:.2f}s wall: cost {cost} = {nplace} placements + "
         f"{n_instr} instructions (instruction count PROVEN optimal within "
-        f"the horizon by best_plan's iterative deepening)")
+        f"the horizon by best_plan's iterative deepening)"
+    )
     text = json.dumps(plan, indent=2)
     if args.out:
         with open(args.out, "w") as f:

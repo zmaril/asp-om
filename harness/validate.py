@@ -18,9 +18,10 @@ Importable API:
          with a copy of the world state -- see the docstring of validate)
     plan_length(plan) -> int                               (non-wait instructions)
 """
+
 import argparse
 import json
-import sys
+from typing import Any
 
 DIRS = [(1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1), (1, -1)]  # clockwise
 ELEMENTAL = {"air", "earth", "fire", "water"}
@@ -56,16 +57,14 @@ def transform(pos, rotation, offset):
 
 
 def on_board(h, radius):
-    return (abs(h[0]) <= radius and abs(h[1]) <= radius
-            and abs(h[0] + h[1]) <= radius)
+    return abs(h[0]) <= radius and abs(h[1]) <= radius and abs(h[0] + h[1]) <= radius
 
 
 # ---------------------------------------------------------------------------
 # Format checking / loading
 # ---------------------------------------------------------------------------
 def _hex(v, what):
-    if (not isinstance(v, (list, tuple)) or len(v) != 2
-            or not all(isinstance(c, int) for c in v)):
+    if not isinstance(v, (list, tuple)) or len(v) != 2 or not all(isinstance(c, int) for c in v):
         raise Malformed(f"{what}: expected [q, r] integer pair, got {v!r}")
     return (v[0], v[1])
 
@@ -78,27 +77,31 @@ def _molecule(m, what):
     for i, a in enumerate(atoms):
         el = a.get("element")
         if el not in ELEMENTS:
-            raise Malformed(f"{what} atom {i}: unknown element {el!r} "
-                            f"(supported: {sorted(ELEMENTS)})")
+            raise Malformed(
+                f"{what} atom {i}: unknown element {el!r} (supported: {sorted(ELEMENTS)})"
+            )
         out_atoms.append((el, _hex(a.get("pos"), f"{what} atom {i} pos")))
-    seen = {}
+    seen: dict[tuple[int, int], int] = {}
     for i, (_, h) in enumerate(out_atoms):
         if h in seen:
             raise Malformed(f"{what}: atoms {seen[h]} and {i} share hex {h}")
         seen[h] = i
     bonds = set()
     for b in m.get("bonds", []):
-        if (not isinstance(b, list) or len(b) != 2
-                or not all(isinstance(x, int) for x in b)
-                or not all(0 <= x < len(out_atoms) for x in b) or b[0] == b[1]):
+        if (
+            not isinstance(b, list)
+            or len(b) != 2
+            or not all(isinstance(x, int) for x in b)
+            or not all(0 <= x < len(out_atoms) for x in b)
+            or b[0] == b[1]
+        ):
             raise Malformed(f"{what}: bad bond {b!r}")
         bonds.add(frozenset(b))
     return out_atoms, bonds
 
 
 def check_puzzle(puzzle):
-    for key in ("name", "board_radius", "t_max", "reagents", "products",
-                "parts"):
+    for key in ("name", "board_radius", "t_max", "reagents", "products", "parts"):
         if key not in puzzle:
             raise Malformed(f"puzzle: missing required key {key!r}")
     if not isinstance(puzzle["board_radius"], int) or puzzle["board_radius"] < 1:
@@ -120,10 +123,8 @@ def check_puzzle(puzzle):
         raise Malformed("puzzle: part ids must be unique strings")
     for p in puzzle["parts"]:
         if p.get("type") not in ("arm", "calcifier", "bonder"):
-            raise Malformed(f"puzzle part {p.get('id')}: unsupported type "
-                            f"{p.get('type')!r}")
-        if p["type"] == "arm" and (not isinstance(p.get("length"), int)
-                                   or p["length"] < 1):
+            raise Malformed(f"puzzle part {p.get('id')}: unsupported type {p.get('type')!r}")
+        if p["type"] == "arm" and (not isinstance(p.get("length"), int) or p["length"] < 1):
             raise Malformed(f"arm {p['id']}: length must be an integer >= 1")
 
 
@@ -132,20 +133,20 @@ def check_puzzle(puzzle):
 # ---------------------------------------------------------------------------
 class Layout:
     def __init__(self):
-        self.arms = {}        # id -> {"base","length","rotation"}
-        self.inputs = {}      # reagent id -> {"position","rotation"}
-        self.outputs = {}     # product id -> {"position","rotation"}
+        self.arms = {}  # id -> {"base","length","rotation"}
+        self.inputs = {}  # reagent id -> {"position","rotation"}
+        self.outputs = {}  # product id -> {"position","rotation"}
         self.calcifiers = {}  # id -> hex
-        self.bonders = {}     # id -> (hex, hex)
+        self.bonders = {}  # id -> (hex, hex)
 
 
 def _pinned(spec, got_pos, got_rot, what, rot_matters=True):
     if "position" in spec and _hex(spec["position"], what) != got_pos:
-        raise Invalid(f"{what}: puzzle pins position "
-                      f"{tuple(spec['position'])}, plan places it at {got_pos}")
+        raise Invalid(
+            f"{what}: puzzle pins position {tuple(spec['position'])}, plan places it at {got_pos}"
+        )
     if rot_matters and "rotation" in spec and spec["rotation"] % 6 != got_rot:
-        raise Invalid(f"{what}: puzzle pins rotation {spec['rotation']}, "
-                      f"plan uses {got_rot}")
+        raise Invalid(f"{what}: puzzle pins rotation {spec['rotation']}, plan uses {got_rot}")
 
 
 def resolve_layout(puzzle, plan):
@@ -183,17 +184,14 @@ def resolve_layout(puzzle, plan):
             spec = parts.get(pid)
             if spec is None or spec["type"] != ptype:
                 raise Invalid(f"{what}: puzzle has no {ptype} part {pid!r}")
-            if (pid in lay.arms or pid in lay.calcifiers
-                    or pid in lay.bonders):
+            if pid in lay.arms or pid in lay.calcifiers or pid in lay.bonders:
                 raise Invalid(f"{what}: placed twice")
             if ptype == "arm":
                 length = spec["length"]
                 if "length" in pl and pl["length"] != length:
-                    raise Invalid(f"{what}: length {pl['length']} != puzzle "
-                                  f"length {length}")
+                    raise Invalid(f"{what}: length {pl['length']} != puzzle length {length}")
                 _pinned(spec, pos, rot, what)
-                lay.arms[pid] = {"base": pos, "length": length,
-                                 "rotation": rot}
+                lay.arms[pid] = {"base": pos, "length": length, "rotation": rot}
             elif ptype == "calcifier":
                 _pinned(spec, pos, rot, what, rot_matters=False)
                 lay.calcifiers[pid] = pos
@@ -202,19 +200,19 @@ def resolve_layout(puzzle, plan):
                 if "position" in spec:
                     prot = spec.get("rotation", 0) % 6
                     ppos = _hex(spec["position"], what)
-                    pinned = {ppos, (ppos[0] + DIRS[prot][0],
-                                     ppos[1] + DIRS[prot][1])}
+                    pinned = {ppos, (ppos[0] + DIRS[prot][0], ppos[1] + DIRS[prot][1])}
                     if {pos, other} != pinned:
-                        raise Invalid(f"{what}: puzzle pins hexes "
-                                      f"{sorted(pinned)}, plan uses "
-                                      f"{sorted({pos, other})}")
+                        raise Invalid(
+                            f"{what}: puzzle pins hexes "
+                            f"{sorted(pinned)}, plan uses "
+                            f"{sorted({pos, other})}"
+                        )
                 lay.bonders[pid] = (pos, other)
         else:
             raise Malformed(f"placement with unknown type {ptype!r}")
 
     for pid, spec in parts.items():
-        placed = {"arm": lay.arms, "calcifier": lay.calcifiers,
-                  "bonder": lay.bonders}[spec["type"]]
+        placed = {"arm": lay.arms, "calcifier": lay.calcifiers, "bonder": lay.bonders}[spec["type"]]
         if pid not in placed:
             raise Invalid(f"plan never places {spec['type']} part {pid!r}")
     for rid in reagents:
@@ -230,33 +228,30 @@ def resolve_layout(puzzle, plan):
         feet.append((f"arm {mid}", a["base"]))
     for rid, ipl in lay.inputs.items():
         for _, off in _molecule(reagents[rid], f"reagent {rid}")[0]:
-            feet.append((f"input {rid}",
-                         transform(ipl["position"], ipl["rotation"], off)))
+            feet.append((f"input {rid}", transform(ipl["position"], ipl["rotation"], off)))
     for pid, opl in lay.outputs.items():
         for _, off in _molecule(products[pid], f"product {pid}")[0]:
-            feet.append((f"output {pid}",
-                         transform(opl["position"], opl["rotation"], off)))
+            feet.append((f"output {pid}", transform(opl["position"], opl["rotation"], off)))
     for cid, h in lay.calcifiers.items():
         feet.append((f"calcifier {cid}", h))
     for bid, (h1, h2) in lay.bonders.items():
         feet.append((f"bonder {bid}", h1))
         feet.append((f"bonder {bid}", h2))
-    seen = {}
+    seen: dict[tuple[int, int], str] = {}
     for owner, h in feet:
         if not on_board(h, radius):
-            raise Invalid(f"{owner}: footprint hex {h} is off the board "
-                          f"(radius {radius})")
+            raise Invalid(f"{owner}: footprint hex {h} is off the board (radius {radius})")
         if h in seen and seen[h] != owner:
-            raise Invalid(f"part footprints overlap at {h}: {seen[h]} "
-                          f"and {owner}")
+            raise Invalid(f"part footprints overlap at {h}: {seen[h]} and {owner}")
         seen[h] = owner
     for mid, a in lay.arms.items():
-        g = transform(a["base"], 0,
-                      (a["length"] * DIRS[a["rotation"]][0],
-                       a["length"] * DIRS[a["rotation"]][1]))
+        g = transform(
+            a["base"],
+            0,
+            (a["length"] * DIRS[a["rotation"]][0], a["length"] * DIRS[a["rotation"]][1]),
+        )
         if not on_board(g, radius):
-            raise Invalid(f"arm {mid}: initial gripper hex {g} is off the "
-                          f"board")
+            raise Invalid(f"arm {mid}: initial gripper hex {g} is off the board")
     return lay
 
 
@@ -276,20 +271,20 @@ def read_instructions(puzzle, plan, lay):
         if act not in ACTIONS:
             raise Invalid(f"instruction at t={t}: unknown action {act!r}")
         if not 0 <= t < t_max:
-            raise Invalid(f"instruction at t={t}: outside the horizon "
-                          f"0..{t_max - 1}")
+            raise Invalid(f"instruction at t={t}: outside the horizon 0..{t_max - 1}")
         if act != "wait" and arm not in lay.arms:
             raise Invalid(f"instruction at t={t}: unknown arm {arm!r}")
         if t in by_t:
-            raise Invalid(f"two instructions at t={t} (sequential-arm rule: "
-                          f"at most one instruction per timestep)")
+            raise Invalid(
+                f"two instructions at t={t} (sequential-arm rule: "
+                f"at most one instruction per timestep)"
+            )
         by_t[t] = (arm, act)
     return by_t
 
 
 def plan_length(plan):
-    return sum(1 for i in plan.get("instructions", [])
-               if i.get("action") != "wait")
+    return sum(1 for i in plan.get("instructions", []) if i.get("action") != "wait")
 
 
 # ---------------------------------------------------------------------------
@@ -310,8 +305,7 @@ def validate(puzzle, plan, log=None, on_state=None):
     log = log or (lambda *a: None)
     check_puzzle(puzzle)
     if plan.get("puzzle") not in (None, puzzle["name"]):
-        raise Invalid(f"plan is for puzzle {plan.get('puzzle')!r}, "
-                      f"not {puzzle['name']!r}")
+        raise Invalid(f"plan is for puzzle {plan.get('puzzle')!r}, not {puzzle['name']!r}")
     lay = resolve_layout(puzzle, plan)
     by_t = read_instructions(puzzle, plan, lay)
 
@@ -319,24 +313,23 @@ def validate(puzzle, plan, log=None, on_state=None):
     reagents = {m["id"]: m for m in puzzle["reagents"]}
     products = {m["id"]: m for m in puzzle["products"]}
 
-    pos, typ = {}, {}          # atom -> hex, atom -> element
-    bonds = set()              # frozenset({x, y})
-    holds = {m: None for m in lay.arms}
+    pos: dict[Any, tuple[int, int]] = {}  # atom -> hex
+    typ: dict[Any, str] = {}  # atom -> element
+    bonds = set()  # frozenset({x, y})
+    holds = dict.fromkeys(lay.arms)
     orient = {m: a["rotation"] for m, a in lay.arms.items()}
     bases = {a["base"] for a in lay.arms.values()}
-    spawned = {rid: 0 for rid in reagents}
+    spawned = dict.fromkeys(reagents, 0)
 
     def gripper(m):
         a = lay.arms[m]
         d = orient[m]
-        return (a["base"][0] + a["length"] * DIRS[d][0],
-                a["base"][1] + a["length"] * DIRS[d][1])
+        return (a["base"][0] + a["length"] * DIRS[d][0], a["base"][1] + a["length"] * DIRS[d][1])
 
     def spawn_hexes(rid):
         ipl = lay.inputs[rid]
         atoms, _ = _molecule(reagents[rid], f"reagent {rid}")
-        return [(el, transform(ipl["position"], ipl["rotation"], off))
-                for el, off in atoms]
+        return [(el, transform(ipl["position"], ipl["rotation"], off)) for el, off in atoms]
 
     def try_spawn():
         for rid, m in reagents.items():
@@ -376,9 +369,8 @@ def validate(puzzle, plan, log=None, on_state=None):
     def static_checks(t):
         for m in lay.arms:
             if not on_board(gripper(m), radius):
-                raise Invalid(f"t={t}: gripper of arm {m} at {gripper(m)} "
-                              f"is off the board")
-        occ = {}
+                raise Invalid(f"t={t}: gripper of arm {m} at {gripper(m)} is off the board")
+        occ: dict[tuple[int, int], Any] = {}
         for x, h in pos.items():
             if not on_board(h, radius):
                 raise Invalid(f"t={t}: atom {x} at {h} is off the board")
@@ -389,12 +381,12 @@ def validate(puzzle, plan, log=None, on_state=None):
                 raise Invalid(f"t={t}: atom {x} rests on an arm base at {h}")
 
     calc_hexes = set(lay.calcifiers.values())
-    complete_at = {pid: None for pid in products}
+    complete_at = dict.fromkeys(products)
 
     def check_goals(t):
         occ = {h: x for x, h in pos.items()}
         held = {x for x in holds.values() if x is not None}
-        deg = {}
+        deg: dict[Any, int] = {}
         for b in bonds:
             for x in b:
                 deg[x] = deg.get(x, 0) + 1
@@ -413,15 +405,14 @@ def validate(puzzle, plan, log=None, on_state=None):
                     break
                 names.append(x)
             if ok:
-                pdeg = {i: 0 for i in range(len(atoms))}
+                pdeg = dict.fromkeys(range(len(atoms)), 0)
                 for b in pbonds:
                     i, j = sorted(b)
                     pdeg[i] += 1
                     pdeg[j] += 1
                     if frozenset((names[i], names[j])) not in bonds:
                         ok = False
-                if ok and any(deg.get(names[i], 0) != pdeg[i]
-                              for i in range(len(atoms))):
+                if ok and any(deg.get(names[i], 0) != pdeg[i] for i in range(len(atoms))):
                     ok = False
             if ok:
                 complete_at[pid] = t
@@ -429,8 +420,10 @@ def validate(puzzle, plan, log=None, on_state=None):
 
     def notify(t):
         if on_state is not None:
-            on_state(t, {"pos": dict(pos), "typ": dict(typ),
-                         "orient": dict(orient), "holds": dict(holds)})
+            on_state(
+                t,
+                {"pos": dict(pos), "typ": dict(typ), "orient": dict(orient), "holds": dict(holds)},
+            )
 
     # ---- t = 0
     try_spawn()
@@ -441,9 +434,12 @@ def validate(puzzle, plan, log=None, on_state=None):
 
     for t in range(t_max):
         m, act = by_t.get(t, (None, "wait"))
-        log(f"t={t}: {m or '-'} {act}  "
-            + " ".join(f"{a}:d{orient[a]}" for a in sorted(lay.arms)) + "  "
-            + " ".join(f"{x}/{typ[x]}@{h}" for x, h in sorted(pos.items())))
+        log(
+            f"t={t}: {m or '-'} {act}  "
+            + " ".join(f"{a}:d{orient[a]}" for a in sorted(lay.arms))
+            + "  "
+            + " ".join(f"{x}/{typ[x]}@{h}" for x, h in sorted(pos.items()))
+        )
         oldpos = dict(pos)  # calcification reads positions at t, not t+1
         if act == "grab":
             if holds[m] is not None:
@@ -453,8 +449,7 @@ def validate(puzzle, plan, log=None, on_state=None):
             if x is None:
                 raise Invalid(f"t={t}: arm {m} grabs over empty hex {g}")
             if x in {h for a, h in holds.items() if a != m and h is not None}:
-                raise Invalid(f"t={t}: arm {m} grabs atom {x}, which is "
-                              f"held by another arm")
+                raise Invalid(f"t={t}: arm {m} grabs atom {x}, which is held by another arm")
             holds[m] = x
         elif act == "drop":
             if holds[m] is None:
@@ -465,20 +460,19 @@ def validate(puzzle, plan, log=None, on_state=None):
             b = lay.arms[m]["base"]
             orient[m] = (orient[m] + (1 if act == "rot_cw" else 5)) % 6
             if not on_board(gripper(m), radius):
-                raise Invalid(f"t={t}: arm {m} rotates its gripper off the "
-                              f"board to {gripper(m)}")
+                raise Invalid(f"t={t}: arm {m} rotates its gripper off the board to {gripper(m)}")
             if holds[m] is not None:
                 comp = component(holds[m])
                 for a in lay.arms:
                     if a != m and holds[a] in comp:
-                        raise Invalid(f"t={t}: arm {m} would tear atom "
-                                      f"{holds[a]} out of arm {a}'s hand")
+                        raise Invalid(
+                            f"t={t}: arm {m} would tear atom {holds[a]} out of arm {a}'s hand"
+                        )
                 for x in comp:
                     dq, dr = rot(pos[x][0] - b[0], pos[x][1] - b[1])
                     pos[x] = (b[0] + dq, b[1] + dr)
                     if not on_board(pos[x], radius):
-                        raise Invalid(f"t={t}: arm {m} swings atom {x} off "
-                                      f"the board to {pos[x]}")
+                        raise Invalid(f"t={t}: arm {m} swings atom {x} off the board to {pos[x]}")
         # (act == "wait": no effect)
         # calcification: reads positions at t, retypes at t+1
         for x, h in oldpos.items():
@@ -495,19 +489,18 @@ def validate(puzzle, plan, log=None, on_state=None):
         raise Invalid(
             f"goal not reached: product(s) {missing} never complete on "
             f"their output hexes by t_max={t_max} "
-            f"(final atoms: " + ", ".join(
-                f"{x}/{typ[x]}@{pos[x]}" for x in sorted(pos)) +
-            f"; bonds: {sorted(tuple(sorted(b)) for b in bonds)})")
+            f"(final atoms: "
+            + ", ".join(f"{x}/{typ[x]}@{pos[x]}" for x in sorted(pos))
+            + f"; bonds: {sorted(tuple(sorted(b)) for b in bonds)})"
+        )
     return complete_at
 
 
 def main():
-    ap = argparse.ArgumentParser(
-        description="Validate a plan JSON against a puzzle JSON.")
+    ap = argparse.ArgumentParser(description="Validate a plan JSON against a puzzle JSON.")
     ap.add_argument("puzzle")
     ap.add_argument("plan")
-    ap.add_argument("--verbose", action="store_true",
-                    help="print the replay step by step")
+    ap.add_argument("--verbose", action="store_true", help="print the replay step by step")
     args = ap.parse_args()
     try:
         with open(args.puzzle) as f:
@@ -527,8 +520,10 @@ def main():
         print(f"FAIL  {puzzle.get('name', args.puzzle)}: {e}")
         return 1
     done = ", ".join(f"{pid}@t={t}" for pid, t in sorted(complete_at.items()))
-    print(f"PASS  {puzzle['name']}: plan length {plan_length(plan)} "
-          f"(non-wait instructions), products complete: {done}")
+    print(
+        f"PASS  {puzzle['name']}: plan length {plan_length(plan)} "
+        f"(non-wait instructions), products complete: {done}"
+    )
     return 0
 
 

@@ -17,18 +17,19 @@ import os
 import statistics
 import time
 
-import z3
-
 import om_bool
-import om_solver
-from om_solver import INSTANCES, Encoder, STRATEGIES, extract_solution
+from om_solver import INSTANCES, STRATEGIES, Encoder, extract_solution
+
+import z3
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPEATS = 5
 FAST_CUTOFF = 2.0  # seconds
 
 CLINGO_REFERENCE = {  # measured on this box, clingo 5.8.0, to optimality
-    "trivial": 0.009, "bond": 0.148, "rigid": 0.004,
+    "trivial": 0.009,
+    "bond": 0.148,
+    "rigid": 0.004,
     "water": 0.060,  # z3/stabilized_water.lp + asp/core2.lp, t_max=12
 }
 
@@ -51,8 +52,14 @@ def run_int(name, mode, strategy):
 def run_bool(name, mode, strategy):
     assert mode == "fixed"
     r = om_bool.solve(name, strategy)
-    return dict(status=r["status"], cost=r["cost"], time=r["time"],
-                build=r["build"], horizon=INSTANCES[name]["t_max"], enc=None)
+    return {
+        "status": r["status"],
+        "cost": r["cost"],
+        "time": r["time"],
+        "build": r["build"],
+        "horizon": INSTANCES[name]["t_max"],
+        "enc": None,
+    }
 
 
 def timed(run_fn, *args):
@@ -73,8 +80,7 @@ def timed(run_fn, *args):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--instances", nargs="+", choices=ALL_INSTANCES,
-                    default=ALL_INSTANCES)
+    ap.add_argument("--instances", nargs="+", choices=ALL_INSTANCES, default=ALL_INSTANCES)
     args = ap.parse_args()
 
     cache_path = os.path.join(HERE, "results.json")
@@ -86,32 +92,45 @@ def main():
     sol_dir = os.path.join(HERE, "solutions")
     os.makedirs(sol_dir, exist_ok=True)
 
-    int_strategies = ["optimize", "ramp-cost", "descend-cost", "oneshot",
-                      "ramp-horizon"]
+    int_strategies = ["optimize", "ramp-cost", "descend-cost", "oneshot", "ramp-horizon"]
     for name in args.instances:
         for mode in ["fixed", "free"]:
             for strat in int_strategies:
                 r = timed(run_int, name, mode, strat)
                 inst = INSTANCES[name]
-                opt = inst.get("expected_opt_free", inst["expected_opt"]) \
-                    if mode == "free" else inst["expected_opt"]
-                optimal = (r["cost"] == opt) if strat not in (
-                    "oneshot", "ramp-horizon") else ""
-                row = dict(instance=name, encoding="int", mode=mode,
-                           strategy=strat, status=r["status"],
-                           cost=r["cost"], horizon=r["horizon"],
-                           build=r["build_med"], solve=r["time_med"],
-                           n=r["n_runs"], optimal=optimal)
+                opt = (
+                    inst.get("expected_opt_free", inst["expected_opt"])
+                    if mode == "free"
+                    else inst["expected_opt"]
+                )
+                optimal = (r["cost"] == opt) if strat not in ("oneshot", "ramp-horizon") else ""
+                row = {
+                    "instance": name,
+                    "encoding": "int",
+                    "mode": mode,
+                    "strategy": strat,
+                    "status": r["status"],
+                    "cost": r["cost"],
+                    "horizon": r["horizon"],
+                    "build": r["build_med"],
+                    "solve": r["time_med"],
+                    "n": r["n_runs"],
+                    "optimal": optimal,
+                }
                 cache[(name, "int", mode, strat)] = row
                 print(row)
                 # dump the canonical optimal solutions as JSON
                 if strat == "descend-cost" and r["status"] == "sat":
                     sol = extract_solution(r["enc"], r)
-                    meta = dict(instance=name, mode=mode,
-                                strategy=strat, t_max=r["enc"].T,
-                                radius=r["enc"].radius,
-                                solver="z3-" + z3.get_version_string(),
-                                solve_time_s=round(r["time"], 4))
+                    meta = {
+                        "instance": name,
+                        "mode": mode,
+                        "strategy": strat,
+                        "t_max": r["enc"].T,
+                        "radius": r["enc"].radius,
+                        "solver": "z3-" + z3.get_version_string(),
+                        "solve_time_s": round(r["time"], 4),
+                    }
                     path = os.path.join(sol_dir, f"{name}-{mode}.json")
                     with open(path, "w") as f:
                         json.dump(dict(meta=meta, **sol), f, indent=1)
@@ -123,11 +142,19 @@ def main():
             r = timed(run_bool, name, "fixed", strat)
             opt = INSTANCES[name]["expected_opt"]
             optimal = (r["cost"] == opt) if strat != "oneshot" else ""
-            row = dict(instance=name, encoding="bool", mode="fixed",
-                       strategy=strat, status=r["status"],
-                       cost=r["cost"], horizon=r["horizon"],
-                       build=r["build_med"], solve=r["time_med"],
-                       n=r["n_runs"], optimal=optimal)
+            row = {
+                "instance": name,
+                "encoding": "bool",
+                "mode": "fixed",
+                "strategy": strat,
+                "status": r["status"],
+                "cost": r["cost"],
+                "horizon": r["horizon"],
+                "build": r["build_med"],
+                "solve": r["time_med"],
+                "n": r["n_runs"],
+                "optimal": optimal,
+            }
             cache[(name, "bool", "fixed", strat)] = row
             print(row)
 
@@ -137,10 +164,12 @@ def main():
     # ---- write results.md from the merged cache ----
     def order(key):
         name, encoding, mode, strat = key
-        return (0 if encoding == "int" else 1,
-                ALL_INSTANCES.index(name),
-                0 if mode == "fixed" else 1,
-                (int_strategies + ["descend-cost"]).index(strat))
+        return (
+            0 if encoding == "int" else 1,
+            ALL_INSTANCES.index(name),
+            0 if mode == "fixed" else 1,
+            ([*int_strategies, "descend-cost"]).index(strat),
+        )
 
     lines = [
         "# Z3 arm benchmark results",
@@ -158,7 +187,8 @@ def main():
         "",
         "Clingo reference (same box, clingo 5.8.0, ground+solve to "
         "optimality, fixed layout): "
-        + ", ".join(f"{k} {v}s" for k, v in CLINGO_REFERENCE.items()) + ".",
+        + ", ".join(f"{k} {v}s" for k, v in CLINGO_REFERENCE.items())
+        + ".",
         "",
         "`water` = Stabilized Water (omsim P007) in the simplified v2 "
         "semantics; fixed-layout optimum is 10, free layout finds a "
@@ -174,7 +204,8 @@ def main():
             f"| {r['instance']} | {r['encoding']} | {r['mode']} | "
             f"{r['strategy']} | {r['status']} | {r['cost']} | "
             f"{r['horizon']} | {r['build']:.3f} | {r['solve']:.3f} | "
-            f"{r['n']} | {r['optimal']} |")
+            f"{r['n']} | {r['optimal']} |"
+        )
     lines.append("")
     with open(os.path.join(HERE, "results.md"), "w") as f:
         f.write("\n".join(lines))

@@ -47,6 +47,7 @@ Semantics implemented (mirrors harness/validate.py):
     exact element per output hex, unheld atoms, exactly the product's
     bonds (total bond degree equality).
 """
+
 import argparse
 import itertools
 import json
@@ -103,12 +104,13 @@ def distinct_rotations(atoms, bonds, translation_free):
             aq, ar = min(cells)
         else:
             aq, ar = 0, 0
-        norm = frozenset(((c[0] - aq, c[1] - ar), el)
-                         for (el, _), c in zip(atoms, cells))
+        norm = frozenset(
+            ((c[0] - aq, c[1] - ar), el) for (el, _), c in zip(atoms, cells, strict=False)
+        )
         nbonds = frozenset(
-            frozenset(((cells[i][0] - aq, cells[i][1] - ar),
-                       (cells[j][0] - aq, cells[j][1] - ar)))
-            for i, j in bonds)
+            frozenset(((cells[i][0] - aq, cells[i][1] - ar), (cells[j][0] - aq, cells[j][1] - ar)))
+            for i, j in bonds
+        )
         key = (norm, nbonds)
         if key not in seen:
             seen.add(key)
@@ -133,8 +135,7 @@ class HarnessEncoder:
     # ------------------------------------------------------------------
     def on_board(self, q, r):
         rad = self.radius
-        return z3.And(q >= -rad, q <= rad, r >= -rad, r <= rad,
-                      q + r >= -rad, q + r <= rad)
+        return z3.And(q >= -rad, q <= rad, r >= -rad, r <= rad, q + r >= -rad, q + r <= rad)
 
     def _parts(self):
         pz = self.pz
@@ -155,7 +156,7 @@ class HarnessEncoder:
 
     def _atoms(self):
         """Global atom table: one entry per (reagent, copy, molecule atom)."""
-        self.atoms = []   # dicts: rid, copy, aidx, element
+        self.atoms: list[dict] = []  # dicts: rid, copy, aidx, element
         self.copies = []  # (rid, copy, [global atom indices])
         for m in self.pz["reagents"]:
             ratoms, _ = molecule(m)
@@ -163,19 +164,17 @@ class HarnessEncoder:
                 idxs = []
                 for a, (el, _) in enumerate(ratoms):
                     idxs.append(len(self.atoms))
-                    self.atoms.append(dict(rid=m["id"], copy=c, aidx=a,
-                                           element=el))
+                    self.atoms.append({"rid": m["id"], "copy": c, "aidx": a, "element": el})
                 self.copies.append((m["id"], c, idxs))
         self.n_atom = len(self.atoms)
-        self.pairs = [(i, j) for i in range(self.n_atom)
-                      for j in range(i + 1, self.n_atom)]
+        self.pairs = [(i, j) for i in range(self.n_atom) for j in range(i + 1, self.n_atom)]
 
     # ------------------------------------------------------------------
     def _layout(self):
         pz, C, Int = self.pz, self.cons, z3.Int
         nothing_pinned = not any(
-            "position" in x for x in
-            pz["parts"] + pz["reagents"] + pz["products"])
+            "position" in x for x in pz["parts"] + pz["reagents"] + pz["products"]
+        )
 
         def pos_vars(tag, spec):
             q, r = Int(f"{tag}_q"), Int(f"{tag}_r")
@@ -199,12 +198,15 @@ class HarnessEncoder:
         # the whole board is C6-symmetric about the origin, so WLOG the
         # first arm's base lies in a fundamental domain of that action.
         if nothing_pinned:
-            reps = sorted({min(rot_k(q, r, k) for k in range(6))
-                           for q in range(-self.radius, self.radius + 1)
-                           for r in range(-self.radius, self.radius + 1)
-                           if abs(q + r) <= self.radius})
-            C.append(z3.Or([z3.And(self.baseq[0] == q, self.baser[0] == r)
-                            for q, r in reps]))
+            reps = sorted(
+                {
+                    min(rot_k(q, r, k) for k in range(6))
+                    for q in range(-self.radius, self.radius + 1)
+                    for r in range(-self.radius, self.radius + 1)
+                    if abs(q + r) <= self.radius
+                }
+            )
+            C.append(z3.Or([z3.And(self.baseq[0] == q, self.baser[0] == r) for q, r in reps]))
 
         # calcifiers -------------------------------------------------------
         self.calc_hex = []
@@ -223,10 +225,8 @@ class HarnessEncoder:
                 C.append(z3.And(rot >= 0, rot <= 2))
             q2 = Int(f"bonder{i}_q2")
             r2 = Int(f"bonder{i}_r2")
-            C.append(q2 == q1 + sel(rot, [(d, z3.IntVal(DIRS[d][0]))
-                                          for d in range(6)]))
-            C.append(r2 == r1 + sel(rot, [(d, z3.IntVal(DIRS[d][1]))
-                                          for d in range(6)]))
+            C.append(q2 == q1 + sel(rot, [(d, z3.IntVal(DIRS[d][0])) for d in range(6)]))
+            C.append(r2 == r1 + sel(rot, [(d, z3.IntVal(DIRS[d][1])) for d in range(6)]))
             self.bonder_hex.append(((q1, r1), (q2, r2), rot))
 
         # inputs / outputs -------------------------------------------------
@@ -239,34 +239,29 @@ class HarnessEncoder:
             if "rotation" in spec:
                 allowed = [spec["rotation"] % 6]
             else:
-                allowed = distinct_rotations(atoms, bonds,
-                                             "position" not in spec)
+                allowed = distinct_rotations(atoms, bonds, "position" not in spec)
             C.append(z3.Or([rot == d for d in allowed]))
             hexes = []
-            for a, (_, (oq, orr)) in enumerate(atoms):
+            for _a, (_, (oq, orr)) in enumerate(atoms):
                 offs = {d: rot_k(oq, orr, d) for d in allowed}
-                hq = q + sel(rot, [(d, z3.IntVal(offs[d][0]))
-                                   for d in allowed])
-                hr = r + sel(rot, [(d, z3.IntVal(offs[d][1]))
-                                   for d in allowed])
+                hq = q + sel(rot, [(d, z3.IntVal(offs[d][0])) for d in allowed])
+                hr = r + sel(rot, [(d, z3.IntVal(offs[d][1])) for d in allowed])
                 hexes.append((hq, hr))
-            return dict(q=q, r=r, rot=rot, hexes=hexes)
+            return {"q": q, "r": r, "rot": rot, "hexes": hexes}
 
-        self.inputs = {m["id"]: place_molecule(f"in_{m['id']}", m)
-                       for m in pz["reagents"]}
-        self.outputs = {m["id"]: place_molecule(f"out_{m['id']}", m)
-                        for m in pz["products"]}
+        self.inputs = {m["id"]: place_molecule(f"in_{m['id']}", m) for m in pz["reagents"]}
+        self.outputs = {m["id"]: place_molecule(f"out_{m['id']}", m) for m in pz["products"]}
 
         # symmetry breaking: interchangeable unpinned reagents (identical
         # molecule + pool) may WLOG be ordered by input position.
-        groups = {}
+        groups: dict[tuple[str, int], list[str]] = {}
         for m in pz["reagents"]:
             if "position" in m or "rotation" in m:
                 continue
             key = (json.dumps(molecule(m), sort_keys=True), m["pool"])
             groups.setdefault(key, []).append(m["id"])
         for ids in groups.values():
-            for a, b in zip(ids, ids[1:]):
+            for a, b in itertools.pairwise(ids):
                 qa, ra = self.inputs[a]["q"], self.inputs[a]["r"]
                 qb, rb = self.inputs[b]["q"], self.inputs[b]["r"]
                 C.append(z3.Or(qa < qb, z3.And(qa == qb, ra <= rb)))
@@ -288,11 +283,12 @@ class HarnessEncoder:
             feet.append((("bonder", i), h2))
         for _, (q, r) in feet:
             C.append(self.on_board(q, r))
-        for a in range(len(feet)):
-            for b in range(a + 1, len(feet)):
-                if feet[a][0] != feet[b][0]:
-                    C.append(z3.Or(feet[a][1][0] != feet[b][1][0],
-                                   feet[a][1][1] != feet[b][1][1]))
+        for fa in range(len(feet)):
+            for fb in range(fa + 1, len(feet)):
+                if feet[fa][0] != feet[fb][0]:
+                    C.append(
+                        z3.Or(feet[fa][1][0] != feet[fb][1][0], feet[fa][1][1] != feet[fb][1][1])
+                    )
 
     # ------------------------------------------------------------------
     def _dynamics(self):
@@ -301,54 +297,50 @@ class HarnessEncoder:
         n_arm, n_atom = self.n_arm, self.n_atom
 
         # state variables ---------------------------------------------------
-        self.orient = [[Int(f"or_{m}_{t}") for t in range(T + 1)]
-                       for m in range(n_arm)]
+        self.orient = [[Int(f"or_{m}_{t}") for t in range(T + 1)] for m in range(n_arm)]
         self.act = [Int(f"act_{t}") for t in range(T)]
-        self.q = [[Int(f"q_{i}_{t}") for t in range(T + 1)]
-                  for i in range(n_atom)]
-        self.r = [[Int(f"r_{i}_{t}") for t in range(T + 1)]
-                  for i in range(n_atom)]
-        self.held = [[[Bool(f"held_{m}_{i}_{t}") for t in range(T + 1)]
-                      for i in range(n_atom)] for m in range(n_arm)]
-        self.gq = [[Int(f"gq_{m}_{t}") for t in range(T + 1)]
-                   for m in range(n_arm)]
-        self.gr = [[Int(f"gr_{m}_{t}") for t in range(T + 1)]
-                   for m in range(n_arm)]
+        self.q = [[Int(f"q_{i}_{t}") for t in range(T + 1)] for i in range(n_atom)]
+        self.r = [[Int(f"r_{i}_{t}") for t in range(T + 1)] for i in range(n_atom)]
+        self.held = [
+            [[Bool(f"held_{m}_{i}_{t}") for t in range(T + 1)] for i in range(n_atom)]
+            for m in range(n_arm)
+        ]
+        self.gq = [[Int(f"gq_{m}_{t}") for t in range(T + 1)] for m in range(n_arm)]
+        self.gr = [[Int(f"gr_{m}_{t}") for t in range(T + 1)] for m in range(n_arm)]
         # per-copy active (spawned) flags; copy 1 is always active
         self.active = {}
-        for rid, c, idxs in self.copies:
+        for rid, c, _idxs in self.copies:
             if c == 1:
                 self.active[(rid, c)] = [z3.BoolVal(True)] * (T + 1)
             else:
-                self.active[(rid, c)] = [Bool(f"act_{rid}_{c}_{t}")
-                                         for t in range(T + 1)]
-        self.atom_active = [self.active[(a["rid"], a["copy"])]
-                            for a in self.atoms]
+                self.active[(rid, c)] = [Bool(f"act_{rid}_{c}_{t}") for t in range(T + 1)]
+        self.atom_active = [self.active[(a["rid"], a["copy"])] for a in self.atoms]
         # bonds: needed iff any bonder or any reagent internal bond exists
         internal = set()
-        for rid, c, idxs in self.copies:
+        for rid, _c, idxs in self.copies:
             m = next(m for m in self.pz["reagents"] if m["id"] == rid)
             for i, j in molecule(m)[1]:
                 internal.add((min(idxs[i], idxs[j]), max(idxs[i], idxs[j])))
         self.b = {}
         if self.bonder_hex or internal:
             for p in self.pairs:
-                self.b[p] = [Bool(f"b_{p[0]}_{p[1]}_{t}")
-                             for t in range(T + 1)]
+                self.b[p] = [Bool(f"b_{p[0]}_{p[1]}_{t}") for t in range(T + 1)]
         # element types: dynamic only when a calcifier exists
         self.typ = None
         if self.calc_hex:
-            self.typ = [[Int(f"ty_{i}_{t}") for t in range(T + 1)]
-                        for i in range(n_atom)]
+            self.typ = [[Int(f"ty_{i}_{t}") for t in range(T + 1)] for i in range(n_atom)]
         # rigid components
-        self.comp = [[[Bool(f"comp_{m}_{i}_{t}") for t in range(T + 1)]
-                      for i in range(n_atom)] for m in range(n_arm)]
+        self.comp = [
+            [[Bool(f"comp_{m}_{i}_{t}") for t in range(T + 1)] for i in range(n_atom)]
+            for m in range(n_arm)
+        ]
 
         def bond_var(i, j, t):
             if i == j:
                 return z3.BoolVal(False)
             key = (min(i, j), max(i, j))
             return self.b[key][t] if key in self.b else z3.BoolVal(False)
+
         self.bond_var = bond_var
 
         def spawn_hex(i):
@@ -372,51 +364,55 @@ class HarnessEncoder:
 
         # per-state invariants and definitions (t = 0..T) ---------------------
         def form(i, j, t):
+            def on(k, h):
+                return z3.And(self.q[k][t] == h[0], self.r[k][t] == h[1])
+
             disj = []
             act_ij = z3.And(self.atom_active[i][t], self.atom_active[j][t])
-            for (h1, h2, _) in self.bonder_hex:
-                on = lambda k, h: z3.And(self.q[k][t] == h[0],
-                                         self.r[k][t] == h[1])
-                disj.append(z3.Or(z3.And(on(i, h1), on(j, h2)),
-                                  z3.And(on(i, h2), on(j, h1))))
+            for h1, h2, _ in self.bonder_hex:
+                disj.append(z3.Or(z3.And(on(i, h1), on(j, h2)), z3.And(on(i, h2), on(j, h1))))
             return z3.And(act_ij, z3.Or(disj)) if disj else z3.BoolVal(False)
 
         for t in range(T + 1):
             for m, arm in enumerate(self.arms):
-                C.append(z3.And(self.orient[m][t] >= 0,
-                                self.orient[m][t] <= 5))
+                C.append(z3.And(self.orient[m][t] >= 0, self.orient[m][t] <= 5))
                 L = arm["length"]
-                C.append(self.gq[m][t] == self.baseq[m]
-                         + L * sel(self.orient[m][t],
-                                   [(d, z3.IntVal(DIRS[d][0]))
-                                    for d in range(6)]))
-                C.append(self.gr[m][t] == self.baser[m]
-                         + L * sel(self.orient[m][t],
-                                   [(d, z3.IntVal(DIRS[d][1]))
-                                    for d in range(6)]))
+                C.append(
+                    self.gq[m][t]
+                    == self.baseq[m]
+                    + L * sel(self.orient[m][t], [(d, z3.IntVal(DIRS[d][0])) for d in range(6)])
+                )
+                C.append(
+                    self.gr[m][t]
+                    == self.baser[m]
+                    + L * sel(self.orient[m][t], [(d, z3.IntVal(DIRS[d][1])) for d in range(6)])
+                )
                 C.append(self.on_board(self.gq[m][t], self.gr[m][t]))
             for i in range(n_atom):
                 act_i = self.atom_active[i][t]
-                C.append(z3.Implies(act_i, self.on_board(self.q[i][t],
-                                                         self.r[i][t])))
+                C.append(z3.Implies(act_i, self.on_board(self.q[i][t], self.r[i][t])))
                 for m in range(n_arm):  # no atom on any arm base, ever
-                    C.append(z3.Implies(act_i,
-                                        z3.Or(self.q[i][t] != self.baseq[m],
-                                              self.r[i][t] != self.baser[m])))
+                    C.append(
+                        z3.Implies(
+                            act_i,
+                            z3.Or(self.q[i][t] != self.baseq[m], self.r[i][t] != self.baser[m]),
+                        )
+                    )
                     C.append(z3.Implies(self.held[m][i][t], act_i))
-            for (i, j) in self.pairs:  # endpoint collision freedom
-                C.append(z3.Implies(
-                    z3.And(self.atom_active[i][t], self.atom_active[j][t]),
-                    z3.Or(self.q[i][t] != self.q[j][t],
-                          self.r[i][t] != self.r[j][t])))
+            for i, j in self.pairs:  # endpoint collision freedom
+                C.append(
+                    z3.Implies(
+                        z3.And(self.atom_active[i][t], self.atom_active[j][t]),
+                        z3.Or(self.q[i][t] != self.q[j][t], self.r[i][t] != self.r[j][t]),
+                    )
+                )
             if n_arm > 1:  # at most one holder per atom
                 for i in range(n_atom):
                     for m1 in range(n_arm):
                         for m2 in range(m1 + 1, n_arm):
-                            C.append(z3.Not(z3.And(self.held[m1][i][t],
-                                                   self.held[m2][i][t])))
+                            C.append(z3.Not(z3.And(self.held[m1][i][t], self.held[m2][i][t])))
             # bonds: internal-at-spawn + bonder formation + persistence
-            for (i, j) in self.pairs:
+            for i, j in self.pairs:
                 if (i, j) not in self.b:
                     continue
                 parts = [form(i, j, t)]
@@ -429,10 +425,13 @@ class HarnessEncoder:
             for m in range(n_arm):
                 cur = [self.held[m][i][t] for i in range(n_atom)]
                 for _ in range(max(0, n_atom - 1)):
-                    cur = [z3.Or([cur[i]] +
-                                 [z3.And(cur[j], bond_var(i, j, t))
-                                  for j in range(n_atom) if j != i])
-                           for i in range(n_atom)]
+                    cur = [
+                        z3.Or(
+                            [cur[i]]
+                            + [z3.And(cur[j], bond_var(i, j, t)) for j in range(n_atom) if j != i]
+                        )
+                        for i in range(n_atom)
+                    ]
                 for i in range(n_atom):
                     C.append(self.comp[m][i][t] == cur[i])
 
@@ -446,33 +445,51 @@ class HarnessEncoder:
                 cw, ccw = is_act(t, m, "rot_cw"), is_act(t, m, "rot_ccw")
                 grab, drop = is_act(t, m, "grab"), is_act(t, m, "drop")
                 o = self.orient[m][t]
-                C.append(self.orient[m][t + 1] ==
-                         z3.If(cw, z3.If(o == 5, 0, o + 1),
-                               z3.If(ccw, z3.If(o == 0, 5, o - 1), o)))
-                at_grip = lambda i: z3.And(self.q[i][t] == self.gq[m][t],
-                                           self.r[i][t] == self.gr[m][t],
-                                           self.atom_active[i][t])
-                held_other = lambda i: z3.Or(
-                    [self.held[m2][i][t] for m2 in range(n_arm) if m2 != m]
-                    or [z3.BoolVal(False)])
+                C.append(
+                    self.orient[m][t + 1]
+                    == z3.If(cw, z3.If(o == 5, 0, o + 1), z3.If(ccw, z3.If(o == 0, 5, o - 1), o))
+                )
+
+                def at_grip(i, t=t, m=m):
+                    return z3.And(
+                        self.q[i][t] == self.gq[m][t],
+                        self.r[i][t] == self.gr[m][t],
+                        self.atom_active[i][t],
+                    )
+
+                def held_other(i, t=t, m=m):
+                    return z3.Or(
+                        [self.held[m2][i][t] for m2 in range(n_arm) if m2 != m]
+                        or [z3.BoolVal(False)]
+                    )
+
                 armfull = z3.Or([self.held[m][i][t] for i in range(n_atom)])
-                C.append(z3.Implies(grab, z3.And(
-                    z3.Not(armfull),
-                    z3.Or([z3.And(at_grip(i), z3.Not(held_other(i)))
-                           for i in range(n_atom)]))))
+                C.append(
+                    z3.Implies(
+                        grab,
+                        z3.And(
+                            z3.Not(armfull),
+                            z3.Or(
+                                [z3.And(at_grip(i), z3.Not(held_other(i))) for i in range(n_atom)]
+                            ),
+                        ),
+                    )
+                )
                 C.append(z3.Implies(drop, armfull))
                 for i in range(n_atom):
                     # cannot grab an atom held by another arm
                     if n_arm > 1:
-                        C.append(z3.Implies(z3.And(grab, at_grip(i)),
-                                            z3.Not(held_other(i))))
+                        C.append(z3.Implies(z3.And(grab, at_grip(i)), z3.Not(held_other(i))))
                         # no tearing: rotating may not move another arm's atom
-                        C.append(z3.Implies(
-                            z3.And(z3.Or(cw, ccw), self.comp[m][i][t]),
-                            z3.Not(held_other(i))))
-                    C.append(self.held[m][i][t + 1] == z3.Or(
-                        z3.And(grab, at_grip(i)),
-                        z3.And(self.held[m][i][t], z3.Not(drop))))
+                        C.append(
+                            z3.Implies(
+                                z3.And(z3.Or(cw, ccw), self.comp[m][i][t]), z3.Not(held_other(i))
+                            )
+                        )
+                    C.append(
+                        self.held[m][i][t + 1]
+                        == z3.Or(z3.And(grab, at_grip(i)), z3.And(self.held[m][i][t], z3.Not(drop)))
+                    )
             # positions: rigid rotation of held components; spawn parking
             for i in range(n_atom):
                 eq, er = self.q[i][t], self.r[i][t]
@@ -484,47 +501,58 @@ class HarnessEncoder:
                     eq = z3.If(cw, BQ - dr, z3.If(ccw, BQ + dq + dr, eq))
                     er = z3.If(cw, BR + dq + dr, z3.If(ccw, BR - dq, er))
                 hq, hr = spawn_hex(i)
-                C.append(self.q[i][t + 1] ==
-                         z3.If(self.atom_active[i][t], eq, hq))
-                C.append(self.r[i][t + 1] ==
-                         z3.If(self.atom_active[i][t], er, hr))
+                C.append(self.q[i][t + 1] == z3.If(self.atom_active[i][t], eq, hq))
+                C.append(self.r[i][t + 1] == z3.If(self.atom_active[i][t], er, hr))
             # calcification: on-glyph at t (pre-motion) => salt at t+1
             if self.typ is not None:
                 for i in range(n_atom):
-                    on_calc = z3.Or([z3.And(self.q[i][t] == h[0],
-                                            self.r[i][t] == h[1])
-                                     for h in self.calc_hex])
-                    elem = z3.Or([self.typ[i][t] == ELEM_IDX[e]
-                                  for e in ELEMENTAL])
-                    C.append(self.typ[i][t + 1] == z3.If(
-                        z3.And(self.atom_active[i][t], on_calc, elem),
-                        ELEM_IDX["salt"], self.typ[i][t]))
+                    on_calc = z3.Or(
+                        [z3.And(self.q[i][t] == h[0], self.r[i][t] == h[1]) for h in self.calc_hex]
+                    )
+                    elem = z3.Or([self.typ[i][t] == ELEM_IDX[e] for e in ELEMENTAL])
+                    C.append(
+                        self.typ[i][t + 1]
+                        == z3.If(
+                            z3.And(self.atom_active[i][t], on_calc, elem),
+                            ELEM_IDX["salt"],
+                            self.typ[i][t],
+                        )
+                    )
             # spawning: MANDATORY next copy when hexes free at t+1
             for rid, c, _ in self.copies:
                 if c == 1:
                     continue
                 hexes = self.inputs[rid]["hexes"]
-                free = z3.And([z3.Implies(
-                    self.atom_active[j][t],
-                    z3.And([z3.Or(self.q[j][t + 1] != hq,
-                                  self.r[j][t + 1] != hr)
-                            for hq, hr in hexes]))
-                    for j in range(n_atom)])
-                C.append(self.active[(rid, c)][t + 1] == z3.Or(
-                    self.active[(rid, c)][t],
-                    z3.And(self.active[(rid, c - 1)][t], free)))
+                free = z3.And(
+                    [
+                        z3.Implies(
+                            self.atom_active[j][t],
+                            z3.And(
+                                [
+                                    z3.Or(self.q[j][t + 1] != hq, self.r[j][t + 1] != hr)
+                                    for hq, hr in hexes
+                                ]
+                            ),
+                        )
+                        for j in range(n_atom)
+                    ]
+                )
+                C.append(
+                    self.active[(rid, c)][t + 1]
+                    == z3.Or(self.active[(rid, c)][t], z3.And(self.active[(rid, c - 1)][t], free))
+                )
 
         # cost ---------------------------------------------------------------
         self.cost = Int("cost")
-        C.append(self.cost == z3.Sum([z3.If(self.act[t] != 0, 1, 0)
-                                      for t in range(T)]))
+        C.append(self.cost == z3.Sum([z3.If(self.act[t] != 0, 1, 0) for t in range(T)]))
 
     # ------------------------------------------------------------------
     def _goal(self):
         """Latched exact-molecule completion per product; goal = all done."""
         C, T = self.cons, self.T
-        held_any = lambda i, t: z3.Or(
-            [self.held[m][i][t] for m in range(self.n_arm)])
+
+        def held_any(i, t):
+            return z3.Or([self.held[m][i][t] for m in range(self.n_arm)])
 
         def feasible(i, el):
             ai = self.atoms[i]["element"]
@@ -538,30 +566,35 @@ class HarnessEncoder:
             atoms, bonds = molecule(pm)
             ns = len(atoms)
             hexes = self.outputs[pid]["hexes"]
-            partners = {a: set() for a in range(ns)}
+            partners: dict[int, set[int]] = {a: set() for a in range(ns)}
             for i, j in bonds:
                 partners[i].add(j)
                 partners[j].add(i)
-            assigns = [perm for perm in
-                       itertools.permutations(range(self.n_atom), ns)
-                       if all(feasible(perm[a], atoms[a][0])
-                              for a in range(ns))]
+            assigns = [
+                perm
+                for perm in itertools.permutations(range(self.n_atom), ns)
+                if all(feasible(perm[a], atoms[a][0]) for a in range(ns))
+            ]
             if not assigns:
                 die(f"product {pid}: no reagent atoms can ever match it", 1)
 
-            def complete_now(t):
+            def complete_now(
+                t, *, atoms=atoms, ns=ns, hexes=hexes, partners=partners, assigns=assigns
+            ):
                 disj = []
                 for perm in assigns:
                     terms = []
                     for a in range(ns):
                         i = perm[a]
                         hq, hr = hexes[a]
-                        terms += [self.atom_active[i][t],
-                                  self.q[i][t] == hq, self.r[i][t] == hr,
-                                  z3.Not(held_any(i, t))]
+                        terms += [
+                            self.atom_active[i][t],
+                            self.q[i][t] == hq,
+                            self.r[i][t] == hr,
+                            z3.Not(held_any(i, t)),
+                        ]
                         if self.typ is not None:
-                            terms.append(self.typ[i][t]
-                                         == ELEM_IDX[atoms[a][0]])
+                            terms.append(self.typ[i][t] == ELEM_IDX[atoms[a][0]])
                         # exact bonds: required present, all others absent
                         allowed = {perm[a2] for a2 in partners[a]}
                         for j in range(self.n_atom):
@@ -640,9 +673,15 @@ def solve(enc, strategy, time_limit):
         def goal_at(h):
             if h not in guards:
                 guards[h] = z3.Bool(f"__goal_at_{h}")
-                s.add(z3.Implies(guards[h], z3.And(
-                    [enc.done[p][h] for p in enc.done]
-                    + [enc.act[t] == 0 for t in range(h, enc.T)])))
+                s.add(
+                    z3.Implies(
+                        guards[h],
+                        z3.And(
+                            [enc.done[p][h] for p in enc.done]
+                            + [enc.act[t] == 0 for t in range(h, enc.T)]
+                        ),
+                    )
+                )
             return guards[h]
 
         def found(h):
@@ -650,8 +689,7 @@ def solve(enc, strategy, time_limit):
             mdl = s.model()
             cost = mdl.eval(enc.cost).as_long()
             best = (mdl, cost)
-            log(f"warm start: plan with cost {cost} at horizon {h}, "
-                f"descending from <= {cost - 1}")
+            log(f"warm start: plan with cost {cost} at horizon {h}, descending from <= {cost - 1}")
             s.add(enc.cost <= cost - 1)
 
         refuted = 0  # all h <= refuted are proven planless
@@ -697,13 +735,11 @@ def solve(enc, strategy, time_limit):
                 mdl = s.model()
                 cost = mdl.eval(enc.cost).as_long()
                 best = (mdl, cost)
-                log(f"descend-cost: found plan with cost {cost}, "
-                    f"tightening to <= {cost - 1}")
+                log(f"descend-cost: found plan with cost {cost}, tightening to <= {cost - 1}")
                 s.add(enc.cost <= cost - 1)
             elif res == z3.unsat:
                 proven = best is not None
-                log("descend-cost: UNSAT -> "
-                    + ("optimum proven" if proven else "no plan exists"))
+                log("descend-cost: UNSAT -> " + ("optimum proven" if proven else "no plan exists"))
                 break
             else:
                 log("descend-cost: solver timeout")
@@ -717,84 +753,111 @@ def solve(enc, strategy, time_limit):
 # Plan extraction
 # ---------------------------------------------------------------------------
 def extract_plan(enc, mdl):
-    ev = lambda e: mdl.eval(e, model_completion=True)
-    num = lambda e: ev(e).as_long()
+    def ev(e):
+        return mdl.eval(e, model_completion=True)
+
+    def num(e):
+        return ev(e).as_long()
+
     placements = []
     for m, p in enumerate(enc.arms):
-        placements.append({"type": "arm", "id": p["id"],
-                           "position": [num(enc.baseq[m]),
-                                        num(enc.baser[m])],
-                           "rotation": num(enc.orient0[m]),
-                           "length": p["length"]})
+        placements.append(
+            {
+                "type": "arm",
+                "id": p["id"],
+                "position": [num(enc.baseq[m]), num(enc.baser[m])],
+                "rotation": num(enc.orient0[m]),
+                "length": p["length"],
+            }
+        )
     for rid, ip in enc.inputs.items():
-        placements.append({"type": "input", "id": rid,
-                           "position": [num(ip["q"]), num(ip["r"])],
-                           "rotation": num(ip["rot"])})
+        placements.append(
+            {
+                "type": "input",
+                "id": rid,
+                "position": [num(ip["q"]), num(ip["r"])],
+                "rotation": num(ip["rot"]),
+            }
+        )
     for pid, op in enc.outputs.items():
-        placements.append({"type": "output", "id": pid,
-                           "position": [num(op["q"]), num(op["r"])],
-                           "rotation": num(op["rot"])})
+        placements.append(
+            {
+                "type": "output",
+                "id": pid,
+                "position": [num(op["q"]), num(op["r"])],
+                "rotation": num(op["rot"]),
+            }
+        )
     for i, p in enumerate(enc.calcs):
-        placements.append({"type": "calcifier", "id": p["id"],
-                           "position": [num(enc.calc_hex[i][0]),
-                                        num(enc.calc_hex[i][1])]})
+        placements.append(
+            {
+                "type": "calcifier",
+                "id": p["id"],
+                "position": [num(enc.calc_hex[i][0]), num(enc.calc_hex[i][1])],
+            }
+        )
     for i, p in enumerate(enc.bonders):
         (q1, r1), _, rot = enc.bonder_hex[i]
-        placements.append({"type": "bonder", "id": p["id"],
-                           "position": [num(q1), num(r1)],
-                           "rotation": num(rot)})
+        placements.append(
+            {"type": "bonder", "id": p["id"], "position": [num(q1), num(r1)], "rotation": num(rot)}
+        )
     instructions = []
     for t in range(enc.T):
         code = num(enc.act[t])
         if code == 0:
             continue
         m, a = divmod(code - 1, 4)
-        instructions.append({"t": t, "arm": enc.arms[m]["id"],
-                             "action": ARM_ACTIONS[a]})
-    return {"puzzle": enc.pz["name"],
-            "solver": "z3 (Int BMC encoding, z3/adapter.py, z3-solver "
-                      + z3.get_version_string() + ")",
-            "placements": placements,
-            "instructions": instructions}
+        instructions.append({"t": t, "arm": enc.arms[m]["id"], "action": ARM_ACTIONS[a]})
+    return {
+        "puzzle": enc.pz["name"],
+        "solver": "z3 (Int BMC encoding, z3/adapter.py, z3-solver " + z3.get_version_string() + ")",
+        "placements": placements,
+        "instructions": instructions,
+    }
 
 
 # ---------------------------------------------------------------------------
 def main():
-    ap = argparse.ArgumentParser(
-        description="Z3 adapter for the Opus Magnum harness")
+    ap = argparse.ArgumentParser(description="Z3 adapter for the Opus Magnum harness")
     ap.add_argument("puzzle")
     ap.add_argument("--out", help="write plan JSON here instead of stdout")
-    ap.add_argument("--strategy", default="descend-cost",
-                    choices=["descend-cost", "ramp-cost", "oneshot"])
-    ap.add_argument("--time-limit", type=float,
-                    default=float(os.environ.get("HARNESS_Z3_TIME_LIMIT",
-                                                 120)))
+    ap.add_argument(
+        "--strategy", default="descend-cost", choices=["descend-cost", "ramp-cost", "oneshot"]
+    )
+    ap.add_argument(
+        "--time-limit", type=float, default=float(os.environ.get("HARNESS_Z3_TIME_LIMIT", 120))
+    )
     args = ap.parse_args()
     try:
         with open(args.puzzle) as f:
             puzzle = json.load(f)
     except (OSError, json.JSONDecodeError) as e:
         die(str(e))
-    for key in ("name", "board_radius", "t_max", "reagents", "products",
-                "parts"):
+    for key in ("name", "board_radius", "t_max", "reagents", "products", "parts"):
         if key not in puzzle:
             die(f"puzzle: missing key {key!r}")
 
     t0 = time.perf_counter()
     enc = HarnessEncoder(puzzle)
     build = time.perf_counter() - t0
-    log(f"built encoding: {len(enc.cons)} constraints, "
-        f"{enc.n_atom} atom slots, t_max={enc.T}, {build:.2f}s")
+    log(
+        f"built encoding: {len(enc.cons)} constraints, "
+        f"{enc.n_atom} atom slots, t_max={enc.T}, {build:.2f}s"
+    )
     mdl, cost, proven = solve(enc, args.strategy, args.time_limit)
     total = time.perf_counter() - t0
     if mdl is None:
-        log(f"no plan found (strategy={args.strategy}, "
-            f"limit={args.time_limit}s, total {total:.2f}s)")
+        log(
+            f"no plan found (strategy={args.strategy}, "
+            f"limit={args.time_limit}s, total {total:.2f}s)"
+        )
         sys.exit(1)
     plan = extract_plan(enc, mdl)
-    log(f"solved: cost={cost} "
+    log(
+        f"solved: cost={cost} "
         f"({'proven optimal' if proven else 'NOT proven optimal'}), "
-        f"build {build:.2f}s, total {total:.2f}s")
+        f"build {build:.2f}s, total {total:.2f}s"
+    )
     text = json.dumps(plan, indent=2)
     if args.out:
         with open(args.out, "w") as f:

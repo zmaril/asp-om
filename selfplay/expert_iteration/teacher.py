@@ -32,6 +32,7 @@ plan for two_atom_bond (1 arm + 1 bonder, t_max=13). Pinned-layout
 (seeded) solves stay ~0.2s on both, UNSAT included -- seeding is what
 keeps this loop fast.
 """
+
 import copy
 import json
 import os
@@ -82,15 +83,15 @@ class ClingoTeacher:
             json.dump(puzzle, f)
         try:
             r = subprocess.run(
-                [sys.executable, ADAPTER, pz, "--time-limit",
-                 str(time_limit), "--out", out],
-                capture_output=True, text=True,
-                timeout=time_limit + 15)  # hard stop over clingo's own limit
+                [sys.executable, ADAPTER, pz, "--time-limit", str(time_limit), "--out", out],
+                capture_output=True,
+                text=True,
+                timeout=time_limit + 15,
+            )  # hard stop over clingo's own limit
         except subprocess.TimeoutExpired:
             return None, "subprocess timeout"
         if r.returncode != 0:
-            return None, r.stderr.strip().splitlines()[-1] if r.stderr else \
-                f"exit {r.returncode}"
+            return None, r.stderr.strip().splitlines()[-1] if r.stderr else f"exit {r.returncode}"
         with open(out) as f:
             return json.load(f), r.stderr.strip()
 
@@ -98,8 +99,7 @@ class ClingoTeacher:
         """From-scratch (free layout) reference solution, cached."""
         name = puzzle["name"]
         if name not in self._relaxed_cache:
-            plan, note = self._run_adapter(puzzle, self.relaxed_limit,
-                                           f"{name}.relaxed")
+            plan, _note = self._run_adapter(puzzle, self.relaxed_limit, f"{name}.relaxed")
             self._relaxed_cache[name] = plan
         return self._relaxed_cache[name]
 
@@ -112,14 +112,10 @@ class ClingoTeacher:
                  "note": adapter diagnostics}
         """
         pinned = pin_puzzle(puzzle, proposal)
-        plan, note = self._run_adapter(pinned, self.seeded_limit,
-                                       f"{puzzle['name']}.seeded")
+        plan, note = self._run_adapter(pinned, self.seeded_limit, f"{puzzle['name']}.seeded")
         if plan is not None:
-            return {"mode": "seeded", "seeded_ok": True, "plan": plan,
-                    "note": note}
+            return {"mode": "seeded", "seeded_ok": True, "plan": plan, "note": note}
         relaxed = self.relaxed_solve(puzzle)
         if relaxed is not None:
-            return {"mode": "relaxed", "seeded_ok": False, "plan": relaxed,
-                    "note": note}
-        return {"mode": "none", "seeded_ok": False, "plan": None,
-                "note": note}
+            return {"mode": "relaxed", "seeded_ok": False, "plan": relaxed, "note": note}
+        return {"mode": "none", "seeded_ok": False, "plan": None, "note": note}

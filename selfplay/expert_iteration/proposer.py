@@ -33,6 +33,7 @@ symmetry dedup -- pinning a non-canonical rotation confuses the
 adapter's out_at choice rule. Bonder rotations are restricted to 0..2
 (the (p,k) == (p+dir[k], k+3) flip equivalence of SPEC.md).
 """
+
 import json
 import math
 import os
@@ -48,14 +49,16 @@ def rot_k(q, r, k):
 
 
 def on_board(h, radius):
-    return (abs(h[0]) <= radius and abs(h[1]) <= radius
-            and abs(h[0] + h[1]) <= radius)
+    return abs(h[0]) <= radius and abs(h[1]) <= radius and abs(h[0] + h[1]) <= radius
 
 
 def board_hexes(radius):
-    return [(q, r) for q in range(-radius, radius + 1)
-            for r in range(-radius, radius + 1)
-            if abs(q + r) <= radius]
+    return [
+        (q, r)
+        for q in range(-radius, radius + 1)
+        for r in range(-radius, radius + 1)
+        if abs(q + r) <= radius
+    ]
 
 
 def canonical_rotations(atoms, bonds):
@@ -65,12 +68,19 @@ def canonical_rotations(atoms, bonds):
     for d in range(6):
         cells = [rot_k(q, r, d) for _, (q, r) in atoms]
         anchor = min(cells)
-        norm = frozenset(((c[0] - anchor[0], c[1] - anchor[1]), el)
-                         for (el, _), c in zip(atoms, cells))
+        norm = frozenset(
+            ((c[0] - anchor[0], c[1] - anchor[1]), el)
+            for (el, _), c in zip(atoms, cells, strict=False)
+        )
         nbonds = frozenset(
-            frozenset(((cells[i][0] - anchor[0], cells[i][1] - anchor[1]),
-                       (cells[j][0] - anchor[0], cells[j][1] - anchor[1])))
-            for i, j in (sorted(b) for b in bonds))
+            frozenset(
+                (
+                    (cells[i][0] - anchor[0], cells[i][1] - anchor[1]),
+                    (cells[j][0] - anchor[0], cells[j][1] - anchor[1]),
+                )
+            )
+            for i, j in (sorted(b) for b in bonds)
+        )
         key = (norm, nbonds)
         if key not in seen:
             seen.add(key)
@@ -116,18 +126,27 @@ def puzzle_slots(puzzle):
         cands = []
         for pos in pinned_positions(p):
             for rot in pinned_rotations(p, range(6)):
-                grip = (pos[0] + p["length"] * DIRS[rot][0],
-                        pos[1] + p["length"] * DIRS[rot][1])
+                grip = (pos[0] + p["length"] * DIRS[rot][0], pos[1] + p["length"] * DIRS[rot][1])
                 if on_board(grip, radius):
-                    cands.append((f"{pos[0]},{pos[1]},{rot}",
-                                  {"type": "arm", "id": p["id"],
-                                   "position": list(pos), "rotation": rot,
-                                   "length": p["length"]},
-                                  [pos]))
+                    cands.append(
+                        (
+                            f"{pos[0]},{pos[1]},{rot}",
+                            {
+                                "type": "arm",
+                                "id": p["id"],
+                                "position": list(pos),
+                                "rotation": rot,
+                                "length": p["length"],
+                            },
+                            [pos],
+                        )
+                    )
         slots.append({"key": f"arm/{p['id']}", "candidates": cands})
 
-    for kind, items, ptype in (("input", puzzle["reagents"], "input"),
-                               ("output", puzzle["products"], "output")):
+    for kind, items, ptype in (
+        ("input", puzzle["reagents"], "input"),
+        ("output", puzzle["products"], "output"),
+    ):
         for m in items:
             atoms, bonds = molecule(m)
             rots = canonical_rotations(atoms, bonds)
@@ -136,18 +155,29 @@ def puzzle_slots(puzzle):
                 for rot in pinned_rotations(m, rots):
                     foot = _mol_footprint(atoms, pos, rot)
                     if all(on_board(h, radius) for h in foot):
-                        cands.append((f"{pos[0]},{pos[1]},{rot}",
-                                      {"type": ptype, "id": m["id"],
-                                       "position": list(pos),
-                                       "rotation": rot},
-                                      foot))
+                        cands.append(
+                            (
+                                f"{pos[0]},{pos[1]},{rot}",
+                                {
+                                    "type": ptype,
+                                    "id": m["id"],
+                                    "position": list(pos),
+                                    "rotation": rot,
+                                },
+                                foot,
+                            )
+                        )
             slots.append({"key": f"{kind}/{m['id']}", "candidates": cands})
 
     for p in (p for p in puzzle["parts"] if p["type"] == "calcifier"):
-        cands = [(f"{pos[0]},{pos[1]}",
-                  {"type": "calcifier", "id": p["id"], "position": list(pos)},
-                  [pos])
-                 for pos in pinned_positions(p)]
+        cands = [
+            (
+                f"{pos[0]},{pos[1]}",
+                {"type": "calcifier", "id": p["id"], "position": list(pos)},
+                [pos],
+            )
+            for pos in pinned_positions(p)
+        ]
         slots.append({"key": f"calcifier/{p['id']}", "candidates": cands})
 
     for p in (p for p in puzzle["parts"] if p["type"] == "bonder"):
@@ -157,10 +187,18 @@ def puzzle_slots(puzzle):
             for rot in rot_opts:
                 other = (pos[0] + DIRS[rot][0], pos[1] + DIRS[rot][1])
                 if on_board(other, radius):
-                    cands.append((f"{pos[0]},{pos[1]},{rot}",
-                                  {"type": "bonder", "id": p["id"],
-                                   "position": list(pos), "rotation": rot},
-                                  [pos, other]))
+                    cands.append(
+                        (
+                            f"{pos[0]},{pos[1]},{rot}",
+                            {
+                                "type": "bonder",
+                                "id": p["id"],
+                                "position": list(pos),
+                                "rotation": rot,
+                            },
+                            [pos, other],
+                        )
+                    )
         slots.append({"key": f"bonder/{p['id']}", "candidates": cands})
 
     return slots
@@ -168,8 +206,7 @@ def puzzle_slots(puzzle):
 
 def _masked(slot, used):
     """Candidates of a slot whose footprint avoids already-used hexes."""
-    return [c for c in slot["candidates"]
-            if not any(h in used for h in c[2])]
+    return [c for c in slot["candidates"] if not any(h in used for h in c[2])]
 
 
 # ---------------------------------------------------------------------------
@@ -195,7 +232,7 @@ class Proposer:
     def _sample(self, puzzle, weight_fn, rng):
         """Sequential masked sampling shared by both implementations.
         weight_fn(slot_key, cand_keys) -> list of positive weights."""
-        used = set()
+        used: set[tuple[int, int]] = set()
         placements, choices = [], []
         for slot in puzzle_slots(puzzle):
             cands = _masked(slot, used)
@@ -208,17 +245,19 @@ class Proposer:
             used.update(foot)
             placements.append(placement)
             choices.append((slot["key"], cand_key))
-        return {"puzzle": puzzle["name"], "placements": placements,
-                "instructions": [],
-                "meta": {"proposer": self.name, "choices": choices}}
+        return {
+            "puzzle": puzzle["name"],
+            "placements": placements,
+            "instructions": [],
+            "meta": {"proposer": self.name, "choices": choices},
+        }
 
     def propose_with_retries(self, puzzle, rng, tries=50):
         for _ in range(tries):
             prop = self._sample_entry(puzzle, rng)
             if prop is not None:
                 return prop
-        raise RuntimeError(f"no layout-legal proposal found for "
-                           f"{puzzle['name']} in {tries} tries")
+        raise RuntimeError(f"no layout-legal proposal found for {puzzle['name']} in {tries} tries")
 
     def _sample_entry(self, puzzle, rng):
         raise NotImplementedError
@@ -263,13 +302,12 @@ class LearnedProposer(Proposer):
 
     name = "learned"
 
-    def __init__(self, seed=None, lr=1.0, baseline_decay=0.9,
-                 weights_path=None):
+    def __init__(self, seed=None, lr=1.0, baseline_decay=0.9, weights_path=None):
         self.rng = random.Random(seed)
         self.lr = lr
         self.baseline_decay = baseline_decay
-        self.weights = {}    # puzzle -> slot_key -> cand_key -> w
-        self.baseline = {}   # puzzle -> running mean reward
+        self.weights = {}  # puzzle -> slot_key -> cand_key -> w
+        self.baseline = {}  # puzzle -> running mean reward
         self.weights_path = weights_path
         if weights_path and os.path.exists(weights_path):
             with open(weights_path) as f:
@@ -278,8 +316,7 @@ class LearnedProposer(Proposer):
             self.baseline = data["baseline"]
 
     def _w(self, puzzle_name, slot_key):
-        return (self.weights.setdefault(puzzle_name, {})
-                .setdefault(slot_key, {}))
+        return self.weights.setdefault(puzzle_name, {}).setdefault(slot_key, {})
 
     def _probs(self, puzzle_name, slot_key, cand_keys):
         w = self._w(puzzle_name, slot_key)
@@ -294,19 +331,14 @@ class LearnedProposer(Proposer):
 
     def _sample_entry(self, puzzle, rng):
         name = puzzle["name"]
-        return self._sample(
-            puzzle,
-            lambda sk, cks: self._probs(name, sk, cks),
-            rng)
+        return self._sample(puzzle, lambda sk, cks: self._probs(name, sk, cks), rng)
 
     def update(self, puzzle, proposal, reward):
         """REINFORCE update from one of this loop's own records."""
         name = puzzle["name"]
         base = self.baseline.get(name, 0.0)
-        self.baseline[name] = (self.baseline_decay * base
-                               + (1 - self.baseline_decay) * reward)
-        self._apply_gradient(puzzle, proposal["meta"]["choices"],
-                             reward - base)
+        self.baseline[name] = self.baseline_decay * base + (1 - self.baseline_decay) * reward
+        self._apply_gradient(puzzle, proposal["meta"]["choices"], reward - base)
 
     def imitate(self, puzzle, choices, weight=1.0):
         """Cross-entropy step toward a SELF-GENERATED expert layout
@@ -322,14 +354,14 @@ class LearnedProposer(Proposer):
             return
         name = puzzle["name"]
         chosen = dict(choices)
-        used = set()
+        used: set[tuple[int, int]] = set()
         for slot in puzzle_slots(puzzle):
             cands = _masked(slot, used)
             cand_keys = [c[0] for c in cands]
             ck = chosen[slot["key"]]
             probs = self._probs(name, slot["key"], cand_keys)
             w = self._w(name, slot["key"])
-            for k, p in zip(cand_keys, probs):
+            for k, p in zip(cand_keys, probs, strict=False):
                 grad = (1.0 - p) if k == ck else -p
                 w[k] = w.get(k, 0.0) + self.lr * adv * grad
             foot = next(c[2] for c in cands if c[0] == ck)
@@ -341,8 +373,9 @@ class LearnedProposer(Proposer):
             return
         tmp = path + ".tmp"
         with open(tmp, "w") as f:
-            json.dump({"weights": self.weights, "baseline": self.baseline},
-                      f, indent=1, sort_keys=True)
+            json.dump(
+                {"weights": self.weights, "baseline": self.baseline}, f, indent=1, sort_keys=True
+            )
         os.replace(tmp, path)
 
 

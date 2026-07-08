@@ -34,6 +34,7 @@ Usage:
         --store selfplay/leaderboard/incumbents.json \
         --out selfplay/leaderboard/LEADERBOARD.md
 """
+
 import argparse
 import copy
 import glob
@@ -50,6 +51,7 @@ sys.path.insert(0, os.path.join(REPO, "harness"))
 sys.path.insert(0, HERE)
 from metrics import METRICS, compute_metrics, leaderboard_metrics  # noqa: E402
 from store import IncumbentStore  # noqa: E402
+
 from validate import Invalid, Malformed, validate  # noqa: E402
 
 PLANS_DIR = os.path.join(REPO, "harness", "tests", "plans")
@@ -77,26 +79,22 @@ def reference_candidates(puzzle):
 def adapter_candidates(puzzle, puzzle_path, adapters, timeout):
     out = []
     for name, cmd in adapters:
-        argv = shlex.split(cmd) + [puzzle_path]
+        argv = [*shlex.split(cmd), puzzle_path]
         t0 = time.time()
         try:
-            proc = subprocess.run(argv, capture_output=True, text=True,
-                                  timeout=timeout)
+            proc = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
         except subprocess.TimeoutExpired:
-            print(f"  [{name}] timeout after {timeout}s on "
-                  f"{puzzle['name']}", file=sys.stderr)
+            print(f"  [{name}] timeout after {timeout}s on {puzzle['name']}", file=sys.stderr)
             continue
         if proc.returncode != 0:
-            print(f"  [{name}] exit {proc.returncode} on {puzzle['name']}",
-                  file=sys.stderr)
+            print(f"  [{name}] exit {proc.returncode} on {puzzle['name']}", file=sys.stderr)
             continue
         try:
             plan = json.loads(proc.stdout)
         except json.JSONDecodeError as e:
             print(f"  [{name}] unparseable plan JSON ({e})", file=sys.stderr)
             continue
-        print(f"  [{name}] solved {puzzle['name']} in "
-              f"{time.time() - t0:.1f}s", file=sys.stderr)
+        print(f"  [{name}] solved {puzzle['name']} in {time.time() - t0:.1f}s", file=sys.stderr)
         out.append((f"solver:{name}", plan))
     return out
 
@@ -108,8 +106,7 @@ def perturbations(puzzle, source, plan):
     everything else is discarded (and counted by the caller).
     """
     t_max = puzzle["t_max"]
-    arms = [pl["id"] for pl in plan.get("placements", [])
-            if pl.get("type") == "arm"]
+    arms = [pl["id"] for pl in plan.get("placements", []) if pl.get("type") == "arm"]
     used_t = {ins["t"] for ins in plan.get("instructions", [])}
     out = []
 
@@ -124,19 +121,16 @@ def perturbations(puzzle, source, plan):
 
     # (b) junk rotations in free tail timesteps: worse instructions
     #     (they run after completion, so @V metrics are untouched)
-    free_tail = [t for t in range(t_max) if t not in used_t
-                 and t > max(used_t, default=-1)]
+    free_tail = [t for t in range(t_max) if t not in used_t and t > max(used_t, default=-1)]
     junk = copy.deepcopy(plan)
     for n, t in enumerate(free_tail, start=1):
         junk = copy.deepcopy(junk)
-        junk["instructions"].append(
-            {"t": t, "arm": arms[0], "action": "rot_cw"})
+        junk["instructions"].append({"t": t, "arm": arms[0], "action": "rot_cw"})
         out.append((f"{source}+junk-rot(x{n})", junk))
     return out
 
 
-def gather_candidates(puzzle, puzzle_path, adapters, timeout,
-                      use_reference):
+def gather_candidates(puzzle, puzzle_path, adapters, timeout, use_reference):
     """All candidates for one puzzle, worst-first, every one validated."""
     base = []
     if use_reference:
@@ -147,8 +141,7 @@ def gather_candidates(puzzle, puzzle_path, adapters, timeout,
     for source, plan in base:
         if not is_valid(puzzle, plan):
             discarded += 1
-            print(f"  [gen] DISCARDED invalid base plan from {source}",
-                  file=sys.stderr)
+            print(f"  [gen] DISCARDED invalid base plan from {source}", file=sys.stderr)
             continue
         kept.append((source, plan))
         for psource, pplan in perturbations(puzzle, source, plan):
@@ -156,14 +149,13 @@ def gather_candidates(puzzle, puzzle_path, adapters, timeout,
                 kept.append((psource, pplan))
             else:
                 discarded += 1
-                print(f"  [gen] DISCARDED invalid perturbation {psource}",
-                      file=sys.stderr)
+                print(f"  [gen] DISCARDED invalid perturbation {psource}", file=sys.stderr)
 
     def badness(item):
         m = compute_metrics(puzzle, item[1])
         return m["instructions"] + m["makespan"]
 
-    kept.sort(key=badness, reverse=True)   # worst-first
+    kept.sort(key=badness, reverse=True)  # worst-first
     return kept, discarded
 
 
@@ -191,10 +183,13 @@ def leaderboard_markdown(store, external=None):
         "",
     ]
     for puzzle_name in sorted(store.records):
-        lines += [f"## {puzzle_name}", "",
-                  "| metric | our best | source | submission # | "
-                  "external best (read-only, comparison only) |",
-                  "|---|---|---|---|---|"]
+        lines += [
+            f"## {puzzle_name}",
+            "",
+            "| metric | our best | source | submission # | "
+            "external best (read-only, comparison only) |",
+            "|---|---|---|---|---|",
+        ]
         per_puzzle = store.records[puzzle_name]
         for metric in leaderboard_metrics():
             rec = per_puzzle.get(metric)
@@ -202,12 +197,12 @@ def leaderboard_markdown(store, external=None):
             if rec is None:
                 lines.append(f"| {metric} | - | - | - | {ext} |")
             else:
-                lines.append(f"| {metric} | {rec['score']} | {rec['source']}"
-                             f" | {rec['submission']} | {ext} |")
+                lines.append(
+                    f"| {metric} | {rec['score']} | {rec['source']} | {rec['submission']} | {ext} |"
+                )
         lines.append("")
     stubbed = sorted(m.name for m in METRICS.values() if m.stubbed)
-    lines += [f"Stubbed metrics (not yet computed, not on the board): "
-              f"{', '.join(stubbed)}.", ""]
+    lines += [f"Stubbed metrics (not yet computed, not on the board): {', '.join(stubbed)}.", ""]
     return "\n".join(lines)
 
 
@@ -216,26 +211,37 @@ def leaderboard_markdown(store, external=None):
 # ---------------------------------------------------------------------------
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--adapter", action="append", default=[],
-                    metavar="NAME=CMD",
-                    help='e.g. clingo="python3 harness/adapters/clingo/'
-                         'adapter.py"')
-    ap.add_argument("--puzzle", action="append", default=None,
-                    help="puzzle JSON path (default: harness/puzzles/*.json)")
-    ap.add_argument("--store",
-                    default=os.path.join(HERE, "incumbents.json"),
-                    help="incumbent store JSON path")
+    ap.add_argument(
+        "--adapter",
+        action="append",
+        default=[],
+        metavar="NAME=CMD",
+        help='e.g. clingo="python3 harness/adapters/clingo/adapter.py"',
+    )
+    ap.add_argument(
+        "--puzzle",
+        action="append",
+        default=None,
+        help="puzzle JSON path (default: harness/puzzles/*.json)",
+    )
+    ap.add_argument(
+        "--store", default=os.path.join(HERE, "incumbents.json"), help="incumbent store JSON path"
+    )
     ap.add_argument("--out", help="write the leaderboard markdown here")
-    ap.add_argument("--external", metavar="JSON",
-                    help="optional {puzzle: {metric: value}} file for the "
-                         "READ-ONLY external comparison column "
-                         "(display-only; never trains anything)")
-    ap.add_argument("--no-reference", action="store_true",
-                    help="do not seed from harness/tests/plans/")
-    ap.add_argument("--timeout", type=float, default=120,
-                    help="per-adapter-run timeout in seconds")
-    ap.add_argument("--fresh", action="store_true",
-                    help="start from an empty store (delete existing file)")
+    ap.add_argument(
+        "--external",
+        metavar="JSON",
+        help="optional {puzzle: {metric: value}} file for the "
+        "READ-ONLY external comparison column "
+        "(display-only; never trains anything)",
+    )
+    ap.add_argument(
+        "--no-reference", action="store_true", help="do not seed from harness/tests/plans/"
+    )
+    ap.add_argument("--timeout", type=float, default=120, help="per-adapter-run timeout in seconds")
+    ap.add_argument(
+        "--fresh", action="store_true", help="start from an empty store (delete existing file)"
+    )
     args = ap.parse_args()
 
     adapters = []
@@ -244,7 +250,8 @@ def main():
             ap.error(f"--adapter must be NAME=CMD, got {spec!r}")
         adapters.append(tuple(spec.split("=", 1)))
     puzzle_paths = args.puzzle or sorted(
-        glob.glob(os.path.join(REPO, "harness", "puzzles", "*.json")))
+        glob.glob(os.path.join(REPO, "harness", "puzzles", "*.json"))
+    )
 
     if args.fresh and args.store and os.path.exists(args.store):
         os.remove(args.store)
@@ -254,22 +261,20 @@ def main():
         with open(args.external) as f:
             external = json.load(f)
 
-    total = {"submitted": 0, "accepted": 0, "improvements": 0,
-             "beaten": 0, "discarded": 0}
+    total = {"submitted": 0, "accepted": 0, "improvements": 0, "beaten": 0, "discarded": 0}
     for path in puzzle_paths:
         with open(path) as f:
             puzzle = json.load(f)
         print(f"== {puzzle['name']}", file=sys.stderr)
         candidates, discarded = gather_candidates(
-            puzzle, path, adapters, args.timeout,
-            use_reference=not args.no_reference)
+            puzzle, path, adapters, args.timeout, use_reference=not args.no_reference
+        )
         total["discarded"] += discarded
         for source, plan in candidates:
             result = store.submit(puzzle, plan, source=source)
             total["submitted"] += 1
             if not result["accepted"]:
-                print(f"  REJECTED  {source}: {result['reason']}",
-                      file=sys.stderr)
+                print(f"  REJECTED  {source}: {result['reason']}", file=sys.stderr)
                 continue
             total["accepted"] += 1
             firsts = [i for i in result["improved"] if i["old"] is None]
@@ -280,11 +285,11 @@ def main():
             if firsts:
                 desc.append(f"{len(firsts)} first records")
             for i in beats:
-                desc.append(f"BEAT {i['metric']} {i['old']} -> {i['new']} "
-                            f"(delta {i['delta']})")
-            print(f"  accepted  {source}: "
-                  + ("; ".join(desc) if desc else "no improvement"),
-                  file=sys.stderr)
+                desc.append(f"BEAT {i['metric']} {i['old']} -> {i['new']} (delta {i['delta']})")
+            print(
+                f"  accepted  {source}: " + ("; ".join(desc) if desc else "no improvement"),
+                file=sys.stderr,
+            )
 
     md = leaderboard_markdown(store, external)
     print()
@@ -292,12 +297,14 @@ def main():
     if args.out:
         with open(args.out, "w") as f:
             f.write(md)
-    print(f"[driver] {total['submitted']} submitted, {total['accepted']} "
-          f"accepted (all validator-checked), {total['discarded']} "
-          f"generated candidates discarded pre-submission, "
-          f"{total['improvements']} incumbent updates of which "
-          f"{total['beaten']} beat an existing incumbent.",
-          file=sys.stderr)
+    print(
+        f"[driver] {total['submitted']} submitted, {total['accepted']} "
+        f"accepted (all validator-checked), {total['discarded']} "
+        f"generated candidates discarded pre-submission, "
+        f"{total['improvements']} incumbent updates of which "
+        f"{total['beaten']} beat an existing incumbent.",
+        file=sys.stderr,
+    )
     return 0
 
 

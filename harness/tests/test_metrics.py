@@ -10,6 +10,7 @@ Run either way:
     python3 harness/tests/test_metrics.py     # plain script
     python3 -m pytest harness/tests/          # pytest
 """
+
 import copy
 import json
 import os
@@ -17,8 +18,13 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
-from metrics import (METRICS, compute_metrics, leaderboard_metrics,  # noqa: E402
-                     part_cost)
+from metrics import (  # noqa: E402  (import must follow the sys.path setup above)
+    METRICS,
+    compute_metrics,
+    leaderboard_metrics,
+    part_cost,
+)
+
 from validate import Invalid  # noqa: E402
 
 PUZZLES = os.path.join(os.path.dirname(HERE), "puzzles")
@@ -87,7 +93,7 @@ def test_cost_prices_parameterizable():
 def test_makespan_matches_validator_completion():
     puzzle, plan = case("two_atom_bond")
     m = compute_metrics(puzzle, plan)
-    assert m["makespan"] == 12          # salt_dimer completes at t=12
+    assert m["makespan"] == 12  # salt_dimer completes at t=12
     assert m["instructions"] == 12
     puzzle, plan = case("stabilized_water")
     m = compute_metrics(puzzle, plan)
@@ -135,7 +141,7 @@ def test_area_two_atom_bond_hand_count():
 def test_invalid_plan_raises():
     puzzle, plan = case("single_transport")
     plan = copy.deepcopy(plan)
-    plan["instructions"][0]["action"] = "drop"     # drop with empty hand
+    plan["instructions"][0]["action"] = "drop"  # drop with empty hand
     try:
         compute_metrics(puzzle, plan)
     except Invalid:
@@ -146,9 +152,9 @@ def test_invalid_plan_raises():
 def test_flags_and_stubs():
     puzzle, plan = case("single_transport")
     m = compute_metrics(puzzle, plan)
-    assert m["trackless"] is True      # vacuous: track not modeled
-    assert m["overlap"] is False       # vacuous: validator forbids it
-    assert m["rate"] is None           # stubbed: needs steady-state
+    assert m["trackless"] is True  # vacuous: track not modeled
+    assert m["overlap"] is False  # vacuous: validator forbids it
+    assert m["rate"] is None  # stubbed: needs steady-state
     assert m["area_at_infinity"] is None
     assert m["looping"] is None
     for name in METRICS:
@@ -166,8 +172,7 @@ def test_leaderboard_metrics_are_real_and_numeric():
 
 
 def main():
-    tests = [(n, f) for n, f in sorted(globals().items())
-             if n.startswith("test_") and callable(f)]
+    tests = [(n, f) for n, f in sorted(globals().items()) if n.startswith("test_") and callable(f)]
     failed = 0
     for name, fn in tests:
         try:
@@ -176,7 +181,7 @@ def main():
         except AssertionError as e:
             failed += 1
             print(f"FAIL  {name}: {e}")
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             failed += 1
             print(f"ERROR {name}: {type(e).__name__}: {e}")
     print(f"\n{len(tests) - failed}/{len(tests)} tests passed")

@@ -34,6 +34,7 @@ The interface Loops 1 (expert iteration) and 2 (curriculum) consume:
 Persistence is a single JSON file, rewritten after every accepted
 submission (atomic rename).
 """
+
 import json
 import os
 import sys
@@ -42,6 +43,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, os.path.join(REPO, "harness"))
 from metrics import METRICS, compute_metrics, leaderboard_metrics  # noqa: E402
+
 from validate import Invalid, Malformed  # noqa: E402
 
 FORMAT_VERSION = 1
@@ -52,14 +54,13 @@ class IncumbentStore:
 
     def __init__(self, path):
         self.path = path
-        self.submissions = 0     # accepted-or-rejected counter (provenance)
-        self.records = {}        # puzzle -> metric -> record dict
+        self.submissions = 0  # accepted-or-rejected counter (provenance)
+        self.records = {}  # puzzle -> metric -> record dict
         if path and os.path.exists(path):
             with open(path) as f:
                 data = json.load(f)
             if data.get("format") != FORMAT_VERSION:
-                raise ValueError(f"{path}: unknown store format "
-                                 f"{data.get('format')!r}")
+                raise ValueError(f"{path}: unknown store format {data.get('format')!r}")
             self.records = data["records"]
             self.submissions = data.get("submissions", 0)
 
@@ -78,9 +79,13 @@ class IncumbentStore:
         try:
             metric_values = compute_metrics(puzzle, plan)
         except (Invalid, Malformed) as e:
-            return {"accepted": False, "puzzle": name,
-                    "reason": f"{type(e).__name__}: {e}",
-                    "metrics": None, "improved": []}
+            return {
+                "accepted": False,
+                "puzzle": name,
+                "reason": f"{type(e).__name__}: {e}",
+                "metrics": None,
+                "improved": [],
+            }
 
         improved = []
         per_puzzle = self.records.setdefault(name, {})
@@ -88,9 +93,7 @@ class IncumbentStore:
             new = metric_values[metric]
             record = per_puzzle.get(metric)
             old = record["score"] if record else None
-            better = (old is None
-                      or (new < old if METRICS[metric].lower_is_better
-                          else new > old))
+            better = old is None or (new < old if METRICS[metric].lower_is_better else new > old)
             if not better:
                 continue
             per_puzzle[metric] = {
@@ -100,12 +103,23 @@ class IncumbentStore:
                 "metrics": metric_values,
                 "plan": plan,
             }
-            improved.append({"metric": metric, "old": old, "new": new,
-                             "delta": None if old is None else old - new})
+            improved.append(
+                {
+                    "metric": metric,
+                    "old": old,
+                    "new": new,
+                    "delta": None if old is None else old - new,
+                }
+            )
         if improved:
             self.save()
-        return {"accepted": True, "puzzle": name, "reason": None,
-                "metrics": metric_values, "improved": improved}
+        return {
+            "accepted": True,
+            "puzzle": name,
+            "reason": None,
+            "metrics": metric_values,
+            "improved": improved,
+        }
 
     def incumbent(self, puzzle_name, metric):
         """The current best record for (puzzle, metric), or None."""
@@ -116,8 +130,15 @@ class IncumbentStore:
             return
         tmp = self.path + ".tmp"
         with open(tmp, "w") as f:
-            json.dump({"format": FORMAT_VERSION,
-                       "submissions": self.submissions,
-                       "records": self.records}, f, indent=2, sort_keys=True)
+            json.dump(
+                {
+                    "format": FORMAT_VERSION,
+                    "submissions": self.submissions,
+                    "records": self.records,
+                },
+                f,
+                indent=2,
+                sort_keys=True,
+            )
             f.write("\n")
         os.replace(tmp, self.path)

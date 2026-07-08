@@ -5,6 +5,7 @@ Run either way:
     python3 selfplay/leaderboard/tests/test_store.py
     python3 -m pytest selfplay/leaderboard/tests/
 """
+
 import copy
 import json
 import os
@@ -33,8 +34,9 @@ def wait_shifted(plan):
     worse = copy.deepcopy(plan)
     for ins in worse["instructions"]:
         ins["t"] += 1
-    worse["instructions"].insert(0, {"t": 0, "arm": plan["instructions"][0]
-                                     ["arm"], "action": "wait"})
+    worse["instructions"].insert(
+        0, {"t": 0, "arm": plan["instructions"][0]["arm"], "action": "wait"}
+    )
     return worse
 
 
@@ -45,8 +47,7 @@ def test_first_submission_sets_all_incumbents():
     assert result["accepted"]
     improved = {i["metric"] for i in result["improved"]}
     assert "instructions" in improved and "makespan" in improved
-    assert all(i["old"] is None and i["delta"] is None
-               for i in result["improved"])
+    assert all(i["old"] is None and i["delta"] is None for i in result["improved"])
     assert store.incumbent("single_transport", "makespan")["score"] == 5
 
 
@@ -65,8 +66,8 @@ def test_invalid_plan_rejected_and_changes_nothing():
 def test_better_plan_beats_incumbent_with_delta():
     puzzle, plan = case("single_transport")
     store = IncumbentStore(path=None)
-    store.submit(puzzle, wait_shifted(plan), source="worse")   # makespan 6
-    result = store.submit(puzzle, plan, source="better")       # makespan 5
+    store.submit(puzzle, wait_shifted(plan), source="worse")  # makespan 6
+    result = store.submit(puzzle, plan, source="better")  # makespan 5
     beaten = {i["metric"]: i for i in result["improved"]}
     assert "makespan" in beaten
     imp = beaten["makespan"]
@@ -74,8 +75,7 @@ def test_better_plan_beats_incumbent_with_delta():
     rec = store.incumbent("single_transport", "makespan")
     assert rec["source"] == "better" and rec["score"] == 5
     # instructions were equal (ties do NOT replace the incumbent)
-    assert store.incumbent("single_transport", "instructions")["source"] \
-        == "worse"
+    assert store.incumbent("single_transport", "instructions")["source"] == "worse"
 
 
 def test_persistence_round_trip():
@@ -94,8 +94,7 @@ def test_persistence_round_trip():
 
 
 def main():
-    tests = [(n, f) for n, f in sorted(globals().items())
-             if n.startswith("test_") and callable(f)]
+    tests = [(n, f) for n, f in sorted(globals().items()) if n.startswith("test_") and callable(f)]
     failed = 0
     for name, fn in tests:
         try:
@@ -104,7 +103,7 @@ def main():
         except AssertionError as e:
             failed += 1
             print(f"FAIL  {name}: {e}")
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             failed += 1
             print(f"ERROR {name}: {type(e).__name__}: {e}")
     print(f"\n{len(tests) - failed}/{len(tests)} tests passed")

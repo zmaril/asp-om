@@ -13,6 +13,7 @@ Usage:
 BATCH_DIR must contain puzzles/NAME.json and plans/NAME.json (the layout
 written by generator.py). Exit 0 iff every pair passes.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -26,8 +27,7 @@ from model import load_harness_validator
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(
-        description="Validate a generated batch with harness/validate.py.")
+    ap = argparse.ArgumentParser(description="Validate a generated batch with harness/validate.py.")
     ap.add_argument("batch", type=Path, help="batch directory")
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
@@ -54,10 +54,8 @@ def main() -> int:
             print(f"FAIL  {pz_path.name}: {e}")
             continue
         if args.verbose:
-            done = ", ".join(f"{pid}@t={t}"
-                             for pid, t in sorted(complete_at.items()))
-            print(f"PASS  {pz_path.name}: plan length "
-                  f"{hval.plan_length(plan)}, complete: {done}")
+            done = ", ".join(f"{pid}@t={t}" for pid, t in sorted(complete_at.items()))
+            print(f"PASS  {pz_path.name}: plan length {hval.plan_length(plan)}, complete: {done}")
     n = len(puzzles)
     print(f"{n - fails}/{n} pairs PASS (canonical harness validator)")
     return 1 if fails else 0

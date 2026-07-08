@@ -20,16 +20,20 @@ brief's phase-1 mechanics:
 Returns a list of error strings; empty list = plan valid.
 """
 
+from typing import Any
+
 # Direction table re-declared here on purpose (fixed by the shared brief);
 # do not import it from the encoder.
 _DIRS = [(1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1), (1, -1)]
 
 
 def _board(radius):
-    return set((q, r)
-               for q in range(-radius, radius + 1)
-               for r in range(-radius, radius + 1)
-               if abs(q + r) <= radius)
+    return {
+        (q, r)
+        for q in range(-radius, radius + 1)
+        for r in range(-radius, radius + 1)
+        if abs(q + r) <= radius
+    }
 
 
 def validate_plan(inst, plan, cross_check_traj=True):
@@ -63,8 +67,7 @@ def validate_plan(inst, plan, cross_check_traj=True):
         return errors  # layout broken; simulation would be meaningless
 
     def gripper(d):
-        return (base[0] + length * _DIRS[d][0],
-                base[1] + length * _DIRS[d][1])
+        return (base[0] + length * _DIRS[d][0], base[1] + length * _DIRS[d][1])
 
     # ---- simulate ----
     pos = {x: tuple(h) for x, h in inst.init_at.items()}
@@ -78,7 +81,7 @@ def validate_plan(inst, plan, cross_check_traj=True):
         for x, h in pos.items():
             if h not in board:
                 errors.append(f"t={t}: atom {x} off the board at {h}")
-        seen = {}
+        seen: dict[tuple[int, int], Any] = {}
         for x, h in pos.items():
             if h in seen:
                 errors.append(f"t={t}: atoms {seen[h]} and {x} collide at {h}")
@@ -111,8 +114,7 @@ def validate_plan(inst, plan, cross_check_traj=True):
             held = None
         elif act in ("rot_cw", "rot_ccw"):
             if held is not None and any(held in b for b in bonds):
-                errors.append(
-                    f"step {t}: rotation while holding bonded atom {held}")
+                errors.append(f"step {t}: rotation while holding bonded atom {held}")
             orient = (orient + (1 if act == "rot_cw" else 5)) % 6
             if held is not None:
                 pos[held] = gripper(orient)
@@ -128,8 +130,7 @@ def validate_plan(inst, plan, cross_check_traj=True):
     # ---- goal ----
     for x, target in inst.products.items():
         if pos[x] != tuple(target):
-            errors.append(
-                f"goal: product {x} at {pos[x]}, wanted {tuple(target)}")
+            errors.append(f"goal: product {x} at {pos[x]}, wanted {tuple(target)}")
         if held == x:
             errors.append(f"goal: product {x} still held at the horizon")
     if inst.require_bond and not bonds:
@@ -142,10 +143,9 @@ def validate_plan(inst, plan, cross_check_traj=True):
             if claimed != sim_traj[x]:
                 errors.append(
                     f"decoded trajectory of {x} disagrees with re-simulation: "
-                    f"decoded {claimed} vs simulated {sim_traj[x]}")
-        if "bonds" in plan and glyph is not None:
-            if bool(plan["bonds"][T]) != bool(bonds):
-                errors.append("decoded final bond state disagrees with "
-                              "re-simulation")
+                    f"decoded {claimed} vs simulated {sim_traj[x]}"
+                )
+        if "bonds" in plan and glyph is not None and bool(plan["bonds"][T]) != bool(bonds):
+            errors.append("decoded final bond state disagrees with re-simulation")
 
     return errors

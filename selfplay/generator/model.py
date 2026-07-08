@@ -14,6 +14,7 @@ Everything here is a thin layer over existing repo code:
   * coordinates and rotation conventions (axial hexes, clockwise dir 0..5,
     rot_cw (q,r)->(-r,q+r)) are the shared project conventions.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -36,8 +37,11 @@ def load_harness_validator():
     """Import harness/validate.py under a non-clashing module name (the
     repo root also has a validate.py)."""
     import importlib.util
+
     path = REPO_ROOT / "harness" / "validate.py"
     spec = importlib.util.spec_from_file_location("harness_validate", path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot load harness validator from {path}")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
@@ -55,8 +59,7 @@ class Arm:
 
     def gripper0(self) -> tuple[int, int]:
         dq, dr = DIRS[self.orient]
-        return (self.base[0] + self.length * dq,
-                self.base[1] + self.length * dr)
+        return (self.base[0] + self.length * dq, self.base[1] + self.length * dr)
 
 
 @dataclass
@@ -72,7 +75,7 @@ class Machine:
     radius: int
     arms: list[Arm]
     inputs: list[Input]
-    calcs: list[tuple[int, int]]                        # calcifier hexes
+    calcs: list[tuple[int, int]]  # calcifier hexes
     bonders: list[tuple[tuple[int, int], tuple[int, int]]]  # adjacent pairs
     tape: dict[int, tuple[str, str]] = field(default_factory=dict)
     tmax: int = 0
@@ -121,7 +124,9 @@ class Machine:
             "base": {a.name: a.base for a in self.arms},
             "armlen": {a.name: a.length for a in self.arms},
             "init_orient": {a.name: a.orient for a in self.arms},
-            "init_at": {}, "init_type": {}, "init_bond": set(),
+            "init_at": {},
+            "init_type": {},
+            "init_bond": set(),
             "spawn": {i.index: i.hex for i in self.inputs},
             "spawn_type": {i.index: i.type for i in self.inputs},
             "pool": {i.index: i.pool for i in self.inputs},
@@ -129,16 +134,18 @@ class Machine:
             "glyph_bond": {(h1, h2) for h1, h2 in self.bonders},
             "product": {},
             "plan": dict(self.tape),
-            "v1_base": None, "v1_orient": None,
-            "claim_at": {}, "claim_type": {}, "claim_bond": {},
+            "v1_base": None,
+            "v1_orient": None,
+            "claim_at": {},
+            "claim_type": {},
+            "claim_bond": {},
             "claim_held": {},
         }
 
     def replay(self):
         """Run the machine forward with the repo validator's replay_v2.
         Returns (states, err); err is None iff every step is legal."""
-        return omval.replay_v2(self.to_F(), self.tmax, self.radius,
-                               lambda *a: None)
+        return omval.replay_v2(self.to_F(), self.tmax, self.radius, lambda *a: None)
 
     def instruction_count(self) -> int:
         return len(self.tape)
@@ -152,8 +159,7 @@ def components(state) -> list[dict]:
 
     Returns a list of dicts {atoms: {name: (q,r)}, types: {name: type},
     bonds: set[(name,name)], held: bool}."""
-    pos, typ, bonds, held = (state["pos"], state["typ"],
-                             state["bonds"], state["held"])
+    pos, typ, bonds, held = (state["pos"], state["typ"], state["bonds"], state["held"])
     adj: dict[str, set[str]] = {x: set() for x in pos}
     for x, y in bonds:
         adj[x].add(y)
@@ -172,12 +178,14 @@ def components(state) -> list[dict]:
                     comp.add(n)
                     stack.append(n)
         seen |= comp
-        out.append({
-            "atoms": {x: pos[x] for x in comp},
-            "types": {x: typ[x] for x in comp},
-            "bonds": {(x, y) for x, y in bonds if x in comp},
-            "held": any(x in held for x in comp),
-        })
+        out.append(
+            {
+                "atoms": {x: pos[x] for x in comp},
+                "types": {x: typ[x] for x in comp},
+                "bonds": {(x, y) for x, y in bonds if x in comp},
+                "held": any(x in held for x in comp),
+            }
+        )
     return out
 
 
@@ -187,8 +195,7 @@ def rot_cw_k(q: int, r: int, k: int) -> tuple[int, int]:
     return (q, r)
 
 
-def canonical_molecule(atoms: list[tuple[int, int, str]],
-                       bonds: set[frozenset[tuple[int, int]]]):
+def canonical_molecule(atoms: list[tuple[int, int, str]], bonds: set[frozenset[tuple[int, int]]]):
     """Canonical form of a molecule under translation + the 6 hex rotations
     (matching the model: no reflection symmetry -- arms cannot mirror a
     molecule).
@@ -203,26 +210,26 @@ def canonical_molecule(atoms: list[tuple[int, int, str]],
         rot_pos = {(q, r): rot_cw_k(q, r, k) for q, r, _ in atoms}
         pts = sorted(rot_pos.values())
         oq, or_ = pts[0]
-        norm_atoms = tuple(sorted(
-            (rot_pos[(q, r)][0] - oq, rot_pos[(q, r)][1] - or_, t)
-            for q, r, t in atoms))
-        norm_bonds = tuple(sorted(
-            tuple(sorted((rot_pos[h][0] - oq, rot_pos[h][1] - or_)
-                         for h in b))
-            for b in bonds))
+        norm_atoms = tuple(
+            sorted((rot_pos[(q, r)][0] - oq, rot_pos[(q, r)][1] - or_, t) for q, r, t in atoms)
+        )
+        norm_bonds = tuple(
+            sorted(
+                tuple(sorted((rot_pos[h][0] - oq, rot_pos[h][1] - or_) for h in b)) for b in bonds
+            )
+        )
         cand = (norm_atoms, norm_bonds)
         if best is None or cand < best:
             best = cand
+    assert best is not None  # range(6) loop always runs
     blob = json.dumps(best, sort_keys=True).encode()
     return best[0], best[1], hashlib.sha1(blob).hexdigest()
 
 
 def component_to_molecule(comp: dict):
     """(atoms list, bonds set) in canonical_molecule's input shape."""
-    atoms = [(q, r, comp["types"][x])
-             for x, (q, r) in sorted(comp["atoms"].items())]
-    bonds = {frozenset((comp["atoms"][x], comp["atoms"][y]))
-             for x, y in comp["bonds"]}
+    atoms = [(q, r, comp["types"][x]) for x, (q, r) in sorted(comp["atoms"].items())]
+    bonds = {frozenset((comp["atoms"][x], comp["atoms"][y])) for x, y in comp["bonds"]}
     return atoms, bonds
 
 
@@ -238,12 +245,17 @@ def find_output_placement(canon_atoms, rest_hexes: dict):
     for k in range(6):
         rot = sorted((rot_cw_k(q, r, k), t) for q, r, t in canon_atoms)
         pos = (actual[0][0] - rot[0][0][0], actual[0][1] - rot[0][0][1])
-        if all(((h[0] + pos[0], h[1] + pos[1]) in rest_hexes
-                and rest_hexes[(h[0] + pos[0], h[1] + pos[1])] == t)
-               for h, t in rot):
+        if all(
+            (
+                (h[0] + pos[0], h[1] + pos[1]) in rest_hexes
+                and rest_hexes[(h[0] + pos[0], h[1] + pos[1])] == t
+            )
+            for h, t in rot
+        ):
             return pos, k
-    raise AssertionError("no rotation maps the canonical product onto its "
-                         "resting hexes -- canonicalization bug")
+    raise AssertionError(
+        "no rotation maps the canonical product onto its resting hexes -- canonicalization bug"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -258,30 +270,32 @@ def molecule_json(canon_atoms, canon_bonds) -> dict:
     }
 
 
-def emit_puzzle(name: str, machine: Machine, canon_atoms, canon_bonds,
-                product_hash: str) -> dict:
+def emit_puzzle(name: str, machine: Machine, canon_atoms, canon_bonds, product_hash: str) -> dict:
     """Harness puzzle JSON. Nothing is pinned: layout is the solver's job
     (the reference plan proves a layout exists)."""
     product = molecule_json(canon_atoms, canon_bonds)
     product["id"] = "product"
-    parts = [{"type": "arm", "id": a.name, "length": a.length}
-             for a in machine.arms]
-    parts += [{"type": "calcifier", "id": f"c{g}"}
-              for g, _ in enumerate(machine.calcs, 1)]
-    parts += [{"type": "bonder", "id": f"b{g}"}
-              for g, _ in enumerate(machine.bonders, 1)]
+    parts = [{"type": "arm", "id": a.name, "length": a.length} for a in machine.arms]
+    parts += [{"type": "calcifier", "id": f"c{g}"} for g, _ in enumerate(machine.calcs, 1)]
+    parts += [{"type": "bonder", "id": f"b{g}"} for g, _ in enumerate(machine.bonders, 1)]
     return {
         "name": name,
-        "description": ("Forward-generated instance: a random legal machine "
-                        "was simulated with the exact model semantics and "
-                        "whatever it produced became the product, so the "
-                        "puzzle is solvable by construction "
-                        f"(product hash {product_hash})."),
+        "description": (
+            "Forward-generated instance: a random legal machine "
+            "was simulated with the exact model semantics and "
+            "whatever it produced became the product, so the "
+            "puzzle is solvable by construction "
+            f"(product hash {product_hash})."
+        ),
         "board_radius": machine.radius,
         "t_max": machine.tmax,
         "reagents": [
-            {"id": f"r{i.index}", "pool": i.pool,
-             "atoms": [{"element": i.type, "pos": [0, 0]}], "bonds": []}
+            {
+                "id": f"r{i.index}",
+                "pool": i.pool,
+                "atoms": [{"element": i.type, "pos": [0, 0]}],
+                "bonds": [],
+            }
             for i in machine.inputs
         ],
         "products": [product],
@@ -293,13 +307,11 @@ def emit_plan(name: str, machine: Machine, output_pos, output_rot) -> dict:
     """Harness plan JSON: the generating machine itself, as the reference
     solution."""
     placements = [
-        {"type": "arm", "id": a.name, "position": list(a.base),
-         "rotation": a.orient}
+        {"type": "arm", "id": a.name, "position": list(a.base), "rotation": a.orient}
         for a in machine.arms
     ]
     placements += [
-        {"type": "input", "id": f"r{i.index}", "position": list(i.hex),
-         "rotation": 0}
+        {"type": "input", "id": f"r{i.index}", "position": list(i.hex), "rotation": 0}
         for i in machine.inputs
     ]
     placements += [
@@ -308,14 +320,15 @@ def emit_plan(name: str, machine: Machine, output_pos, output_rot) -> dict:
     ]
     for g, (h1, h2) in enumerate(machine.bonders, 1):
         rot = DIRS.index((h2[0] - h1[0], h2[1] - h1[1]))
-        placements.append({"type": "bonder", "id": f"b{g}",
-                           "position": list(h1), "rotation": rot})
-    placements.append({"type": "output", "id": "product",
-                       "position": list(output_pos), "rotation": output_rot})
+        placements.append({"type": "bonder", "id": f"b{g}", "position": list(h1), "rotation": rot})
+    placements.append(
+        {"type": "output", "id": "product", "position": list(output_pos), "rotation": output_rot}
+    )
     return {
         "puzzle": name,
         "solver": "selfplay/generator forward-generation reference tape",
         "placements": placements,
-        "instructions": [{"t": t, "arm": m, "action": a}
-                         for t, (m, a) in sorted(machine.tape.items())],
+        "instructions": [
+            {"t": t, "arm": m, "action": a} for t, (m, a) in sorted(machine.tape.items())
+        ],
     }

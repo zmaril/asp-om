@@ -36,15 +36,16 @@ Variable families (via pysat IDPool):
 """
 
 import argparse
+import os
 import sys
 import time
 
 from pysat.formula import CNF, IDPool
 
 try:
-    from instances import CASES, DIRS, ACTIONS, hex_ball, Instance  # noqa: F401
+    from instances import ACTIONS, CASES, DIRS, Instance, hex_ball
 except ImportError:  # imported as sat.encode
-    from sat.instances import CASES, DIRS, ACTIONS, hex_ball, Instance  # noqa: F401
+    from sat.instances import ACTIONS, CASES, DIRS, Instance, hex_ball  # noqa: F401
 
 
 class Encoder:
@@ -87,7 +88,7 @@ class Encoder:
 
         # ---- layout variables ----
         self.exactly_one([self.v("base", h) for h in self.hexes])
-        self.exactly_one([self.v("alen", l) for l in self.lengths])
+        self.exactly_one([self.v("alen", ln) for ln in self.lengths])
         # initial orientation is orient(d,0); covered by the orient EO below.
 
         if inst.has_glyph:
@@ -118,13 +119,12 @@ class Encoder:
         # ---- gripper = base + len*dir(orient); must stay on the board ----
         for t in times:
             for b in self.hexes:
-                for l in self.lengths:
+                for ln in self.lengths:
                     for d in range(6):
-                        g = (b[0] + l * DIRS[d][0], b[1] + l * DIRS[d][1])
-                        pre = [-self.v("base", b), -self.v("alen", l),
-                               -self.v("orient", d, t)]
+                        g = (b[0] + ln * DIRS[d][0], b[1] + ln * DIRS[d][1])
+                        pre = [-self.v("base", b), -self.v("alen", ln), -self.v("orient", d, t)]
                         if g in self.hexset:
-                            self.add(pre + [self.v("grip", g, t)])
+                            self.add([*pre, self.v("grip", g, t)])
                         else:
                             self.add(pre)  # forbidden combo: gripper off-board
             self.at_most_one([self.v("grip", h, t) for h in self.hexes])
@@ -141,8 +141,7 @@ class Encoder:
                 hx, hx1 = self.v("hold", x, t), self.v("hold", x, t + 1)
                 # grab effect: atom under gripper becomes held
                 for h in self.hexes:
-                    self.add([-grab, -self.v("grip", h, t),
-                              -self.v("at", x, h, t), hx1])
+                    self.add([-grab, -self.v("grip", h, t), -self.v("at", x, h, t), hx1])
                 # persistence: held unless dropped
                 self.add([-hx, drop, hx1])
                 # drop releases
@@ -151,14 +150,12 @@ class Encoder:
                 self.add([-hx1, hx, grab])
                 # ... of the atom that sat under the gripper
                 for h in self.hexes:
-                    self.add([-hx1, hx, -self.v("grip", h, t),
-                              self.v("at", x, h, t)])
+                    self.add([-hx1, hx, -self.v("grip", h, t), self.v("at", x, h, t)])
                 # grab precondition: hand empty
                 self.add([-grab, -hx])
             # grab precondition: something under the gripper
             for h in self.hexes:
-                self.add([-grab, -self.v("grip", h, t)]
-                         + [self.v("at", x, h, t) for x in X])
+                self.add([-grab, -self.v("grip", h, t)] + [self.v("at", x, h, t) for x in X])
             # drop precondition: holding something
             self.add([-drop] + [self.v("hold", x, t) for x in X])
         # arm holds at most one atom
@@ -174,20 +171,22 @@ class Encoder:
         for t in range(1, T + 1):  # held atom rides the gripper
             for x in X:
                 for h in self.hexes:
-                    self.add([-self.v("hold", x, t), -self.v("grip", h, t),
-                              self.v("at", x, h, t)])
+                    self.add([-self.v("hold", x, t), -self.v("grip", h, t), self.v("at", x, h, t)])
         for t in steps:  # free atoms are inert
             for x in X:
                 for h in self.hexes:
-                    self.add([-self.v("at", x, h, t),
-                              self.v("hold", x, t + 1),
-                              self.v("at", x, h, t + 1)])
+                    self.add(
+                        [
+                            -self.v("at", x, h, t),
+                            self.v("hold", x, t + 1),
+                            self.v("at", x, h, t + 1),
+                        ]
+                    )
 
         # ---- bonds (glyph of bonding) ----
         self.pairs = []
         if inst.has_glyph:
-            self.pairs = [(X[i], X[j]) for i in range(len(X))
-                          for j in range(i + 1, len(X))]
+            self.pairs = [(X[i], X[j]) for i in range(len(X)) for j in range(i + 1, len(X))]
             placements = []  # (h1, d, h2) with both cells on-board
             for h1 in self.hexes:
                 for d in range(6):
@@ -200,7 +199,7 @@ class Encoder:
                 return self.v("bond", p, t)
 
             for t in times:
-                for (h1, d, h2) in placements:
+                for h1, d, h2 in placements:
                     for x in X:
                         for y in X:
                             if x == y:
@@ -216,27 +215,27 @@ class Encoder:
                             self.add([-w, gd])
                             self.add([-w, ax])
                             self.add([-w, ay])
-            for (x, y) in self.pairs:
+            for x, y in self.pairs:
                 for t in times:
                     b = self.v("bond", (x, y), t)
-                    wits = [self.v("bf", u, v, h1, d, t)
-                            for (h1, d, h2) in placements
-                            for (u, v) in ((x, y), (y, x))]
+                    wits = [
+                        self.v("bf", u, v, h1, d, t)
+                        for (h1, d, h2) in placements
+                        for (u, v) in ((x, y), (y, x))
+                    ]
                     if t == 0:
-                        self.add([-b] + wits)
+                        self.add([-b, *wits])
                     else:
                         # persistence + completion
                         self.add([-self.v("bond", (x, y), t - 1), b])
-                        self.add([-b, self.v("bond", (x, y), t - 1)] + wits)
+                        self.add([-b, self.v("bond", (x, y), t - 1), *wits])
             # phase-1 restriction: no rotation while holding a bonded atom
             for t in steps:
                 for rot in ("rot_cw", "rot_ccw"):
-                    for (x, y) in self.pairs:
+                    for x, y in self.pairs:
                         b = self.v("bond", (x, y), t)
-                        self.add([-self.v("do", rot, t),
-                                  -self.v("hold", x, t), -b])
-                        self.add([-self.v("do", rot, t),
-                                  -self.v("hold", y, t), -b])
+                        self.add([-self.v("do", rot, t), -self.v("hold", x, t), -b])
+                        self.add([-self.v("do", rot, t), -self.v("hold", y, t), -b])
 
         # ---- goal at the horizon ----
         for x, h in inst.products.items():
@@ -249,8 +248,7 @@ class Encoder:
     def layout_assumptions(self):
         """Unit literals pinning the layout to the clingo arm's layout."""
         fl = self.inst.fixed_layout
-        lits = [self.v("base", fl.base), self.v("alen", fl.length),
-                self.v("orient", fl.orient, 0)]
+        lits = [self.v("base", fl.base), self.v("alen", fl.length), self.v("orient", fl.orient, 0)]
         if self.inst.has_glyph:
             lits += [self.v("gpos", fl.glyph_pos), self.v("gdir", fl.glyph_dir)]
         return lits
@@ -270,32 +268,32 @@ class Encoder:
 
 
 def main():
-    try:
-        from solvers import solve as run_solver
-        from decode import decode_model, format_plan
-        from validate import validate_plan
-    except ImportError:
-        from sat.solvers import solve as run_solver
-        from sat.decode import decode_model, format_plan
-        from sat.validate import validate_plan
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from sat.decode import decode_model, format_plan
+    from sat.solvers import solve as run_solver
+    from sat.validate import validate_plan
 
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--case", choices=sorted(CASES), required=True)
     ap.add_argument("--horizon", type=int, required=True)
-    ap.add_argument("--fixed-layout", action="store_true",
-                    help="pin the layout to the clingo arm's layout")
-    ap.add_argument("--backend", default="cadical195",
-                    choices=["cadical195", "glucose42", "kissat"])
+    ap.add_argument(
+        "--fixed-layout", action="store_true", help="pin the layout to the clingo arm's layout"
+    )
+    ap.add_argument(
+        "--backend", default="cadical195", choices=["cadical195", "glucose42", "kissat"]
+    )
     ap.add_argument("--dimacs", help="dump DIMACS (assumptions as units) here")
     args = ap.parse_args()
 
     inst = CASES[args.case]
     enc = Encoder(inst, args.horizon)
     assumptions = enc.layout_assumptions() if args.fixed_layout else []
-    print(f"case {args.case} T={args.horizon} "
-          f"mode={'fixed' if args.fixed_layout else 'free'}: "
-          f"{enc.nvars} vars, {enc.nclauses} clauses, "
-          f"encode {enc.encode_time:.3f}s")
+    print(
+        f"case {args.case} T={args.horizon} "
+        f"mode={'fixed' if args.fixed_layout else 'free'}: "
+        f"{enc.nvars} vars, {enc.nclauses} clauses, "
+        f"encode {enc.encode_time:.3f}s"
+    )
 
     if args.dimacs:
         dump = CNF()

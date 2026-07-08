@@ -29,42 +29,46 @@ ELEMENTAL = {"air", "earth", "fire", "water"}
 # free-layout solutions validate against their chosen layout.
 # --------------------------------------------------------------------------
 SPEC = {
-    "trivial": dict(  # asp/trivial_instance.lp + core.lp
-        semantics="v1", radius=2,
-        atoms={"a1": dict(pos=(1, 0), type="salt")},
-        init_bonds=[],
-        products=[("a1", (-1, 0))],
-        product_slots=[], require_end_bond=False,
-        forbid_rot_holding_bonded=False,
-    ),
-    "bond": dict(  # asp/bond_instance.lp + core.lp
-        semantics="v1", radius=2,
-        atoms={"a1": dict(pos=(1, 0), type="salt"),
-               "a2": dict(pos=(0, 1), type="salt")},
-        init_bonds=[],
-        products=[("a1", (-1, 0)), ("a2", (0, -1))],
-        product_slots=[], require_end_bond=True,
-        forbid_rot_holding_bonded=True,
-    ),
-    "rigid": dict(  # asp/rigid_instance.lp + core2.lp
-        semantics="v2", radius=2,
-        atoms={"a1": dict(pos=(1, 0), type="salt"),
-               "a2": dict(pos=(2, 0), type="salt")},
-        init_bonds=[("a1", "a2")],
-        products=[("a1", (-1, 1)), ("a2", (-2, 2))],
-        product_slots=[], require_end_bond=False,
-        forbid_rot_holding_bonded=False,
-    ),
-    "water": dict(  # z3/stabilized_water.lp + core2.lp (Stabilized Water)
-        semantics="v2", radius=2,
-        atoms={"w1": dict(pos=(1, 0), type="water"),
-               "w2": dict(pos=(1, -1), type="water")},
-        init_bonds=[],
-        products=[],
-        product_slots=[((-1, 0), "salt"), ((0, -1), "water")],
-        require_end_bond=True,
-        forbid_rot_holding_bonded=False,
-    ),
+    "trivial": {  # asp/trivial_instance.lp + core.lp
+        "semantics": "v1",
+        "radius": 2,
+        "atoms": {"a1": {"pos": (1, 0), "type": "salt"}},
+        "init_bonds": [],
+        "products": [("a1", (-1, 0))],
+        "product_slots": [],
+        "require_end_bond": False,
+        "forbid_rot_holding_bonded": False,
+    },
+    "bond": {  # asp/bond_instance.lp + core.lp
+        "semantics": "v1",
+        "radius": 2,
+        "atoms": {"a1": {"pos": (1, 0), "type": "salt"}, "a2": {"pos": (0, 1), "type": "salt"}},
+        "init_bonds": [],
+        "products": [("a1", (-1, 0)), ("a2", (0, -1))],
+        "product_slots": [],
+        "require_end_bond": True,
+        "forbid_rot_holding_bonded": True,
+    },
+    "rigid": {  # asp/rigid_instance.lp + core2.lp
+        "semantics": "v2",
+        "radius": 2,
+        "atoms": {"a1": {"pos": (1, 0), "type": "salt"}, "a2": {"pos": (2, 0), "type": "salt"}},
+        "init_bonds": [("a1", "a2")],
+        "products": [("a1", (-1, 1)), ("a2", (-2, 2))],
+        "product_slots": [],
+        "require_end_bond": False,
+        "forbid_rot_holding_bonded": False,
+    },
+    "water": {  # z3/stabilized_water.lp + core2.lp (Stabilized Water)
+        "semantics": "v2",
+        "radius": 2,
+        "atoms": {"w1": {"pos": (1, 0), "type": "water"}, "w2": {"pos": (1, -1), "type": "water"}},
+        "init_bonds": [],
+        "products": [],
+        "product_slots": [((-1, 0), "salt"), ((0, -1), "water")],
+        "require_end_bond": True,
+        "forbid_rot_holding_bonded": False,
+    },
 }
 
 
@@ -95,17 +99,16 @@ class Sim:
         self.spec = spec
         self.v2 = spec["semantics"] == "v2"
         self.radius = radius
-        self.arms = {a["name"]: dict(base=tuple(a["base"]),
-                                     length=a["length"])
-                     for a in layout["arms"]}
+        self.arms = {
+            a["name"]: {"base": tuple(a["base"]), "length": a["length"]} for a in layout["arms"]
+        }
         self.orient = {a["name"]: a["init_orient"] for a in layout["arms"]}
-        self.glyph_bonds = [((g[0], g[1]), (g[2], g[3]))
-                            for g in layout["glyph_bonds"]]
+        self.glyph_bonds = [((g[0], g[1]), (g[2], g[3])) for g in layout["glyph_bonds"]]
         self.glyph_calcs = [tuple(g) for g in layout["glyph_calcs"]]
         self.pos = {x: tuple(d["pos"]) for x, d in spec["atoms"].items()}
         self.typ = {x: d["type"] for x, d in spec["atoms"].items()}
-        self.held = {m: None for m in self.arms}   # arm -> atom | None
-        self.bonds = set(frozenset(p) for p in spec["init_bonds"])
+        self.held = dict.fromkeys(self.arms)  # arm -> atom | None
+        self.bonds = {frozenset(p) for p in spec["init_bonds"]}
         self.update_bonds()
         self.check_state()
 
@@ -148,7 +151,7 @@ class Sim:
     def update_bonds(self):
         """bond(X,Y,T) :- glyph_bond(..), at(X,..,T), at(Y,..,T) -- fires
         at EVERY state, even while atoms are held; bonds persist."""
-        for (p1, p2) in self.glyph_bonds:
+        for p1, p2 in self.glyph_bonds:
             x, y = self.atom_at(p1), self.atom_at(p2)
             if x is not None and y is not None and x != y:
                 self.bonds.add(frozenset((x, y)))
@@ -163,7 +166,7 @@ class Sim:
             if not on_board(self.gripper(m), self.radius):
                 raise Illegal(f"gripper of {m} off board")
         if self.v2:  # arm bases block hexes (core2 only)
-            for m, a in self.arms.items():
+            for a in self.arms.values():
                 if a["base"] in self.pos.values():
                     raise Illegal(f"atom on arm base {a['base']}")
 
@@ -172,9 +175,11 @@ class Sim:
         # calcification is determined by the PRE-move state of this step,
         # for EVERY step including wait (calcifies(X,T) :- at(X,..,T),
         # step(T); the type changes at T+1)
-        calcify = [x for x in self.pos
-                   if self.pos[x] in self.glyph_calcs
-                   and self.typ[x] in ELEMENTAL] if self.v2 else []
+        calcify = (
+            [x for x in self.pos if self.pos[x] in self.glyph_calcs and self.typ[x] in ELEMENTAL]
+            if self.v2
+            else []
+        )
         if action == "wait":
             for x in calcify:
                 self.typ[x] = "salt"
@@ -207,8 +212,7 @@ class Sim:
                     hb = self.held_by(x)
                     if hb is not None and hb != m:
                         raise Illegal(f"rotation tears {x} from {hb}")
-            self.orient[m] = (self.orient[m]
-                              + (1 if action == "rot_cw" else -1)) % 6
+            self.orient[m] = (self.orient[m] + (1 if action == "rot_cw" else -1)) % 6
             if self.v2:
                 # rigid rotation of the held component about the base
                 base = self.arms[m]["base"]
@@ -231,18 +235,21 @@ class Sim:
     # -- goal ---------------------------------------------------------------
     def goal_met(self):
         spec = self.spec
-        for (x, p) in spec["products"]:
+        for x, p in spec["products"]:
             if self.pos[x] != tuple(p) or self.held_by(x) is not None:
                 return False, f"product {x} not delivered"
         slots = spec["product_slots"]
         if slots:
             import itertools
+
             ok = False
             for perm in itertools.permutations(self.pos, len(slots)):
-                good = all(self.pos[perm[i]] == tuple(sp)
-                           and self.typ[perm[i]] == ty
-                           and self.held_by(perm[i]) is None
-                           for i, (sp, ty) in enumerate(slots))
+                good = all(
+                    self.pos[perm[i]] == tuple(sp)
+                    and self.typ[perm[i]] == ty
+                    and self.held_by(perm[i]) is None
+                    for i, (sp, ty) in enumerate(slots)
+                )
                 if good and spec["require_end_bond"] and len(slots) == 2:
                     good = frozenset(perm[:2]) in self.bonds
                 if good:
@@ -269,16 +276,13 @@ def validate(path):
     def cross_check(t):
         for x, tr in sol["atom_trajectories"].items():
             if tuple(tr[t]) != sim.pos[x]:
-                raise Illegal(f"t={t}: {x} at {sim.pos[x]}, "
-                              f"JSON says {tuple(tr[t])}")
+                raise Illegal(f"t={t}: {x} at {sim.pos[x]}, JSON says {tuple(tr[t])}")
         for m, orl in sol["orientations"].items():
             if orl[t] != sim.orient[m]:
-                raise Illegal(f"t={t}: {m} orient {sim.orient[m]}, "
-                              f"JSON says {orl[t]}")
+                raise Illegal(f"t={t}: {m} orient {sim.orient[m]}, JSON says {orl[t]}")
         for x, hl in sol["held"].items():
             if hl[t] != sim.held_by(x):
-                raise Illegal(f"t={t}: {x} held by {sim.held_by(x)}, "
-                              f"JSON says {hl[t]}")
+                raise Illegal(f"t={t}: {x} held by {sim.held_by(x)}, JSON says {hl[t]}")
         for entry in sol.get("bonds", []):
             pair = frozenset(entry["atoms"])
             if entry["bonded"][t] != (pair in sim.bonds):
@@ -303,8 +307,7 @@ def validate(path):
 
 def main():
     here = os.path.dirname(os.path.abspath(__file__))
-    paths = sys.argv[1:] or sorted(glob.glob(os.path.join(here, "solutions",
-                                                          "*.json")))
+    paths = sys.argv[1:] or sorted(glob.glob(os.path.join(here, "solutions", "*.json")))
     failures = 0
     for p in paths:
         ok, why = validate(p)

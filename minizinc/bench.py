@@ -14,38 +14,43 @@ Usage examples:
   python3 minizinc/bench.py --instances stabilized_water --variants free \
       --solvers cp-sat --threads 8 --timeout 600 --append --out ...
 """
+
 import argparse
 import csv
-import json
 import os
 import re
 import subprocess
-import sys
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-MODEL = {"fixed": os.path.join(HERE, "om_fixed.mzn"),
-         "free": os.path.join(HERE, "om.mzn")}
-DEFAULT_INSTANCES = ["t1_transport", "t2_bond", "t3_rigid", "t4_calc",
-                     "stabilized_water"]
+MODEL = {"fixed": os.path.join(HERE, "om_fixed.mzn"), "free": os.path.join(HERE, "om.mzn")}
+DEFAULT_INSTANCES = ["t1_transport", "t2_bond", "t3_rigid", "t4_calc", "stabilized_water"]
 DEFAULT_SOLVERS = ["gecode", "chuffed", "cp-sat", "highs", "coin-bc"]
 
 
 def run_one(instance, variant, solver, threads, timeout_s, dzn_dir):
     dzn = os.path.join(dzn_dir, instance + ".dzn")
-    cmd = ["minizinc", "--solver", solver, "--time-limit",
-           str(timeout_s * 1000), "-s", "--output-mode", "json",
-           "--output-objective", MODEL[variant], dzn]
+    cmd = [
+        "minizinc",
+        "--solver",
+        solver,
+        "--time-limit",
+        str(timeout_s * 1000),
+        "-s",
+        "--output-mode",
+        "json",
+        "--output-objective",
+        MODEL[variant],
+        dzn,
+    ]
     if threads is not None:
         cmd[3:3] = ["-p", str(threads)]
     t0 = time.monotonic()
     try:
-        p = subprocess.run(cmd, capture_output=True, text=True,
-                           timeout=timeout_s + 120)
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_s + 120)
         out, err, rc = p.stdout, p.stderr, p.returncode
     except subprocess.TimeoutExpired as e:
-        out = (e.stdout or b"").decode() if isinstance(e.stdout, bytes) \
-            else (e.stdout or "")
+        out = (e.stdout or b"").decode() if isinstance(e.stdout, bytes) else (e.stdout or "")
         err, rc = "hard timeout (minizinc did not stop itself)", -9
     wall = time.monotonic() - t0
 
@@ -66,19 +71,22 @@ def run_one(instance, variant, solver, threads, timeout_s, dzn_dir):
 
     notes = ""
     if status == "ERROR":
-        first = next((l for l in (err or out).splitlines() if l.strip()), "")
+        first = next((line for line in (err or out).splitlines() if line.strip()), "")
         notes = first[:160]
     elif status in ("SATISFIED", "UNKNOWN"):
-        notes = f"timeout {timeout_s}s" + \
-            (f", best={objective}" if objective else ", no solution")
+        notes = f"timeout {timeout_s}s" + (f", best={objective}" if objective else ", no solution")
 
     return {
-        "instance": instance, "variant": variant, "engine": solver,
+        "instance": instance,
+        "variant": variant,
+        "engine": solver,
         "threads": threads if threads is not None else "default",
-        "status": status, "objective": objective,
+        "status": status,
+        "objective": objective,
         "solve_s": stats.get("solveTime", ""),
         "flatten_s": stats.get("flatTime", ""),
-        "wall_s": f"{wall:.2f}", "notes": notes,
+        "wall_s": f"{wall:.2f}",
+        "notes": notes,
     }
 
 
@@ -94,8 +102,18 @@ def main():
     ap.add_argument("--dzn-dir", default=os.path.join(HERE, "instances"))
     args = ap.parse_args()
 
-    fields = ["instance", "variant", "engine", "threads", "status",
-              "objective", "solve_s", "flatten_s", "wall_s", "notes"]
+    fields = [
+        "instance",
+        "variant",
+        "engine",
+        "threads",
+        "status",
+        "objective",
+        "solve_s",
+        "flatten_s",
+        "wall_s",
+        "notes",
+    ]
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
     mode = "a" if args.append else "w"
     with open(args.out, mode, newline="") as f:
@@ -105,8 +123,7 @@ def main():
         for inst in args.instances:
             for var in args.variants:
                 for sol in args.solvers:
-                    row = run_one(inst, var, sol, args.threads,
-                                  args.timeout, args.dzn_dir)
+                    row = run_one(inst, var, sol, args.threads, args.timeout, args.dzn_dir)
                     w.writerow(row)
                     f.flush()
                     print(",".join(str(row[k]) for k in fields), flush=True)
