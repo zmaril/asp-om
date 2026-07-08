@@ -1,0 +1,93 @@
+{
+ "name": "fg_s7_0006",
+ "description": "Forward-generated instance: a random legal machine was simulated with the exact model semantics and whatever it produced became the product, so the puzzle is solvable by construction (product hash b0ee80f18d79f59c4611bfa9e782cbd3906cc887).",
+ "board_radius": 2,
+ "t_max": 12,
+ "reagents": [
+  {
+   "id": "r1",
+   "pool": 2,
+   "atoms": [
+    {
+     "element": "earth",
+     "pos": [
+      0,
+      0
+     ]
+    }
+   ],
+   "bonds": []
+  },
+  {
+   "id": "r2",
+   "pool": 1,
+   "atoms": [
+    {
+     "element": "fire",
+     "pos": [
+      0,
+      0
+     ]
+    }
+   ],
+   "bonds": []
+  },
+  {
+   "id": "r3",
+   "pool": 2,
+   "atoms": [
+    {
+     "element": "earth",
+     "pos": [
+      0,
+      0
+     ]
+    }
+   ],
+   "bonds": []
+  }
+ ],
+ "products": [
+  {
+   "atoms": [
+    {
+     "element": "earth",
+     "pos": [
+      0,
+      0
+     ]
+    },
+    {
+     "element": "fire",
+     "pos": [
+      0,
+      1
+     ]
+    }
+   ],
+   "bonds": [
+    [
+     0,
+     1
+    ]
+   ],
+   "id": "product"
+  }
+ ],
+ "parts": [
+  {
+   "type": "arm",
+   "id": "m1",
+   "length": 2
+  },
+  {
+   "type": "arm",
+   "id": "m2",
+   "length": 2
+  },
+  {
+   "type": "bonder",
+   "id": "b1"
+  }
+ ]
+}

@@ -1,0 +1,112 @@
+{
+ "name": "fg_s7_0074",
+ "description": "Forward-generated instance: a random legal machine was simulated with the exact model semantics and whatever it produced became the product, so the puzzle is solvable by construction (product hash d186a568b0661d0ecb5508c40f790e8f68ac463e).",
+ "board_radius": 2,
+ "t_max": 13,
+ "reagents": [
+  {
+   "id": "r1",
+   "pool": 3,
+   "atoms": [
+    {
+     "element": "salt",
+     "pos": [
+      0,
+      0
+     ]
+    }
+   ],
+   "bonds": []
+  },
+  {
+   "id": "r2",
+   "pool": 2,
+   "atoms": [
+    {
+     "element": "air",
+     "pos": [
+      0,
+      0
+     ]
+    }
+   ],
+   "bonds": []
+  },
+  {
+   "id": "r3",
+   "pool": 2,
+   "atoms": [
+    {
+     "element": "water",
+     "pos": [
+      0,
+      0
+     ]
+    }
+   ],
+   "bonds": []
+  },
+  {
+   "id": "r4",
+   "pool": 1,
+   "atoms": [
+    {
+     "element": "salt",
+     "pos": [
+      0,
+      0
+     ]
+    }
+   ],
+   "bonds": []
+  }
+ ],
+ "products": [
+  {
+   "atoms": [
+    {
+     "element": "salt",
+     "pos": [
+      0,
+      0
+     ]
+    },
+    {
+     "element": "water",
+     "pos": [
+      0,
+      1
+     ]
+    }
+   ],
+   "bonds": [
+    [
+     0,
+     1
+    ]
+   ],
+   "id": "product"
+  }
+ ],
+ "parts": [
+  {
+   "type": "arm",
+   "id": "m1",
+   "length": 2
+  },
+  {
+   "type": "arm",
+   "id": "m2",
+   "length": 1
+  },
+  {
+   "type": "arm",
+   "id": "m3",
+   "length": 2
+  },
+  {
+   "type": "bonder",
+   "id": "b1"
+  }
+ ]
+}

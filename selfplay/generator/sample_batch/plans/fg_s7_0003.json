@@ -1,0 +1,142 @@
+{
+ "puzzle": "fg_s7_0003",
+ "solver": "selfplay/generator forward-generation reference tape",
+ "placements": [
+  {
+   "type": "arm",
+   "id": "m1",
+   "position": [
+    1,
+    -1
+   ],
+   "rotation": 0
+  },
+  {
+   "type": "input",
+   "id": "r1",
+   "position": [
+    1,
+    -2
+   ],
+   "rotation": 0
+  },
+  {
+   "type": "input",
+   "id": "r2",
+   "position": [
+    0,
+    -1
+   ],
+   "rotation": 0
+  },
+  {
+   "type": "input",
+   "id": "r3",
+   "position": [
+    -1,
+    2
+   ],
+   "rotation": 0
+  },
+  {
+   "type": "bonder",
+   "id": "b1",
+   "position": [
+    0,
+    0
+   ],
+   "rotation": 0
+  },
+  {
+   "type": "output",
+   "id": "product",
+   "position": [
+    2,
+    -1
+   ],
+   "rotation": 3
+  }
+ ],
+ "instructions": [
+  {
+   "t": 0,
+   "arm": "m1",
+   "action": "rot_ccw"
+  },
+  {
+   "t": 1,
+   "arm": "m1",
+   "action": "rot_ccw"
+  },
+  {
+   "t": 2,
+   "arm": "m1",
+   "action": "grab"
+  },
+  {
+   "t": 3,
+   "arm": "m1",
+   "action": "drop"
+  },
+  {
+   "t": 4,
+   "arm": "m1",
+   "action": "grab"
+  },
+  {
+   "t": 5,
+   "arm": "m1",
+   "action": "rot_cw"
+  },
+  {
+   "t": 6,
+   "arm": "m1",
+   "action": "rot_cw"
+  },
+  {
+   "t": 7,
+   "arm": "m1",
+   "action": "rot_cw"
+  },
+  {
+   "t": 8,
+   "arm": "m1",
+   "action": "drop"
+  },
+  {
+   "t": 9,
+   "arm": "m1",
+   "action": "rot_cw"
+  },
+  {
+   "t": 10,
+   "arm": "m1",
+   "action": "rot_cw"
+  },
+  {
+   "t": 11,
+   "arm": "m1",
+   "action": "grab"
+  },
+  {
+   "t": 12,
+   "arm": "m1",
+   "action": "rot_ccw"
+  },
+  {
+   "t": 13,
+   "arm": "m1",
+   "action": "rot_ccw"
+  },
+  {
+   "t": 14,
+   "arm": "m1",
+   "action": "rot_ccw"
+  },
+  {
+   "t": 15,
+   "arm": "m1",
+   "action": "drop"
+  }
+ ]
+}

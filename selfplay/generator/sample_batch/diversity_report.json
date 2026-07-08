@@ -1,0 +1,73 @@
+{
+  "pairs": 100,
+  "attempts": 7430,
+  "yield": 0.0135,
+  "rejections": {
+    "layout": 2497,
+    "no_product": 4775,
+    "duplicate": 58
+  },
+  "unique_products": 17,
+  "product_size_distribution": {
+    "1": 27,
+    "2": 72,
+    "3": 1
+  },
+  "product_bond_count_distribution": {
+    "0": 27,
+    "1": 72,
+    "2": 1
+  },
+  "product_atom_type_mix": {
+    "salt": 62,
+    "fire": 32,
+    "air": 32,
+    "earth": 26,
+    "water": 22
+  },
+  "reagent_atom_type_mix": {
+    "air": 62,
+    "fire": 61,
+    "earth": 60,
+    "water": 58,
+    "salt": 38
+  },
+  "machine_arm_count_distribution": {
+    "1": 15,
+    "2": 41,
+    "3": 44
+  },
+  "plan_length_distribution": {
+    "6": 1,
+    "7": 1,
+    "8": 4,
+    "9": 3,
+    "10": 4,
+    "11": 1,
+    "12": 5,
+    "13": 5,
+    "14": 12,
+    "15": 5,
+    "16": 9,
+    "17": 6,
+    "18": 6,
+    "19": 11,
+    "20": 9,
+    "21": 2,
+    "22": 1,
+    "23": 3,
+    "24": 3,
+    "25": 7,
+    "28": 2
+  },
+  "glyph_totals": {
+    "calcifier": 47,
+    "bonder": 143
+  },
+  "reagent_count_distribution": {
+    "1": 12,
+    "2": 23,
+    "3": 39,
+    "4": 26
+  }
+}
