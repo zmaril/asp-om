@@ -1,0 +1,17 @@
+{
+  "name": "stabilized_water",
+  "description": "Pinned (fixed-layout) variant of the canonical stabilized_water: the hand layout from picat/stabilized_water.pi (arm base (0,0) dir 0; input (1,0); calc (0,1); bonder (-1,1)-(-1,0); output salt@(0,-1)-water@(1,-1)). NON-CANONICAL: used only to exercise the adapter's pin support.",
+  "board_radius": 2,
+  "t_max": 14,
+  "reagents": [
+    {"id": "water", "pool": 2, "atoms": [{"element": "water", "pos": [0, 0]}], "bonds": [], "position": [1, 0], "rotation": 0}
+  ],
+  "products": [
+    {"id": "stabilized_water", "atoms": [{"element": "salt", "pos": [0, 0]}, {"element": "water", "pos": [1, 0]}], "bonds": [[0, 1]], "position": [0, -1], "rotation": 0}
+  ],
+  "parts": [
+    {"type": "arm", "id": "m1", "length": 1, "position": [0, 0], "rotation": 0},
+    {"type": "calcifier", "id": "c1", "position": [0, 1]},
+    {"type": "bonder", "id": "b1", "position": [-1, 1], "rotation": 4}
+  ]
+}
