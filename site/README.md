@@ -39,19 +39,32 @@ npm run preview  # serve the built output locally
 Node 20+ (built and verified with Node 22). No other tooling required; all
 JS/TS tooling is self-contained under `site/`.
 
+The build does not depend on the working directory: the Astro project root
+is pinned in `astro.config.mjs`, and every repo-file read resolves the repo
+root from the module's own location (`src/lib/repo.ts`). Building via
+`npm --prefix site run build` from the repo root works the same as
+`cd site && npm run build`.
+
 ## Deploy to Cloudflare Pages (by hand)
+
+The site is **fully static** — every page is prerendered at build time and
+`dist/` is plain HTML/assets. **No deploy adapter is needed or wanted**; in
+particular do not add `@astrojs/cloudflare`. The build fails on purpose
+(`scripts/assert-static.mjs`, run as `postbuild`) if the output ever
+contains a `_worker.js`, because server-rendering the pages in a worker
+breaks the build-time `node:fs` reads.
 
 Option A — Git integration (recommended):
 
 1. Cloudflare dashboard → Workers & Pages → Create → Pages →
    "Connect to Git" and pick this repository.
 2. Settings:
-   - **Framework preset**: Astro
+   - **Framework preset**: Astro (no adapter — the output is static files)
    - **Build command**: `npm run build`
-   - **Build output directory**: `site/dist`
+   - **Build output directory**: `dist` (with **Root directory** set to
+     `site` this field is relative to `site/`, i.e. `site/dist` in repo
+     terms)
    - **Root directory**: `site`
-     (with root directory set to `site`, the output directory field is just
-     `dist`)
    - **Environment variable**: `NODE_VERSION=22`
 3. Save and deploy. Every push to the production branch redeploys.
 
